@@ -93,7 +93,7 @@ class Disk(NestedDict, Install, Rebuild):
         boot_partition = None
         root_partition = None
         partitions_list = []
-        for pid, part in enumerate(partitions):
+        for pid, part in enumerate(partitions, 1):
             name = part.name
             size = part.size
             filesystem_type = part.type
