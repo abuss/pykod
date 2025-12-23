@@ -3,9 +3,11 @@
 from dataclasses import dataclass
 from typing import Any, override
 
-from pykod.common import fake_exec as exec
-from pykod.config import Install, NestedDict, Rebuild
+from pykod.base import NestedDict
 
+# from pykod.common import fake_exec as exec
+from pykod.common import exec
+from pykod.core import generate_fstab, setup_bootloader
 
 _filesystem_cmd: dict[str, str | None] = {
     "esp": "mkfs.vfat -F32",
@@ -35,7 +37,7 @@ _filesystem_type: dict[str, str | None] = {
 }
 
 
-class Disk(NestedDict, Install, Rebuild):
+class Disk(NestedDict):
     """Represents a disk device with partitions."""
 
     def __init__(self, **kwargs):
@@ -52,9 +54,6 @@ class Disk(NestedDict, Install, Rebuild):
         boot_part, root_part, part_list = self._create_disk_partitions(
             device, partitions
         )
-        print("Boot partition:", boot_part)
-        print("Root partition:", root_part)
-        print("Partitions:", part_list)
         return boot_part, root_part, part_list
 
     def rebuild(self):
@@ -175,7 +174,7 @@ class Devices(NestedDict):
         self._root_partition = None
         self._partition_list = []
 
-    def install(self, mount_point: str = "/mnt") -> None:
+    def install(self, config, mount_point: str = "/mnt") -> list:
         print(f"[install] in {mount_point} create partitions:")
         print(self._data)
         print("=" * 50)
@@ -194,10 +193,10 @@ class Devices(NestedDict):
                 else:
                     raise Exception("Multiple root partitions detected!")
 
-        print("Partitions list:", self._partition_list)
-        for p in self._partition_list:
-            print(" >>>", p)
-
+        # print("Partitions list:", self._partition_list)
+        # for p in self._partition_list:
+        #     print(" >>>", p)
+        #
         # Create filesystem hierarchy if we have both boot and root partitions
         if self._boot_partition and self._root_partition:
             partition_list = self._create_filesystem_hierarchy(mount_point)
@@ -215,10 +214,14 @@ class Devices(NestedDict):
                 partition_list.append(p)
                 print(f"Adding additional partition: {p.source} -> {p.destination}")
 
-        print("Final partition list:")
-        for p in partition_list:
-            print("    =>", p)
-        #
+        # print("Final partition list:")
+        # for p in partition_list:
+        #     print("    =>", p)
+
+        # Generate fstab
+        generate_fstab(config, partition_list, mount_point)
+
+        return partition_list
 
     def rebuild(self) -> None:
         print("[rebuild] Arch repo:", self)
@@ -370,12 +373,17 @@ class FsEntry:
         return self.source
 
 
-def create_btrfs(delay_action: list[str], part: Any, blockdevice: str) -> list[str]:
-    print("Cheking subvolumes")
-    fstab_desc = []
-    exec(f"mount {blockdevice} /mnt", f"Failed to mount {blockdevice} to /mnt")
+class Boot(NestedDict):
+    def install(self, config):
+        print("[install] Boot configuration:", self)
+        setup_bootloader(self, config.partition_list, config.base)
 
-    fstab_desc.append(FsEntry(blockdevice, "/", "btrfs", "defaults", 0, 0))
-    print(fstab_desc[0])
-    print(fstab_desc[0].mount("/mnt"))
-    return delay_action
+
+class Kernel(NestedDict):
+    def install(self, _config):
+        print("[install] Kernel configuration:", self)
+
+
+class Loader(NestedDict):
+    def install(self, _config):
+        print("[install] Loader configuration:", self)

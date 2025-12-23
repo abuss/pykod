@@ -1,0 +1,93 @@
+"""Desktop environment manager."""
+
+from dataclasses import dataclass, field
+from typing import Optional
+
+from pykod.base import NestedDict
+from pykod.repositories.base import PackageList
+
+
+@dataclass
+class DesktopEnvironment:
+    """Desktop environment configuration.
+
+    Args:
+        enable: Whether to enable this desktop environment
+        display_manager: Display manager to use (e.g., 'gdm', 'sddm')
+        extra_packages: Additional packages to install
+        exclude_packages: Packages to exclude from default installation
+    """
+
+    enable: bool = False
+    display_manager: str = "gdm"
+    extra_packages: PackageList = field(default_factory=PackageList)
+    exclude_packages: PackageList = field(default_factory=PackageList)
+
+
+class DesktopManager(NestedDict):
+    """Desktop environment manager configuration.
+
+    This class provides a flexible way to configure multiple desktop environments
+    and window managers using a dynamic environments dictionary.
+
+    Args:
+        environments: Dictionary of environment name to DesktopEnvironment configuration
+        default_display_manager: Default display manager to use if not specified per environment
+
+    Example Usage:
+        # Traditional desktop environments
+        DesktopManager(environments={
+            'gnome': DesktopEnvironment(enable=True, display_manager="gdm"),
+            'plasma': DesktopEnvironment(enable=False, display_manager="sddm"),
+            'cosmic': DesktopEnvironment(enable=True, display_manager="cosmic-greeter")
+        })
+
+        # Modern window managers and compositors
+        DesktopManager(environments={
+            'hyprland': DesktopEnvironment(enable=True, display_manager="greetd"),
+            'sway': DesktopEnvironment(enable=False, display_manager="greetd"),
+            'i3': DesktopEnvironment(enable=False, display_manager="lightdm")
+        })
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize desktop manager."""
+        super().__init__(**kwargs)
+        self.environments: dict[str, DesktopEnvironment]
+        self.default_display_manager: Optional[str]
+
+    def install(self, _config):
+        """Creating a Desktop manager."""
+        print("\n[install] Environments:")
+        for key, extra in self.environments.items():
+            print(f" - {key}: {extra}")
+
+    def rebuild(self):
+        print("[rebuild] Updating environments:")
+        for key, extra in self.environments.items():
+            print(f" - {key}: {extra}")
+
+    # def add_environment(self, name: str, environment: DesktopEnvironment) -> None:
+    #     """Add a new desktop environment or window manager.
+
+    #     Args:
+    #         name: Name of the environment (e.g., 'hyprland', 'sway', 'i3')
+    #         environment: DesktopEnvironment configuration
+    #     """
+    #     self.environments[name] = environment
+
+    # def remove_environment(self, name: str) -> None:
+    #     """Remove a desktop environment or window manager.
+
+    #     Args:
+    #         name: Name of the environment to remove
+    #     """
+    #     self.environments.pop(name, None)
+
+    # def get_enabled_environments(self) -> dict[str, DesktopEnvironment]:
+    #     """Get all enabled desktop environments.
+
+    #     Returns:
+    #         Dictionary of enabled environments
+    #     """
+    #     return {name: env for name, env in self.environments.items() if env.enable}

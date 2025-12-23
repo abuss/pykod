@@ -21,15 +21,17 @@
 #   - programs
 #
 
-from pykod.devices import Devices, Disk, Partition
+from pykod import Configuration
+from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
+from pykod.locale import Locale
 
 # from pykod.disk import Partition
-# from pykod.repositories import AUR, Arch, Flatpak
-from pykod import Configuration, ndict
+from pykod.repositories import AUR, Arch, Flatpak
+
 # from pykod.repositories import Repository
 
 
-conf = Configuration()
+conf = Configuration(dry_run=True, debug=True, verbose=True)
 # use_virtualization = False
 
 # git_config = ndict
@@ -50,9 +52,9 @@ conf = Configuration()
 # import pykod.openssh as openssh
 # from pykod import config
 
-# archpkgs = Arch(url="https://mirror.rackspace.com/archlinux")
-# aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-# flatpakpkgs = Flatpak(hub_url="flathub")
+conf.archpkgs = Arch(url="https://mirror.rackspace.com/archlinux")
+conf.aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+conf.flatpakpkgs = Flatpak(hub_url="flathub")
 
 conf.device = Devices(
     disk0=Disk(
@@ -74,9 +76,47 @@ conf.device = Devices(
     ),
 )
 
-# conf.demo = ndict(x=5, enable=True)
-# conf.demo.foo.bar = 66
+conf.boot = Boot(
+    kernel=Kernel(
+        package="linux",
+        modules=[
+            "xhci_pci",
+            "ohci_pci",
+            "ehci_pci",
+            "virtio_pci",
+            "ahci",
+            "usbhid",
+            "sr_mod",
+            "virtio_blk",
+        ],
+    ),
+    loader=Loader(
+        type="systemd-boot",
+        timeout=10,
+        include=["memtest86+"],
+    ),
+)
 
+conf.locale = Locale(
+    default="en_CA.UTF-8 UTF-8",
+    additional_locales=[
+        "en_US.UTF-8 UTF-8",
+        "en_GB.UTF-8 UTF-8",
+    ],
+    extra_settings={
+        "LC_ADDRESS": "en_CA.UTF-8",
+        "LC_IDENTIFICATION": "en_CA.UTF-8",
+        "LC_MEASUREMENT": "en_CA.UTF-8",
+        "LC_MONETARY": "en_CA.UTF-8",
+        "LC_NAME": "en_CA.UTF-8",
+        "LC_NUMERIC": "en_CA.UTF-8",
+        "LC_PAPER": "en_CA.UTF-8",
+        "LC_TELEPHONE": "en_CA.UTF-8",
+        "LC_TIME": "en_CA.UTF-8",
+    },
+    keymap="us",
+    timezone="America/Edmonton",
+)
 
 if __name__ == "__main__":
     print("-" * 100)
@@ -85,4 +125,4 @@ if __name__ == "__main__":
 
     print("\n", "-" * 80)
     print(conf.install())
-    # print(conf.demo)
+    print("Conf.packages:", conf.packages)

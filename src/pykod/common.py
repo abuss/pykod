@@ -6,13 +6,14 @@ and system interaction used throughout the KodOS system.
 
 import logging
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from chorut import ChrootManager
 
-use_debug: bool = True
+use_debug: bool = False
 use_verbose: bool = False
 use_dry_run: bool = False
 
@@ -99,6 +100,10 @@ def set_dry_run(val: bool = True) -> None:
     """Set the global dry-run mode state."""
     global use_dry_run
     use_dry_run = val
+
+
+def get_dry_run() -> bool:
+    return use_dry_run
 
 
 def report_problems():
@@ -286,3 +291,61 @@ def exec_chroot(
 #         return None
 #
 #     return result
+
+
+# Create a wrapper that can be closed without affecting sys.stdout
+class CloseableStdoutWrapper:
+    def __init__(self, original_stdout):
+        self._stdout = original_stdout
+        self._closed = False
+
+    def write(self, text):
+        if not self._closed:
+            return self._stdout.write(text)
+        return 0
+
+    def flush(self):
+        if not self._closed:
+            return self._stdout.flush()
+
+    def close(self):
+        self._closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __getattr__(self, name):
+        if self._closed:
+            raise ValueError("I/O operation on closed file")
+        return getattr(self._stdout, name)
+
+
+def open_with_dry_run(
+    file: str | Path, mode: str = "r", **kwargs: Any
+) -> CloseableStdoutWrapper:
+    """Extended open function that considers dry_run parameter.
+
+    If dry_run is True (or global use_dry_run is True), returns sys.stdout
+    for write operations instead of opening the actual file.
+
+    Args:
+        file: File path to open
+        mode: File mode (same as built-in open)
+        dry_run: Override for dry run mode. If None, uses global use_dry_run
+        **kwargs: Additional arguments passed to built-in open()
+
+    Returns:
+        File object or sys.stdout in dry run mode for write operations
+    """
+    # In dry run mode, return stdout for write operations
+    if use_dry_run and ("w" in mode or "a" in mode):
+        print(
+            f"{Color.YELLOW}[DRY RUN] Would open file: {file} (mode: {mode}){Color.END}"
+        )
+        return CloseableStdoutWrapper(sys.stdout)
+
+    # For read operations or when not in dry run mode, use normal open
+    return open(file, mode, **kwargs)

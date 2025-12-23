@@ -7,9 +7,11 @@ import subprocess
 from pathlib import Path
 import shutil
 
+from pykod import BaseConfigClass, ABCAutoRegisterMeta
+
 
 @dataclass
-class GitRepository:
+class GitRepository(BaseConfigClass):
     """Git repository management for dotfiles.
 
     Handles cloning, updating, and status checking of Git repositories.
@@ -23,7 +25,7 @@ class GitRepository:
     local_path: str
 
     def __post_init__(self):
-        """Initialize paths."""
+        """Initialize expanded local path."""
         self.local_path = str(Path(self.local_path).expanduser())
 
     def clone(self) -> bool:
@@ -36,10 +38,10 @@ class GitRepository:
             return self.update()
 
         try:
-            subprocess.run(
+            _ = subprocess.run(
                 ["git", "clone", self.url, self.local_path],
                 check=True,
-                capture_output=True,
+                capture_output=False,
                 text=True,
             )
             return True
@@ -56,10 +58,10 @@ class GitRepository:
             return False
 
         try:
-            subprocess.run(
+            _ = subprocess.run(
                 ["git", "-C", self.local_path, "pull"],
                 check=True,
-                capture_output=True,
+                capture_output=False,
                 text=True,
             )
             return True
@@ -139,7 +141,7 @@ class GitRepository:
             return False
 
 
-class DotfileStrategy(ABC):
+class DotfileStrategy(ABC, BaseConfigClass, metaclass=ABCAutoRegisterMeta):
     """Abstract base class for dotfile deployment strategies."""
 
     @abstractmethod
@@ -238,7 +240,8 @@ class StowStrategy(DotfileStrategy):
             "git_available": self._git_repo.is_available(),
             "stow_available": self.is_available(),
             "target_dir_exists": Path(self.target_dir).exists(),
-            "target_dir_writable": Path(self.target_dir).is_dir() and Path(self.target_dir).exists()
+            "target_dir_writable": Path(self.target_dir).is_dir()
+            and Path(self.target_dir).exists()
             if Path(self.target_dir).exists()
             else False,
             "repo_url_valid": bool(self.repo_url.strip()),
@@ -313,7 +316,8 @@ class GitSymlinkStrategy(DotfileStrategy):
         return {
             "git_available": self._git_repo.is_available(),
             "target_dir_exists": Path(self.target_dir).exists(),
-            "target_dir_writable": Path(self.target_dir).is_dir() and Path(self.target_dir).exists()
+            "target_dir_writable": Path(self.target_dir).is_dir()
+            and Path(self.target_dir).exists()
             if Path(self.target_dir).exists()
             else False,
             "repo_url_valid": bool(self.repo_url.strip()),
@@ -435,10 +439,12 @@ class CopyStrategy(DotfileStrategy):
         return {
             "source_dir_exists": Path(self.source_dir).exists(),
             "target_dir_exists": Path(self.target_dir).exists(),
-            "target_dir_writable": Path(self.target_dir).is_dir() and Path(self.target_dir).exists()
+            "target_dir_writable": Path(self.target_dir).is_dir()
+            and Path(self.target_dir).exists()
             if Path(self.target_dir).exists()
             else False,
-            "source_dir_readable": Path(self.source_dir).is_dir() and Path(self.source_dir).exists()
+            "source_dir_readable": Path(self.source_dir).is_dir()
+            and Path(self.source_dir).exists()
             if Path(self.source_dir).exists()
             else False,
         }
