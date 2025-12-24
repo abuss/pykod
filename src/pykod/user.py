@@ -1,16 +1,16 @@
 """User account and user service configuration."""
 
 from dataclasses import dataclass, field
-from typing import Any, KeysView, Optional
 
+# from typing import Any, KeysView, Optional
 from pykod.base import NestedDict
+from pykod.repositories.base import PackageList
 
+# @dataclass
+# class ProgramManager:
+#     """Program manager placeholder for user dependency."""
 
-@dataclass
-class ProgramManager:
-    """Program manager placeholder for user dependency."""
-
-    programs: dict = field(default_factory=dict)
+#     programs: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -49,9 +49,33 @@ class UserService:
         extra_packages: Additional packages required
     """
 
-    enable: bool = False
-    config: Optional[dict] = None
-    extra_packages: list[str] = field(default_factory=list)
+    enable: bool
+    package: PackageList | None
+    config: dict | None = None
+    extra_packages: PackageList | None = None
+
+    def __post_init__(self):
+        """Post-initialization processing."""
+        if not self.enable:
+            self.package = None
+            self.extra_packages = None
+
+
+@dataclass
+class Program:
+    """User program configuration."""
+
+    enable: bool
+    package: PackageList | None
+    config: dict | None = None
+    deploy_config: bool = False
+    extra_packages: PackageList | None = None
+
+    def __post_init__(self):
+        """Post-initialization processing."""
+        if not self.enable:
+            self.package = None
+            self.extra_packages = None
 
 
 class User(NestedDict):

@@ -33,7 +33,7 @@ from pykod.packages import Packages
 # from pykod.disk import Partition
 from pykod.repositories import AUR, Arch, Flatpak
 from pykod.service import Service, ServiceManager
-from pykod.user import OpenSSH, Stow, User, UserService
+from pykod.user import OpenSSH, Program, Stow, User, UserService
 
 # from pykod.repositories import Repository
 
@@ -43,6 +43,7 @@ flatpakpkgs = Flatpak(hub_url="flathub")
 
 
 conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
+# conf = Configuration(base=archpkgs)
 # use_virtualization = False
 
 # git_config = ndict
@@ -65,18 +66,18 @@ conf.device = Devices(
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
             Partition(name="root", size="20G", type="btrfs", mountpoint="/"),
-            Partition(name="swap", size="2G", type="linux-swap"),
-            Partition(name="home", size="remaining", type="btrfs"),
+            # Partition(name="swap", size="2G", type="linux-swap"),
+            # Partition(name="home", size="100%", type="btrfs"),
         ],
     ),
-    disk1=Disk(
-        device="/dev/vdb",
-        partitions=[
-            Partition(
-                name="scratch", size="remaining", type="btrfs", mountpoint="/scratch"
-            ),
-        ],
-    ),
+    # disk1=Disk(
+    #     device="/dev/vdb",
+    #     partitions=[
+    #         Partition(
+    #             name="scratch", size="remaining", type="btrfs", mountpoint="/scratch"
+    #         ),
+    #     ],
+    # ),
 )
 
 conf.boot = Boot(
@@ -144,6 +145,7 @@ conf.desktop = DesktopManager(
         "gnome": DesktopEnvironment(
             enable=True,
             display_manager="gdm",
+            package=archpkgs["gnome"],
             exclude_packages=archpkgs["gnome-tour", "yelp"],
             extra_packages=archpkgs[
                 "gnome-tweaks",
@@ -162,22 +164,28 @@ conf.desktop = DesktopManager(
         ),
         "plasma": DesktopEnvironment(
             enable=False,
+            package=archpkgs["plasma"],
             display_manager="sddm",
             extra_packages=archpkgs["kde-applications"],
         ),
-        "cosmic": DesktopEnvironment(enable=True, display_manager="cosmic-greeter"),
+        "cosmic": DesktopEnvironment(
+            enable=True, package=archpkgs["cosmic"], display_manager="cosmic-greeter"
+        ),
         "budgie": DesktopEnvironment(
             enable=False,
+            package=archpkgs["budgie"],
             display_manager="lightdm",
             extra_packages=archpkgs["lightdm-gtk-greeter", "network-manager-applet"],
         ),
-        "cinnamon": DesktopEnvironment(enable=False, display_manager="gdm"),
+        "cinnamon": DesktopEnvironment(
+            enable=False, package=archpkgs["cinnamon"], display_manager="gdm"
+        ),
         # Wayland compositors
         "hyprland": DesktopEnvironment(
             enable=False,
+            package=archpkgs["hyprland"],
             display_manager="greetd",
             extra_packages=archpkgs[
-                "hyprland",
                 "hyprpaper",
                 "waybar",
                 "wofi",
@@ -228,36 +236,38 @@ conf.abuss = User(
         target_dir="~/",
         repo_url="http://git.homecloud.lan/abuss/dotconfig.git",
     ),
-    # programs=c.ProgramManager(
-    #     programs={
-    #         "git": c.Program(
-    #             enable=True,
-    #             config={
-    #                 "user.name": "Antal Buss",
-    #                 "user.email": "antal.buss@gmail.com",
-    #                 "core.editor": "helix",
-    #             },
-    #         ),
-    #         "starship": c.Program(enable=True, deploy_config=True),
-    #         "fish": c.Program(enable=True),
-    #         "zsh": c.Program(enable=True, deploy_config=True),
-    #         "neovim": c.Program(enable=True, deploy_config=True),
-    #         "helix": c.Program(enable=True, deploy_config=True),
-    #         "emacs": c.Program(
-    #             enable=True,
-    #             package="emacs-wayland",
-    #             deploy_config=True,
-    #             extra_packages=["aspell", "aspell-en"],
-    #         ),
-    #         "dconf": c.Program(
-    #             enable=True,
-    #             config="gnome_dconf_settings",  # Reference to gnome config
-    #         ),
-    #     }
+    # programs=Programs(
+    programs={
+        "git": Program(
+            enable=True,
+            package=archpkgs["git"],
+            config={
+                "user.name": "Antal Buss",
+                "user.email": "antal.buss@gmail.com",
+                "core.editor": "helix",
+            },
+        ),
+        #         "starship": c.Program(enable=True, deploy_config=True),
+        #         "fish": c.Program(enable=True),
+        "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
+        #         "neovim": c.Program(enable=True, deploy_config=True),
+        #         "helix": c.Program(enable=True, deploy_config=True),
+        "emacs": Program(
+            enable=True,
+            package=archpkgs["emacs-wayland"],
+            deploy_config=True,
+            extra_packages=archpkgs["aspell", "aspell-en"],
+        ),
+        #         "dconf": c.Program(
+        #             enable=True,
+        #             config="gnome_dconf_settings",  # Reference to gnome config
+        #         ),
+    },
     # ),
     services={
         "syncthing": UserService(
-            enable=True,
+            enable=False,
+            package=archpkgs["syncthing"],
             config={
                 "service_name": "syncthing",
                 "options": "'--no-browser' '--no-restart' '--logflags=0' '--gui-address=0.0.0.0:8384'",
@@ -283,32 +293,34 @@ conf.packages = Packages(
         "libgtop",
         "power-profiles-daemon",
         "system-config-printer",
-        "git",
+        # "git",
         "ghostty",
         # "alacritty",
         # "blueman", # TODO: Maybe a better location is required
         # AUR packages
-        "aur:visual-studio-code-bin",
-        "aur:opera",
         # Flatpak packages
         # "flatpak:com.mattjakeman.ExtensionManager",
         # "flatpak:com.visualstudio.code",
         "distrobox",
         "podman",
-        "aur:quickemu",
         "qemu-desktop",
         "spice-gtk",
-        "aur:uxplay",
-        "aur:megasync-bin",
         "remmina",
         "papers",
         "firefox",
         "thunderbird",
-        "aur:brave-bin",
-        "aur:zen-browser-bin",
         "freecad",
         "openscad",
         "prusa-slicer",
+    ]
+    + aurpkgs[
+        "visual-studio-code-bin",
+        "opera",
+        "quickemu",
+        "uxplay",
+        "megasync-bin",
+        "brave-bin",
+        "zen-browser-bin",
     ]
     # CLI tools
     + cli.packages(archpkgs, aurpkgs)

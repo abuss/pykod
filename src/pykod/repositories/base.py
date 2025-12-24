@@ -72,6 +72,10 @@ class PackageList:
             # for item in items:
             #     print(f"  - {item}")
 
+    def items(self):
+        for repo, items in self._pkgs.items():
+            yield repo, items
+
     def to_list(self):
         all_items = []
         for items in self._pkgs.values():

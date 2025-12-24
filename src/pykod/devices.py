@@ -219,7 +219,7 @@ class Devices(NestedDict):
         #     print("    =>", p)
 
         # Generate fstab
-        generate_fstab(config, partition_list, mount_point)
+        # generate_fstab(config, partition_list, mount_point)
 
         return partition_list
 

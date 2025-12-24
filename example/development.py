@@ -1,5 +1,6 @@
 def packages(archpkgs=None, aurpkgs=None, flatpakpkgs=None):
     pkgs = archpkgs[
+        # "git",
         # Languages
         "gcc",
         "cmake",

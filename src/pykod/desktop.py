@@ -18,10 +18,18 @@ class DesktopEnvironment:
         exclude_packages: Packages to exclude from default installation
     """
 
-    enable: bool = False
-    display_manager: str = "gdm"
+    enable: bool
+    package: PackageList | None
+    display_manager: str | None = None
     extra_packages: PackageList = field(default_factory=PackageList)
     exclude_packages: PackageList = field(default_factory=PackageList)
+
+    def __post_init__(self):
+        """Post-initialization processing."""
+        if not self.enable:
+            self.package = None
+            self.extra_packages = None
+            self.exclude_packages = None
 
 
 class DesktopManager(NestedDict):

@@ -1,7 +1,7 @@
 from operator import ne
 
 from pykod.common import set_debug, set_dry_run, set_verbose
-from pykod.core import configure_system, create_kod_user
+from pykod.core import configure_system, create_kod_user, generate_fstab
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
 from pykod.fonts import Fonts
@@ -145,6 +145,10 @@ class Configuration:
             print(f"Base packages to install: {base_packages}")
             #    - Installs essential packages with `dist.install_essentials_pkgs()`
             self.base.install_base(self.mount_point, base_packages)
+
+            # Generate fstab
+            generate_fstab(self, self.partition_list, self.mount_point)
+
             #    - Configures the system with `configure_system()` - sets up basic system configuration
             configure_system(self.mount_point)
 
@@ -173,15 +177,29 @@ class Configuration:
         #    - Gets packages to install from configuration with `get_packages_to_install()`
         #    - Gets pending packages to install with `get_pending_packages()`
         #    - Installs all packages using `manage_packages()` with chroot
-
-    def _list_packages(self):
-        # for name, obj in vars(self).items():
-        #     print(name)
         include_pkgs = PackageList()
         exclude_pkgs = PackageList()
         _find_package_lists(self, include_pkgs, exclude_pkgs)
-        print(f"Included packages: {include_pkgs}")
-        print(f"Excluded packages: {exclude_pkgs}")
+        # print(f"Included packages: {include_pkgs}")
+        print("Installing packages from repository")
+        for repo, packages in include_pkgs.items():
+            print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+        print("Excluding packages to install")
+        for repo, packages in exclude_pkgs.items():
+            print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+            # for package in packages:
+            # self.base.install_package(package, self.mount_point)
+
+        # print(f"Excluded packages: {exclude_pkgs}")
+
+    # def _list_packages(self):
+    #     # for name, obj in vars(self).items():
+    #     #     print(name)
+    #     include_pkgs = PackageList()
+    #     exclude_pkgs = PackageList()
+    #     _find_package_lists(self, include_pkgs, exclude_pkgs)
+    #     print(f"Included packages: {include_pkgs}")
+    #     print(f"Excluded packages: {exclude_pkgs}")
 
 
 def _find_package_lists(
@@ -215,7 +233,7 @@ def _find_package_lists(
                         attr_value, include_pkgs, exclude_pkgs, visited, new_path
                     )
                     if res is not None:
-                        print(f"{attr_name} -> {res}")
+                        # print(f"{attr_name} -> {res}")
                         if attr_name == "exclude_packages":
                             exclude_pkgs += res
                         else:
@@ -229,7 +247,7 @@ def _find_package_lists(
                         attr_value, include_pkgs, exclude_pkgs, visited, new_path
                     )
                     if res is not None:
-                        print(f"{path}: {attr_name} -> {res}")
+                        # print(f"{path}: {attr_name} -> {res}")
                         if attr_name == "exclude_packages":
                             exclude_pkgs += res
                         else:
