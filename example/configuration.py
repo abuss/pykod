@@ -38,12 +38,13 @@ from pykod.user import OpenSSH, Program, Stow, User, UserService
 # from pykod.repositories import Repository
 
 archpkgs = Arch(mirror_url="https://mirror.rackspace.com/archlinux")
-aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+# aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru.git")
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 
-conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-# conf = Configuration(base=archpkgs)
+# conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
+conf = Configuration(base=archpkgs)
 # use_virtualization = False
 
 # git_config = ndict

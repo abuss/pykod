@@ -38,18 +38,18 @@ class AUR(Repository):
             self.build(mount_point="/mnt")
             self.helper_installed = True
         pkgs = " ".join(package_name)
-        cmd = f"{self.helper} -S --needed --noconfirm {pkgs}"
+        cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {pkgs}"
         return cmd
         # exec_chroot(cmd, mount_point=mount_point)
 
     def remove_package(self, package_name):
         pkgs = " ".join(package_name)
-        cmd = f"{self.helper} -R --noconfirm {pkgs}"
+        cmd = f"runuser -u kod -- {self.helper} -R --noconfirm {pkgs}"
         return cmd
         # exec_chroot(cmd, mount_point=mount_point)
 
     def update_installed_packages(self) -> str:
-        cmd = f"{self.helper} -Syu --noconfirm"
+        cmd = f"runuser -u kod -- {self.helper} -Syu --noconfirm"
         return cmd
         # exec_chroot(cmd, mount_point=mount_point)
 
