@@ -1,5 +1,7 @@
 """AUR (Arch User Repository) configuration."""
 
+from pykod.utils.chroot import exec_chroot
+
 from .base import Repository
 
 
@@ -7,7 +9,7 @@ class AUR(Repository):
     def __init__(self, **kwargs):
         self.helper = kwargs.get("helper", "yay")
         self.helper_url = kwargs.get("helper_url", "https://aur.archlinux.org/yay.git")
-        self.installed = False
+        self.helper_installed = False
 
     # def install(self, items) -> None:
     #     print("[install] AUR repo:", self)
@@ -22,7 +24,7 @@ class AUR(Repository):
     def build(self, mount_point):
         name = (self.helper,)
         url = (self.helper_url,)
-        build_cmd = (build_cmd or "makepkg -si --noconfirm",)
+        build_cmd = "makepkg -si --noconfirm"
 
         # TODO: Generalize this code to support other distros
         # exec_chroot("pacman -S --needed --noconfirm git base-devel")
@@ -32,6 +34,9 @@ class AUR(Repository):
         )
 
     def install_package(self, package_name):
+        if not self.helper_installed:
+            self.build(mount_point="/mnt")
+            self.helper_installed = True
         pkgs = " ".join(package_name)
         cmd = f"{self.helper} -S --needed --noconfirm {pkgs}"
         return cmd
