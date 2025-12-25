@@ -1,8 +1,5 @@
 """AUR (Arch User Repository) configuration."""
 
-# from pykod.config import Install, Rebuild
-from turtle import Pen
-
 from .base import Repository
 
 
