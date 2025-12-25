@@ -22,8 +22,8 @@ class AUR(Repository):
     #         print(f"  - {item}")
 
     def build(self, mount_point):
-        name = (self.helper,)
-        url = (self.helper_url,)
+        name = self.helper
+        url = self.helper_url
         build_cmd = "makepkg -si --noconfirm"
 
         # TODO: Generalize this code to support other distros

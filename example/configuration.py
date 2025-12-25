@@ -143,7 +143,7 @@ conf.desktop = DesktopManager(
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
-            enable=True,
+            enable=False,
             display_manager="gdm",
             package=archpkgs["gnome"],
             exclude_packages=archpkgs["gnome-tour", "yelp"],
@@ -323,15 +323,15 @@ conf.packages = Packages(
         "zen-browser-bin",
     ]
     # CLI tools
-    + cli.packages(archpkgs, aurpkgs)
+    # + cli.packages(archpkgs, aurpkgs)
     # Development tools
-    + development.packages(archpkgs)
+    # + development.packages(archpkgs)
     # Flatpak packages
-    + flatpakpkgs[
-        "freecad",
-        "openscad",
-        "prusa-slicer",
-    ]
+    # + flatpakpkgs[
+    #     "freecad",
+    #     "openscad",
+    #     "prusa-slicer",
+    # ]
 )
 
 # System services configuration
