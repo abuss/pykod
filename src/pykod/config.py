@@ -1,6 +1,6 @@
 from operator import ne
 
-from pykod.common import set_debug, set_dry_run, set_verbose
+from pykod.common import exec_chroot, set_debug, set_dry_run, set_verbose
 from pykod.core import configure_system, create_kod_user, generate_fstab
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
@@ -184,11 +184,14 @@ class Configuration:
         print("Installing packages from repository")
         for repo, packages in include_pkgs.items():
             print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
-        print("Excluding packages to install")
-        for repo, packages in exclude_pkgs.items():
-            print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
-            # for package in packages:
-            # self.base.install_package(package, self.mount_point)
+            cmd = repo.install_package(set(packages))
+            # print(f"  Command: {cmd}")
+            exec_chroot(cmd, mount_point=self.mount_point)
+        # print("Excluding packages to install")
+        # for repo, packages in exclude_pkgs.items():
+        #     print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+        # for package in packages:
+        # self.base.install_package(package, self.mount_point)
 
         # print(f"Excluded packages: {exclude_pkgs}")
 

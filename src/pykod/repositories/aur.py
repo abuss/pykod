@@ -1,6 +1,8 @@
 """AUR (Arch User Repository) configuration."""
 
 # from pykod.config import Install, Rebuild
+from turtle import Pen
+
 from .base import Repository
 
 
@@ -32,18 +34,24 @@ class AUR(Repository):
             mount_point=mount_point,
         )
 
-    def install_package(self, package_name, mount_point):
-        cmd = f"{self.helper} -S --needed --noconfirm {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
+    def install_package(self, package_name):
+        pkgs = " ".join(package_name)
+        cmd = f"{self.helper} -S --needed --noconfirm {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def remove_package(self, package_name, mount_point):
-        cmd = f"{self.helper} -R --noconfirm {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
+    def remove_package(self, package_name):
+        pkgs = " ".join(package_name)
+        cmd = f"{self.helper} -R --noconfirm {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def update_package_list(self, mount_point):
+    def update_installed_packages(self) -> str:
         cmd = f"{self.helper} -Syu --noconfirm"
-        exec_chroot(cmd, mount_point=mount_point)
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def update_database(self, mount_point):
+    def update_database(self) -> str:
         cmd = f"{self.helper} -Sy"
-        exec_chroot(cmd, mount_point=mount_point)
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)

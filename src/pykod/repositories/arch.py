@@ -92,21 +92,27 @@ class Arch(Repository):
         exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}")
         return kver
 
-    def install_package(self, package_name, mount_point):
-        cmd = f"pacman -S --needed --noconfirm {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
+    def install_package(self, package_name) -> str:
+        pkgs = " ".join(package_name)
+        cmd = f"pacman -S --needed --noconfirm {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def remove_package(self, package_name, mount_point):
-        cmd = f"pacman -Rnsc --noconfirm {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
+    def remove_package(self, package_name) -> str:
+        pkgs = " ".join(package_name)
+        cmd = f"pacman -Rnsc --noconfirm {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def update_package_list(self, mount_point):
+    def update_installed_packages(self) -> str:
         cmd = "pacman -Syu --noconfirm"
-        exec_chroot(cmd, mount_point=mount_point)
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def update_database(self, mount_point):
+    def update_database(self) -> str:
         cmd = "pacman -Sy"
-        exec_chroot(cmd, mount_point=mount_point)
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
 
 # Arch

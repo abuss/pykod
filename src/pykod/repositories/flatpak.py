@@ -1,6 +1,5 @@
 """Flatpak repository configuration."""
 
-# from pykod.config import Install, Rebuild
 from .base import Repository
 
 
@@ -10,24 +9,20 @@ class Flatpak(Repository):
             "hub_url", "https://flathub.org/repo/flathub.flatpakrepo"
         )
 
-    # def install(self, items) -> None:
-    #     print("[install] Flatpak repo:", self)
-    #     for item in items:
-    #         print(f"  - {item}")
+    def install_package(self, package_name) -> str:
+        pkgs = " ".join(package_name)
+        cmd = f"flatpak install -y flathub {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    # def remove(self, items) -> None:
-    #     print("[remove] Flatpak repo:", self)
-    #     for item in items:
-    #         print(f"  - {item}")
+    def remove_package(self, package_name) -> str:
+        pkgs = " ".join(package_name)
+        cmd = f"flatpak uninstall -y flathub {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
 
-    def install_package(self, package_name, mount_point):
-        cmd = f"flatpak install -y flathub {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
-
-    def remove_package(self, package_name, mount_point):
-        cmd = f"flatpak uninstall -y flathub {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
-
-    def update_package_list(self, package_name, mount_point):
-        cmd = f"flatpak update -y {package_name}"
-        exec_chroot(cmd, mount_point=mount_point)
+    def update_installed_packages(self, package_name) -> str:
+        pkgs = " ".join(package_name)
+        cmd = f"flatpak update -y {pkgs}"
+        return cmd
+        # exec_chroot(cmd, mount_point=mount_point)
