@@ -152,7 +152,7 @@ conf.desktop = DesktopManager(
                 "showtime",
                 "gnome-connections",
                 "gnome-shell-extension-weather-oclock",
-                "flatpak:com.mattjakeman.ExtensionManager",
+                # "flatpak:com.mattjakeman.ExtensionManager",
                 "gnome-shell-extension-appindicator",
             ]
             + aurpkgs[

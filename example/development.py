@@ -14,7 +14,7 @@ def packages(archpkgs=None, aurpkgs=None, flatpakpkgs=None):
         "npm",
         "go",
         "python",
-        "python313-freethreaded",
+        # "python313-freethreaded",
         "uv",
         "ruff",
         "pyright",
