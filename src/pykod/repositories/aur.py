@@ -1,6 +1,6 @@
 """AUR (Arch User Repository) configuration."""
 
-from pykod.utils.chroot import exec_chroot
+from pykod.common import exec_chroot
 
 from .base import Repository
 
