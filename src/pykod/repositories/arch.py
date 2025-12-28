@@ -114,64 +114,69 @@ class Arch(Repository):
         return cmd
         # exec_chroot(cmd, mount_point=mount_point)
 
+    def list_installed_packages(self):
+        """Generate a file containing the list of installed packages and their versions."""
+        cmd = "pacman -Q --noconfirm"
+        return cmd
 
-# Arch
-def proc_repos(conf, current_repos=None, update=False, mount_point="/mnt"):
-    """
-    Process the repository configuration from the given config.
 
-    This function reads the repository configuration from the given config and
-    register information about how to build, install, or update each repository.
-    The function will write the result to /var/kod/repos.json.
+# # Arch
+# def proc_repos(conf, current_repos=None, update=False, mount_point="/mnt"):
+#     """
+#     Process the repository configuration from the given config.
 
-    Args:
-        conf (dict): The configuration dictionary to read from.
-        current_repos (dict): The current repository configuration.
-        update (bool): If True, update the package list. Defaults to False.
-        mount_point (str): The mount point where the installation is being
-            performed. Defaults to "/mnt".
+#     This function reads the repository configuration from the given config and
+#     register information about how to build, install, or update each repository.
+#     The function will write the result to /var/kod/repos.json.
 
-    Returns:
-        tuple: A tuple containing the processed repository configuration and
-            the list of packages that were installed.
-    """
-    # TODO: Add support for custom repositories and to be used during rebuild
-    repos_conf = conf.repos
-    repos = {}
-    packages = []
-    update_repos = False
-    for repo, repo_desc in repos_conf.items():
-        if current_repos and repo in current_repos and not update:
-            repos[repo] = current_repos[repo]
-            continue
-        repos[repo] = {}
-        for action, cmd in repo_desc["commands"].items():
-            repos[repo][action] = cmd
+#     Args:
+#         conf (dict): The configuration dictionary to read from.
+#         current_repos (dict): The current repository configuration.
+#         update (bool): If True, update the package list. Defaults to False.
+#         mount_point (str): The mount point where the installation is being
+#             performed. Defaults to "/mnt".
 
-        if "build" in repo_desc:
-            build_info = repo_desc["build"]
-            url = build_info["url"]
-            build_cmd = build_info["build_cmd"]
-            name = build_info["name"]
+#     Returns:
+#         tuple: A tuple containing the processed repository configuration and
+#             the list of packages that were installed.
+#     """
+#     # TODO: Add support for custom repositories and to be used during rebuild
+#     repos_conf = conf.repos
+#     repos = {}
+#     packages = []
+#     update_repos = False
+#     for repo, repo_desc in repos_conf.items():
+#         if current_repos and repo in current_repos and not update:
+#             repos[repo] = current_repos[repo]
+#             continue
+#         repos[repo] = {}
+#         for action, cmd in repo_desc["commands"].items():
+#             repos[repo][action] = cmd
 
-            # TODO: Generalize this code to support other distros
-            # exec_chroot("pacman -S --needed --noconfirm git base-devel")
-            exec_chroot(
-                f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
-                mount_point=mount_point,
-            )
+#         if "build" in repo_desc:
+#             build_info = repo_desc["build"]
+#             url = build_info["url"]
+#             build_cmd = build_info["build_cmd"]
+#             name = build_info["name"]
 
-        if "package" in repo_desc:
-            exec_chroot(
-                f"pacman -S --needed --noconfirm {repo_desc['package']}",
-                mount_point=mount_point,
-            )
-            packages += [repo_desc["package"]]
-        update_repos = True
+#             # TODO: Generalize this code to support other distros
+#             # exec_chroot("pacman -S --needed --noconfirm git base-devel")
+#             exec_chroot(
+#                 f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
+#                 mount_point=mount_point,
+#             )
 
-    if update_repos:
-        exec(f"mkdir -p {mount_point}/var/kod")
-        with open(f"{mount_point}/var/kod/repos.json", "w") as f:
-            f.write(json.dumps(repos, indent=2))
+#         if "package" in repo_desc:
+#             exec_chroot(
+#                 f"pacman -S --needed --noconfirm {repo_desc['package']}",
+#                 mount_point=mount_point,
+#             )
+#             packages += [repo_desc["package"]]
+#         update_repos = True
 
-    return repos, packages
+#     if update_repos:
+#         exec(f"mkdir -p {mount_point}/var/kod")
+#         with open(f"{mount_point}/var/kod/repos.json", "w") as f:
+#             f.write(json.dumps(repos, indent=2))
+
+#     return repos, packages

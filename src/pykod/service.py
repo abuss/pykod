@@ -1,6 +1,7 @@
 """Service configuration base classes."""
 
 from dataclasses import dataclass, field
+from sqlite3.dbapi2 import Date
 from typing import Any
 
 from pykod.base import NestedDict
@@ -20,19 +21,20 @@ class Service:
         settings: Service-specific configuration settings
     """
 
-    enable: bool
-    package: PackageList | None
+    package: PackageList
+    enable: bool = True
     service_name: str | None = None
     extra_packages: PackageList | None = None
     settings: dict[str, Any] = field(default_factory=dict)
 
-    # def __post_init__(self):
-    #     """Post-initialization processing."""
-    #     # if self.service_name is None and self.enable:
-    #     # self.service_name = self.
-    #     if not self.enable:
-    #         self.package = None
-    #         self.extra_packages = None
+    def __post_init__(self):
+        """Post-initialization processing."""
+        if self.service_name is None and self.enable:
+            self.service_name = self.package.to_list()[0]
+
+    # if not self.service_name:
+    #     self.service_name = sel
+    #     self.extra_packages = None
 
     # def install(self, _config):
     #     status = "Enabled" if self.enable else "Disabled"
@@ -65,28 +67,44 @@ class Service:
         return cmd
 
 
-class Services(NestedDict):
+# class Services(NestedDict):
+# @dataclass
+class Services(dict):
     """Service manager configuration."""
 
     def __init__(self, *args, **kwargs):
         """Initialize desktop manager."""
-        super().__init__(**kwargs)
         if len(args) > 0:
-            self._data: dict[str, Service] = args[0]
+            data = args[0]
+        else:
+            data = kwargs
 
-    def enable(self, _config):
+        super().__init__(data)
+
+    def enable(self, config):
         """Creating a Service manager."""
         print("\n[ENABLE] Services:")
-        for key, obj in self._data.items():
+        for key, obj in self.items():
             if obj.enable:
                 print(f"\n - {key}: {obj}")
                 cmd = obj.enable_service(key)
-                exec_chroot(cmd, mount_point=_config.mount_point)
+                exec_chroot(cmd, mount_point=config.mount_point)
 
     def rebuild(self):
         print("[rebuild] Updating services:")
-        for key, extra in self.services.items():
+        for key, extra in self.items():
             print(f" - {key}: {extra}")
+
+    def list_enabled_services(self):
+        """Creating a Service manager."""
+        return [key for key, obj in self.items() if obj.enable]
+
+    # def __getattr__(self, name) -> Service:
+    #     if name in self._data:
+    #         return self[name]
+    #     else:
+    #         self._data[name] = None
+    #         return self._data[name]
 
 
 # class Services(NestedDict):

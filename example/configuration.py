@@ -137,25 +137,9 @@ conf.network = Network(
     settings={"ipv6": True},
 )
 
-# # Hardware services configuration
-# conf.hardware = HardwareManager(
-#     services={
-#         "sane": Service(
-#             enable=True,
-#             package=archpkgs["sane"],
-#             extra_packages=archpkgs["sane-airscan"],
-#         ),
-#         "pipewire": Service(
-#             enable=True,
-#             package=archpkgs["pipewire"],
-#             extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
-#         ),
-#     }
-# )
-
 # Desktop environment configuration - using DesktopManager directly
 conf.desktop = DesktopManager(
-    display_manager=archpkgs["gdm"],
+    display_manager=Service(package=archpkgs["gdm"]),
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
@@ -367,40 +351,6 @@ conf.packages = Packages(
 )
 
 # System services configuration
-# conf.services = Services(
-#     sane=Service(
-#         enable=True,
-#         package=archpkgs["sane"],
-#         extra_packages=archpkgs["sane-airscan"],
-#     ),
-#     pipewire=Service(
-#         enable=True,
-#         package=archpkgs["pipewire"],
-#         extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
-#     ),
-#     fwupd=Service(enable=True, package=archpkgs["fwupd"]),
-#     tailscale=Service(enable=True, package=archpkgs["tailscale"]),
-#     networkmanager=Service(
-#         enable=True,
-#         package=archpkgs["networkmanager"],
-#         service_name="NetworkManager",
-#     ),
-#     # "nix": Service(enable=True, service_name="nix_daemon"),
-#     openssh=Service(
-#         enable=True,
-#         package=archpkgs["openssh-server"],
-#         service_name="sshd",
-#         settings={"PermitRootLogin": False},
-#     ),
-#     avahi=Service(enable=False, package=archpkgs["avahi-daemon"]),
-#     cups=Service(
-#         enable=True,
-#         package=archpkgs["cups"],
-#         extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
-#     ),
-#     bluetooth=Service(enable=True, package=archpkgs["bluez"], service_name="bluetooth"),
-# )
-
 conf.services = Services(
     {
         "sane": Service(
@@ -438,7 +388,7 @@ conf.services = Services(
         ),
     }
 )
-conf.services.avahi.enable = False
+conf.services["avahi"].enable = False
 
 # System mount configuration (disabled by default)
 # conf.mount = MountManager(

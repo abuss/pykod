@@ -1,10 +1,12 @@
 """Desktop environment manager."""
 
 from dataclasses import dataclass, field
+from pickletools import dis
 from typing import Optional
 
 from pykod.base import NestedDict
 from pykod.repositories.base import PackageList
+from pykod.service import Service
 
 
 @dataclass
@@ -32,7 +34,9 @@ class DesktopEnvironment:
             self.exclude_packages = None
 
 
-class DesktopManager(NestedDict):
+# class DesktopManager(NestedDict):
+@dataclass
+class DesktopManager:
     """Desktop environment manager configuration.
 
     This class provides a flexible way to configure multiple desktop environments
@@ -58,11 +62,14 @@ class DesktopManager(NestedDict):
         })
     """
 
-    def __init__(self, **kwargs):
-        """Initialize desktop manager."""
-        super().__init__(**kwargs)
-        self.environments: dict[str, DesktopEnvironment]
-        self.display_manager: Optional[str]
+    display_manager: Service
+    environments: dict[str, DesktopEnvironment] = field(default_factory=dict)
+
+    # def __init__(self, **kwargs):
+    #     """Initialize desktop manager."""
+    #     super().__init__(**kwargs)
+    #     self.environments: dict[str, DesktopEnvironment]
+    #     self.display_manager: Service | None = kwargs.get("display_manager", None)
 
     def install(self, _config):
         """Creating a Desktop manager."""
@@ -74,28 +81,3 @@ class DesktopManager(NestedDict):
         print("[rebuild] Updating environments:")
         for key, extra in self.environments.items():
             print(f" - {key}: {extra}")
-
-    # def add_environment(self, name: str, environment: DesktopEnvironment) -> None:
-    #     """Add a new desktop environment or window manager.
-
-    #     Args:
-    #         name: Name of the environment (e.g., 'hyprland', 'sway', 'i3')
-    #         environment: DesktopEnvironment configuration
-    #     """
-    #     self.environments[name] = environment
-
-    # def remove_environment(self, name: str) -> None:
-    #     """Remove a desktop environment or window manager.
-
-    #     Args:
-    #         name: Name of the environment to remove
-    #     """
-    #     self.environments.pop(name, None)
-
-    # def get_enabled_environments(self) -> dict[str, DesktopEnvironment]:
-    #     """Get all enabled desktop environments.
-
-    #     Returns:
-    #         Dictionary of enabled environments
-    #     """
-    #     return {name: env for name, env in self.environments.items() if env.enable}

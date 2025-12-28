@@ -3,7 +3,7 @@
 # from dataclasses import dataclass
 from typing import override
 
-from pykod.base import NestedDict
+# from pykod.base import NestedDict
 
 
 class PackageList:

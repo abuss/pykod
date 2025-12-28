@@ -1,6 +1,13 @@
+import json
 from collections import defaultdict
 
-from pykod.common import exec_chroot, set_debug, set_dry_run, set_verbose
+from pykod.common import (
+    exec_chroot,
+    open_with_dry_run,
+    set_debug,
+    set_dry_run,
+    set_verbose,
+)
 from pykod.core import configure_system, create_kod_user, generate_fstab
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
@@ -11,6 +18,7 @@ from pykod.locale import Locale
 from pykod.network import Network
 from pykod.packages import Packages
 from pykod.repositories.base import PackageList, Repository
+from pykod.service import Services
 
 
 class Configuration:
@@ -32,41 +40,6 @@ class Configuration:
         set_debug(self.debug)
         set_verbose(self.verbose)
         self.partition_list = None
-
-    # import inspect
-
-    # frame = inspect.currentframe().f_back
-    # self._sections = [
-    #     "System",
-    #     "Users",
-    #     "User",
-    #     "Repositories",
-    #     "Network",
-    #     # "Disk",
-    #     # "Partition",
-    #     "Boot",
-    #     "Kernel",
-    #     "Loader",
-    #     "Locale",
-    # ]
-    # frame.f_globals["NestedDict"] = NestedDict
-    # for name in self._sections:
-    #     exec(
-    #         f"{name} = lambda **kwargs: NestedDict(**kwargs)",
-    #         frame.f_globals,
-    #         frame.f_locals,
-    #     )
-    # self.repos = Repositories()
-    # self.system = System()
-    # Create the functions for the given list
-    # create_lambda_functions(["Repo", "System", "Users", "Arch", "AUR", "User"])
-    # pass
-
-    # def __enter__(self):
-    #     return self
-
-    # def __exit__(self, exc_type, exc_val, exc_tb):
-    #     pass
 
     # 1. **Initialization** (lines 78-86)
     #    - Creates a `Context` object with the current user, mount point (`/mnt` by default), and sets `use_chroot=True` and `stage="install"`
@@ -183,7 +156,7 @@ class Configuration:
         #    - Installs all packages using `manage_packages()` with chroot
         include_pkgs = PackageList()
         exclude_pkgs = PackageList()
-        _find_package_lists(self, include_pkgs, exclude_pkgs)
+        _find_package_list(self, include_pkgs, exclude_pkgs)
         # print(f"Included packages: {include_pkgs}")
         print("Installing packages from repository")
         for repo, packages in include_pkgs.items():
@@ -202,27 +175,57 @@ class Configuration:
         # ### 6. **Service Management** (lines 124-126)
         #    - Gets system services to enable from configuration
         #    - Enables all services using `enable_services()` with chroot
+        # list_enabled_services = []
+        # if "DesktopManager" in elements:
+        #     desktop_manager = list(elements["DesktopManager"].values())[0]
+        #     display_manger = desktop_manager.display_manager
+        #     display_manger.enable_service(display_manger.service_name)
+        #     list_enabled_services.append(display_manger.service_name)
+        # if "Services" in elements:
+        #     for key, services in elements["Services"].items():
+        #         services.enable(self)
+        #         list_enabled_services.extend(services.list_enabled_services())
+        # print(f"Enabling services: {list_enabled_services}")
+
+        # list_enabled_services = []
+        services = Services()
         if "Services" in elements:
-            services = elements["Services"].popitem()[1]
-            print("Enabling services...")
-            services.enable(self)
+            for svc in elements["Services"].values():
+                services.update(svc)
+
+        if "DesktopManager" in elements:
+            desktop_manager = list(elements["DesktopManager"].values())[0]
+            display_manger = desktop_manager.display_manager
+            services[display_manger.service_name] = display_manger
+
+        services.enable(self)
+
+        list_enabled_services = services.list_enabled_services()
+        print(f"Enabling services: {list_enabled_services}")
 
         # ### 7. **User Processing** (line 130)
         #    - `proc_users(ctx, conf)` - Creates and configures users defined in the configuration
         print("--" * 40)
-        for key, obj in elements["User"].items():
-            # print(f"{key} => {obj}")
-            # if key.startswith("User"):
-            # print(f"Installing user configuration for {key}...")
+        for obj in elements["User"].values():
             obj.install(self)
-        # print(elements)
-        # if "User" in elements:
-        #     users = elements["User"]
-        #     print("Installing user configuration...")
-        #     users.install(self)
+
+        # ### 8. **Generation Storage** (lines 133-134)
+        #    - Stores installed packages and enabled services to generation 0 path (`/kod/generations/0`)
+        #    - Generates package lock file using `dist.generale_package_lock()`
+        generation_path = "/kod/generations/0"
+        store_packages_services(generation_path, include_pkgs, list_enabled_services)
+        installed_packages_cmd = self.base.list_installed_packages()
+        store_installed_packages(generation_path, self, installed_packages_cmd)
+
+        # ### 9. **Cleanup and Finalization** (lines 136)
+        #    - Unmounts all filesystems under the mount point
+        #    - Remounts the root partition
+        #    - Copies the KodOS source to `/store/root/`
+        #    - Final unmount
+        #    - Prints "Done installing KodOS"
 
 
-def _find_package_lists(
+def _find_package_list(
     obj, include_pkgs, exclude_pkgs, visited=None, path=""
 ) -> PackageList | None:
     # print(f"Visiting {path}: {type(obj)}")
@@ -249,7 +252,7 @@ def _find_package_lists(
                 if not attr_name.startswith("_"):
                     # print(f"Checking attribute {attr_name} of {path}")
                     new_path = f"{path}.{attr_name}" if path else attr_name
-                    res = _find_package_lists(
+                    res = _find_package_list(
                         attr_value, include_pkgs, exclude_pkgs, visited, new_path
                     )
                     if res is not None:
@@ -263,7 +266,7 @@ def _find_package_lists(
                 if not attr_name.startswith("_"):
                     # print(f"Checking attribute {attr_name} of {path}")
                     new_path = f"{path}.{attr_name}" if path else attr_name
-                    res = _find_package_lists(
+                    res = _find_package_list(
                         attr_value, include_pkgs, exclude_pkgs, visited, new_path
                     )
                     if res is not None:
@@ -277,10 +280,35 @@ def _find_package_lists(
     if isinstance(obj, (list, tuple)):
         for i, item in enumerate(obj):
             new_path = f"{path}[{i}]" if path else f"[{i}]"
-            _find_package_lists(item, include_pkgs, exclude_pkgs, visited, new_path)
+            _find_package_list(item, include_pkgs, exclude_pkgs, visited, new_path)
 
     # Search in dictionaries
     if isinstance(obj, dict):
         for key, value in obj.items():
             new_path = f"{path}[{key}]" if path else f"[{key}]"
-            _find_package_lists(value, include_pkgs, exclude_pkgs, visited, new_path)
+            _find_package_list(value, include_pkgs, exclude_pkgs, visited, new_path)
+
+
+def store_packages_services(state_path: str, packages, services) -> None:
+    """Store the list of packages that are installed and the list of services that are enabled."""
+    list_packages = {}
+    for repo, packages in packages.items():
+        list_packages[repo.__class__.__name__] = sorted(packages)
+    packages_json = json.dumps(list_packages, indent=2)
+    with open_with_dry_run(f"{state_path}/installed_packages", "w") as f:
+        f.write(packages_json)
+
+    print(f"Storing enabled services to {state_path}/enabled_services")
+    # print(f"Services: {services}")
+    list_services = services
+    with open_with_dry_run(f"{state_path}/enabled_services", "w") as f:
+        f.write("\n".join(list_services))
+
+
+def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
+    """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
+    installed_pakages_version = exec_chroot(
+        installed_cmd, mount_point=config.mount_point, get_output=True
+    )
+    with open_with_dry_run(f"{state_path}/packages.lock", "w") as f:
+        f.write(installed_pakages_version)
