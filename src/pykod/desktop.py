@@ -62,7 +62,7 @@ class DesktopManager(NestedDict):
         """Initialize desktop manager."""
         super().__init__(**kwargs)
         self.environments: dict[str, DesktopEnvironment]
-        self.default_display_manager: Optional[str]
+        self.display_manager: Optional[str]
 
     def install(self, _config):
         """Creating a Desktop manager."""

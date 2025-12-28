@@ -1,9 +1,5 @@
 """Locale configuration."""
 
-from typing import Any, override
-
-from pykod.base import NestedDict
-
 
 def Packages(pkgs):
     """Factory function for Packages."""

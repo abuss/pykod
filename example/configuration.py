@@ -22,18 +22,27 @@
 #
 
 from pykod import Configuration
+
+# from pykod._hardware import HardwareManager
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
 from pykod.fonts import Fonts
-from pykod.hardware import HardwareManager
 from pykod.locale import Locale
 from pykod.network import Network
 from pykod.packages import Packages
 
 # from pykod.disk import Partition
 from pykod.repositories import AUR, Arch, Flatpak
-from pykod.service import Service, ServiceManager
-from pykod.user import OpenSSH, Program, Stow, User, UserService
+from pykod.service import Service, Services
+from pykod.user import (
+    GitConfig,
+    OpenSSH,
+    Program,
+    Stow,
+    SyncthingConfig,
+    User,
+    UserService,
+)
 
 # from pykod.repositories import Repository
 
@@ -43,8 +52,8 @@ aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru.git")
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 
-# conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs)
+conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
+# conf = Configuration(base=archpkgs)
 # use_virtualization = False
 
 # git_config = ndict
@@ -67,18 +76,18 @@ conf.device = Devices(
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
             Partition(name="root", size="20G", type="btrfs", mountpoint="/"),
-            # Partition(name="swap", size="2G", type="linux-swap"),
-            # Partition(name="home", size="100%", type="btrfs"),
+            Partition(name="swap", size="2G", type="linux-swap"),
+            Partition(name="home", size="100%", type="btrfs"),
         ],
     ),
-    # disk1=Disk(
-    #     device="/dev/vdb",
-    #     partitions=[
-    #         Partition(
-    #             name="scratch", size="remaining", type="btrfs", mountpoint="/scratch"
-    #         ),
-    #     ],
-    # ),
+    disk1=Disk(
+        device="/dev/vdb",
+        partitions=[
+            Partition(
+                name="scratch", size="remaining", type="btrfs", mountpoint="/scratch"
+            ),
+        ],
+    ),
 )
 
 conf.boot = Boot(
@@ -128,24 +137,30 @@ conf.network = Network(
     settings={"ipv6": True},
 )
 
-# Hardware services configuration
-conf.hardware = HardwareManager(
-    services={
-        "sane": Service(enable=True, extra_packages=["sane", "sane-airscan"]),
-        "pipewire": Service(
-            enable=True,
-            extra_packages=["pipewire", "pipewire-alsa", "pipewire-pulse"],
-        ),
-    }
-)
+# # Hardware services configuration
+# conf.hardware = HardwareManager(
+#     services={
+#         "sane": Service(
+#             enable=True,
+#             package=archpkgs["sane"],
+#             extra_packages=archpkgs["sane-airscan"],
+#         ),
+#         "pipewire": Service(
+#             enable=True,
+#             package=archpkgs["pipewire"],
+#             extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
+#         ),
+#     }
+# )
 
 # Desktop environment configuration - using DesktopManager directly
 conf.desktop = DesktopManager(
+    display_manager=archpkgs["gdm"],
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
             enable=False,
-            display_manager="gdm",
+            # display_manager="gdm",
             package=archpkgs["gnome"],
             exclude_packages=archpkgs["gnome-tour", "yelp"],
             extra_packages=archpkgs[
@@ -166,26 +181,30 @@ conf.desktop = DesktopManager(
         "plasma": DesktopEnvironment(
             enable=False,
             package=archpkgs["plasma"],
-            display_manager="sddm",
+            # display_manager="sddm",
             extra_packages=archpkgs["kde-applications"],
         ),
         "cosmic": DesktopEnvironment(
-            enable=True, package=archpkgs["cosmic"], display_manager="cosmic-greeter"
+            enable=True,
+            package=archpkgs["cosmic"],
+            # display_manager="cosmic-greeter"
         ),
         "budgie": DesktopEnvironment(
             enable=False,
             package=archpkgs["budgie"],
-            display_manager="lightdm",
+            # display_manager="lightdm",
             extra_packages=archpkgs["lightdm-gtk-greeter", "network-manager-applet"],
         ),
         "cinnamon": DesktopEnvironment(
-            enable=False, package=archpkgs["cinnamon"], display_manager="gdm"
+            enable=False,
+            package=archpkgs["cinnamon"],
+            # display_manager="gdm"
         ),
         # Wayland compositors
         "hyprland": DesktopEnvironment(
             enable=False,
             package=archpkgs["hyprland"],
-            display_manager="greetd",
+            # display_manager="greetd",
             extra_packages=archpkgs[
                 "hyprpaper",
                 "waybar",
@@ -196,7 +215,7 @@ conf.desktop = DesktopManager(
                 "wl-clipboard",
             ],
         ),
-    }
+    },
 )
 
 # Fonts configuration
@@ -217,24 +236,25 @@ conf.fonts = Fonts(
     + aurpkgs["ttf-work-sans"],
 )
 
-conf.root = User(username="root", shell="/bin/bash")
+conf.root = User(username="root", no_password=True, shell="/bin/bash")
 
 conf.abuss = User(
     username="abuss",
     name="Antal Buss",
     shell="/usr/bin/zsh",
-    groups=["audio", "input", "users", "video", "wheel"],
+    groups=["audio", "input", "users", "video"],
     allow_sudo=True,
     # TODO: Set password and SSH keys from environment variables or secure config
     hashed_password="$6$MOkGLOzXlj0lIE2d$5sxAysiDyD/7ZfntgZaN3vJ48t.BMi2qwPxqjgVxGXKXrNlFxRvnO8uCvOlHaGW2pVDrjt0JLNR9GWH.2YT5j.",
+    # password="secure_password_here",
     ssh_authorized=OpenSSH(
         keys=[
             "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDOA6V+TZJ+BmBAU4FB0nbhYQ9XOFZwCHdwXTuQkb77sPi6fVcbzso5AofUc+3DhfN56ATNOOslvjutSPE8kIp3Uv91/c7DE0RHoidNl3oLre8bau2FT+9AUTZnNEtWH/qXp5+fzvGk417mSL3M5jdoRwude+AzhPNXmbdAzn08TMGAkjGrMQejXItcG1OhXKUjqeLmB0A0l3Ac8DGQ6EcSRtgPCiej8Boabn21K2OBfq64KwW/MMh/FWTHndyBF/lhfEos7tGPvrDN+5G05oGjf0fnMOxsmAUdTDbtOTTeMTvDwjJdzsGUluEDbWBYPNlg5wacbimkv51/Bm4YwsGOkkUTy6eCCS3d5j8PrMbB2oNZfByga01FohhWSX9bv35KAP4nq7no9M6nXj8rQVsF0gPndPK/pgX46tpJG+pE1Ul6sSLR2jnrN6oBKzhdZJ54a2wwFSd207Zvahdx3m9JEVhccmDxWltxjKHz+zChAHsqWC9Zcqozt0mDRJNalW8fRXKcSWPGVy1rfbwltiQzij+ChCQQlUG78zW8lU7Bz6FuyDsEFpZSat7jtbdDBY0a4F0yb4lkNvu+5heg+dhlKCFj9YeRDrnvcz94OKvAZW1Gsjbs83n6wphBipxUWku7y86iYyAAYQGKs4jihhYWrFtfZhSf1m6EUKXoWX87KQ== antal.buss@gmail.com"
         ]
     ),
     dotfile_manager=Stow(
-        source_dir="~/.dotfiles",
-        target_dir="~/",
+        # source_dir="~/.dotfiles",
+        # target_dir="~/",
         repo_url="http://git.homecloud.lan/abuss/dotconfig.git",
     ),
     # programs=Programs(
@@ -242,13 +262,20 @@ conf.abuss = User(
         "git": Program(
             enable=True,
             package=archpkgs["git"],
-            config={
-                "user.name": "Antal Buss",
-                "user.email": "antal.buss@gmail.com",
-                "core.editor": "helix",
-            },
+            config=GitConfig(
+                {
+                    "user.name": "Antal Buss",
+                    "user.email": "antal.buss@gmail.com",
+                    "core.editor": "helix",
+                }
+            ),
         ),
-        #         "starship": c.Program(enable=True, deploy_config=True),
+        "starship": Program(
+            enable=True, package=archpkgs["starship"], deploy_config=True
+        ),
+        "ghostty": Program(
+            enable=True, package=archpkgs["ghostty"], deploy_config=True
+        ),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         #         "neovim": c.Program(enable=True, deploy_config=True),
@@ -269,16 +296,20 @@ conf.abuss = User(
         "syncthing": UserService(
             enable=False,
             package=archpkgs["syncthing"],
-            config={
-                "service_name": "syncthing",
-                "options": "'--no-browser' '--no-restart' '--logflags=0' '--gui-address=0.0.0.0:8384'",
-            },
+            config=SyncthingConfig(
+                {
+                    "options": {"start-browser": "false"},
+                    "gui": {
+                        "enabled": "true",
+                        "address": "0.0.0.0:8384",
+                    },
+                }
+            ),
         )
     },
     deploy_configs=[
         "home",  # General config for home directory
         "gtk",  # GTK themes
-        "ghostty",  # Terminal config
     ],
 )
 
@@ -324,35 +355,90 @@ conf.packages = Packages(
         "zen-browser-bin",
     ]
     # CLI tools
-    # + cli.packages(archpkgs, aurpkgs)
+    + cli.packages(archpkgs, aurpkgs)
     # Development tools
-    # + development.packages(archpkgs)
+    + development.packages(archpkgs)
     # Flatpak packages
-    # + flatpakpkgs[
-    #     "freecad",
-    #     "openscad",
-    #     "prusa-slicer",
-    # ]
+    + flatpakpkgs[
+        "freecad",
+        "openscad",
+        "prusa-slicer",
+    ]
 )
 
 # System services configuration
-conf.services = ServiceManager(
-    services={
-        "fwupd": Service(enable=True),
-        "tailscale": Service(enable=True),
-        "networkmanager": Service(enable=True, service_name="NetworkManager"),
-        "nix": Service(enable=True, service_name="nix_daemon"),
-        "openssh": Service(
-            enable=True, service_name="sshd", settings={"PermitRootLogin": False}
+# conf.services = Services(
+#     sane=Service(
+#         enable=True,
+#         package=archpkgs["sane"],
+#         extra_packages=archpkgs["sane-airscan"],
+#     ),
+#     pipewire=Service(
+#         enable=True,
+#         package=archpkgs["pipewire"],
+#         extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
+#     ),
+#     fwupd=Service(enable=True, package=archpkgs["fwupd"]),
+#     tailscale=Service(enable=True, package=archpkgs["tailscale"]),
+#     networkmanager=Service(
+#         enable=True,
+#         package=archpkgs["networkmanager"],
+#         service_name="NetworkManager",
+#     ),
+#     # "nix": Service(enable=True, service_name="nix_daemon"),
+#     openssh=Service(
+#         enable=True,
+#         package=archpkgs["openssh-server"],
+#         service_name="sshd",
+#         settings={"PermitRootLogin": False},
+#     ),
+#     avahi=Service(enable=False, package=archpkgs["avahi-daemon"]),
+#     cups=Service(
+#         enable=True,
+#         package=archpkgs["cups"],
+#         extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
+#     ),
+#     bluetooth=Service(enable=True, package=archpkgs["bluez"], service_name="bluetooth"),
+# )
+
+conf.services = Services(
+    {
+        "sane": Service(
+            enable=True,
+            package=archpkgs["sane"],
+            extra_packages=archpkgs["sane-airscan"],
         ),
-        "avahi": Service(enable=True),
+        "pipewire": Service(
+            enable=True,
+            package=archpkgs["pipewire"],
+            extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
+        ),
+        "fwupd": Service(enable=True, package=archpkgs["fwupd"]),
+        "tailscale": Service(enable=True, package=archpkgs["tailscale"]),
+        "networkmanager": Service(
+            enable=True,
+            package=archpkgs["networkmanager"],
+            service_name="NetworkManager",
+        ),
+        # "nix": Service(enable=True, service_name="nix_daemon"),
+        "openssh": Service(
+            enable=True,
+            package=archpkgs["openssh-server"],
+            service_name="sshd",
+            settings={"PermitRootLogin": False},
+        ),
+        "avahi": Service(enable=False, package=archpkgs["avahi-daemon"]),
         "cups": Service(
             enable=True,
+            package=archpkgs["cups"],
             extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
         ),
-        "bluetooth": Service(enable=True, service_name="bluetooth", package="bluez"),
+        "bluetooth": Service(
+            enable=True, package=archpkgs["bluez"], service_name="bluetooth"
+        ),
     }
 )
+conf.services.avahi.enable = False
 
 # System mount configuration (disabled by default)
 # conf.mount = MountManager(

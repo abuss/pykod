@@ -1,11 +1,12 @@
-from operator import ne
+from collections import defaultdict
 
 from pykod.common import exec_chroot, set_debug, set_dry_run, set_verbose
 from pykod.core import configure_system, create_kod_user, generate_fstab
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
 from pykod.fonts import Fonts
-from pykod.hardware import HardwareManager
+
+# from pykod._hardware import HardwareManager
 from pykod.locale import Locale
 from pykod.network import Network
 from pykod.packages import Packages
@@ -117,11 +118,12 @@ class Configuration:
         print(f"{self.debug=}")
         print(f"{self.verbose=}")
         # list all attributes that have an install method and call it
-        elements = {}
-        for _, obj in vars(self).items():
-            name = type(obj).__name__
+        elements = defaultdict(dict)
+        for name, obj in vars(self).items():
+            class_name = type(obj).__name__
             # if hasattr(type(obj), "install")
-            elements[name] = obj
+            # elements[name] = obj
+            elements[class_name][name] = obj
             # name: obj
 
         # print(f"{elements=}")
@@ -136,6 +138,8 @@ class Configuration:
             #    - `create_filesystem_hierarchy()` - Creates and mounts the filesystem structure at the mount point
             #    - Sets up all necessary mount points
             # mount_point = "/mnt"
+
+            devices = elements["Devices"].popitem()[1]
             self.partition_list = devices.install(self, self.mount_point)
             # ### 4. **Base System Installation** (lines 110-114)
             #    - Gets base packages using `dist.get_base_packages(conf)`
@@ -153,7 +157,7 @@ class Configuration:
             configure_system(self.mount_point)
 
         if "Boot" in elements:
-            boot = elements["Boot"]
+            boot = elements["Boot"].popitem()[1]
             print("Installing boot configuration...")
             #    - Sets up the bootloader with `setup_bootloader()`
             boot.install(self)
@@ -164,11 +168,11 @@ class Configuration:
 
         if "Locale" in elements:
             print("Installing locale configuration...")
-            locale = elements["Locale"]
+            locale = elements["Locale"].popitem()[1]
             locale.install(self)
 
         if "Network" in elements:
-            network = elements["Network"]
+            network = elements["Network"].popitem()[1]
             print("Installing network configuration...")
             network.install(self)
 
@@ -187,22 +191,35 @@ class Configuration:
             cmd = repo.install_package(set(packages))
             # print(f"  Command: {cmd}")
             exec_chroot(cmd, mount_point=self.mount_point)
+        # TODO: Exclude packages
         # print("Excluding packages to install")
         # for repo, packages in exclude_pkgs.items():
         #     print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
         # for package in packages:
         # self.base.install_package(package, self.mount_point)
-
         # print(f"Excluded packages: {exclude_pkgs}")
 
-    # def _list_packages(self):
-    #     # for name, obj in vars(self).items():
-    #     #     print(name)
-    #     include_pkgs = PackageList()
-    #     exclude_pkgs = PackageList()
-    #     _find_package_lists(self, include_pkgs, exclude_pkgs)
-    #     print(f"Included packages: {include_pkgs}")
-    #     print(f"Excluded packages: {exclude_pkgs}")
+        # ### 6. **Service Management** (lines 124-126)
+        #    - Gets system services to enable from configuration
+        #    - Enables all services using `enable_services()` with chroot
+        if "Services" in elements:
+            services = elements["Services"].popitem()[1]
+            print("Enabling services...")
+            services.enable(self)
+
+        # ### 7. **User Processing** (line 130)
+        #    - `proc_users(ctx, conf)` - Creates and configures users defined in the configuration
+        print("--" * 40)
+        for key, obj in elements["User"].items():
+            # print(f"{key} => {obj}")
+            # if key.startswith("User"):
+            # print(f"Installing user configuration for {key}...")
+            obj.install(self)
+        # print(elements)
+        # if "User" in elements:
+        #     users = elements["User"]
+        #     print("Installing user configuration...")
+        #     users.install(self)
 
 
 def _find_package_lists(
