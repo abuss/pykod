@@ -211,12 +211,14 @@ class User:
             )
             cmds = self.dotfile_manager.install(config)
             for cmd in cmds:
+                cmd = f"runuser -u {self.username} -- " + cmd
                 exec_chroot(cmd, mount_point=config.mount_point)
 
             # Process user programs
             print(f"\n[install] User Programs for: {self.username}")
             cmds = self._programs()
             for cmd in cmds:
+                cmd = f"runuser -u {self.username} -- " + cmd
                 exec_chroot(cmd, mount_point=config.mount_point)
 
             # enable user services
@@ -224,6 +226,7 @@ class User:
             print(f"\n[install] User Services for: {self.username}")
             cmds = self._services()
             for cmd in cmds:
+                cmd = f"runuser -u {self.username} -- " + cmd
                 exec_chroot(cmd, mount_point=config.mount_point)
 
     def rebuild(self):
@@ -311,7 +314,7 @@ class User:
         if self.services:
             for service_name, serv in self.services.items():
                 if serv.enable:
-                    cmd = f"runuser -u {self.username} -- systemctl --user enable {service_name}"
+                    cmd = f"systemctl --user enable {service_name}"
                     cmds.append(cmd)
                     if serv.config:
                         cmds.extend(serv.config)
