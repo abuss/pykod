@@ -240,7 +240,7 @@ conf.abuss = User(
     dotfile_manager=Stow(
         # source_dir="~/.dotfiles",
         # target_dir="~/",
-        repo_url="http://git.homecloud.lan/abuss/dotconfig.git",
+        repo_url="https://github.com/abuss/dotconfig",
     ),
     # programs=Programs(
     programs={
