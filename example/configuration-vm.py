@@ -308,6 +308,7 @@ conf.packages = Packages(
         "neovim",
         "htop",
         "libgtop",
+        "zsh",
         # "power-profiles-daemon",
         "system-config-printer",
         # "git",
