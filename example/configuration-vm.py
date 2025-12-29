@@ -46,7 +46,7 @@ from pykod.user import (
 
 # from pykod.repositories import Repository
 
-archpkgs = Arch(mirror_url="https://mirror.rackspace.com/archlinux")
+archpkgs = Arch(mirror_url="ttps://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
 aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru.git")
 flatpakpkgs = Flatpak(hub_url="flathub")
