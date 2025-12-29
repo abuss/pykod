@@ -206,7 +206,7 @@ class Configuration:
         # ### 8. **Generation Storage** (lines 133-134)
         #    - Stores installed packages and enabled services to generation 0 path (`/kod/generations/0`)
         #    - Generates package lock file using `dist.generale_package_lock()`
-        generation_path = "/kod/generations/0"
+        generation_path = f"{self.mount_point}/kod/generations/0"
         store_packages_services(generation_path, include_pkgs, list_enabled_services)
         installed_packages_cmd = self.base.list_installed_packages()
         store_installed_packages(generation_path, self, installed_packages_cmd)
