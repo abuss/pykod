@@ -1,9 +1,10 @@
 """Arch Linux repository configuration."""
 
-# from pykod.config import Install, Rebuild
+import subprocess
+
 from pykod.common import exec, exec_chroot, get_dry_run
 
-from .base import Repository
+from .base import PackageList, Repository
 
 
 class Arch(Repository):
@@ -48,7 +49,7 @@ class Arch(Repository):
         else:
             kernel_package = self["linux"]
 
-        # TODO: add verions to each package
+        # TODO: add verions to each package, if needed
         packages = {
             "kernel": kernel_package,
             "base": self[
@@ -96,87 +97,73 @@ class Arch(Repository):
         pkgs = " ".join(package_name)
         cmd = f"pacman -S --needed --noconfirm {pkgs}"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
 
     def remove_package(self, package_name) -> str:
         pkgs = " ".join(package_name)
         cmd = f"pacman -Rnsc --noconfirm {pkgs}"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
 
     def update_installed_packages(self) -> str:
         cmd = "pacman -Syu --noconfirm"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
 
     def update_database(self) -> str:
         cmd = "pacman -Sy"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
+
+    def packages_to_install(
+        self, include_pkgs: PackageList, exclude_pkgs: PackageList
+    ) -> PackageList:
+        """Generate a list of packages to install per repossitory by excluding the packages from the exclude list.
+        Some packages are groups that include other packages but are not packages by themselves. The list of all available groups can be obtained by running `pacman -Sg`.
+        So, converting groups to packages is necessary before excluding packages.
+        """
+        updated_pkgs_list = PackageList()
+
+        list_groups = set(exec("pacman -Sg", get_output=True).splitlines())
+        # -----------------------------------------
+        # For debugging purposes
+        # cmd = "pacman -Sg"
+        # list_groups = set(
+        #     subprocess.run(
+        #         cmd, shell=True, capture_output=True, text=True
+        #     ).stdout.splitlines()
+        # )
+        # print(f"{list_groups=}")
+        # -----------------------------------------
+        list_excluded_pkgs = exclude_pkgs.to_list() if exclude_pkgs else []
+        # print(f"{list_excluded_pkgs=}")
+        # Add packages from repository groups
+        for repo, packages in include_pkgs.items():
+            all_pkgs = set()
+            groups_to_install = set(packages) & list_groups
+            # print(f"{groups_to_install=}")
+            normal_pkgs = set(packages) - groups_to_install
+            # print(f"{normal_pkgs=}")
+            all_pkgs.update(normal_pkgs)
+            for group in groups_to_install:
+                pkgs_in_group = set(
+                    exec(
+                        f"pacman -Sg {group} | awk '{{print $2}}'", get_output=True
+                    ).splitlines()
+                )
+                # -----------------------------------------
+                # For debugging purposes
+                # cmd = f"pacman -Sg {group} | awk '{{print $2}}'"
+                # pkgs_in_group = set(
+                #     subprocess.run(
+                #         cmd, shell=True, capture_output=True, text=True
+                #     ).stdout.splitlines()
+                # )
+                # -----------------------------------------
+                pkgs_to_add = pkgs_in_group - set(list_excluded_pkgs)
+                all_pkgs.update(pkgs_to_add)
+            # Create a new PackageList with all the pacakges to install
+            updated_pkgs_list += repo[list(all_pkgs)]
+
+        return updated_pkgs_list
 
     def list_installed_packages(self):
         """Generate a file containing the list of installed packages and their versions."""
         cmd = "pacman -Q --noconfirm"
         return cmd
-
-
-# # Arch
-# def proc_repos(conf, current_repos=None, update=False, mount_point="/mnt"):
-#     """
-#     Process the repository configuration from the given config.
-
-#     This function reads the repository configuration from the given config and
-#     register information about how to build, install, or update each repository.
-#     The function will write the result to /var/kod/repos.json.
-
-#     Args:
-#         conf (dict): The configuration dictionary to read from.
-#         current_repos (dict): The current repository configuration.
-#         update (bool): If True, update the package list. Defaults to False.
-#         mount_point (str): The mount point where the installation is being
-#             performed. Defaults to "/mnt".
-
-#     Returns:
-#         tuple: A tuple containing the processed repository configuration and
-#             the list of packages that were installed.
-#     """
-#     # TODO: Add support for custom repositories and to be used during rebuild
-#     repos_conf = conf.repos
-#     repos = {}
-#     packages = []
-#     update_repos = False
-#     for repo, repo_desc in repos_conf.items():
-#         if current_repos and repo in current_repos and not update:
-#             repos[repo] = current_repos[repo]
-#             continue
-#         repos[repo] = {}
-#         for action, cmd in repo_desc["commands"].items():
-#             repos[repo][action] = cmd
-
-#         if "build" in repo_desc:
-#             build_info = repo_desc["build"]
-#             url = build_info["url"]
-#             build_cmd = build_info["build_cmd"]
-#             name = build_info["name"]
-
-#             # TODO: Generalize this code to support other distros
-#             # exec_chroot("pacman -S --needed --noconfirm git base-devel")
-#             exec_chroot(
-#                 f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
-#                 mount_point=mount_point,
-#             )
-
-#         if "package" in repo_desc:
-#             exec_chroot(
-#                 f"pacman -S --needed --noconfirm {repo_desc['package']}",
-#                 mount_point=mount_point,
-#             )
-#             packages += [repo_desc["package"]]
-#         update_repos = True
-
-#     if update_repos:
-#         exec(f"mkdir -p {mount_point}/var/kod")
-#         with open(f"{mount_point}/var/kod/repos.json", "w") as f:
-#             f.write(json.dumps(repos, indent=2))
-
-#     return repos, packages

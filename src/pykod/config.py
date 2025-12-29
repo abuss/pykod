@@ -2,6 +2,7 @@ import json
 from collections import defaultdict
 
 from pykod.common import (
+    exec,
     exec_chroot,
     open_with_dry_run,
     set_debug,
@@ -39,7 +40,7 @@ class Configuration:
         set_dry_run(self.dry_run)
         set_debug(self.debug)
         set_verbose(self.verbose)
-        self.partition_list = None
+        self.partition_list = []
 
     # 1. **Initialization** (lines 78-86)
     #    - Creates a `Context` object with the current user, mount point (`/mnt` by default), and sets `use_chroot=True` and `stage="install"`
@@ -100,9 +101,10 @@ class Configuration:
             # name: obj
 
         # print(f"{elements=}")
+        devices = None
         partition_list = []
         if "Devices" in elements:
-            devices = elements["Devices"]
+            # devices = elements["Devices"]
             print("Installing device configuration...")
             # ### 2. **Partition Creation** (line 105)
             #    - `create_partitions(conf)` - Creates disk partitions based on configuration
@@ -112,7 +114,12 @@ class Configuration:
             #    - Sets up all necessary mount points
             # mount_point = "/mnt"
 
-            devices = elements["Devices"].popitem()[1]
+            devices = list(elements["Devices"].values())[0]
+            if devices is None:
+                raise ValueError("No devices configuration found.")
+
+            # for device in disks_obj.values():
+            # devices = elements["Devices"].popitem()[1]
             self.partition_list = devices.install(self, self.mount_point)
             # ### 4. **Base System Installation** (lines 110-114)
             #    - Gets base packages using `dist.get_base_packages(conf)`
@@ -130,7 +137,7 @@ class Configuration:
             configure_system(self.mount_point)
 
         if "Boot" in elements:
-            boot = elements["Boot"].popitem()[1]
+            boot = list(elements["Boot"].values())[0]
             print("Installing boot configuration...")
             #    - Sets up the bootloader with `setup_bootloader()`
             boot.install(self)
@@ -141,11 +148,11 @@ class Configuration:
 
         if "Locale" in elements:
             print("Installing locale configuration...")
-            locale = elements["Locale"].popitem()[1]
+            locale = list(elements["Locale"].values())[0]
             locale.install(self)
 
         if "Network" in elements:
-            network = elements["Network"].popitem()[1]
+            network = list(elements["Network"].values())[0]
             print("Installing network configuration...")
             network.install(self)
 
@@ -157,37 +164,24 @@ class Configuration:
         include_pkgs = PackageList()
         exclude_pkgs = PackageList()
         _find_package_list(self, include_pkgs, exclude_pkgs)
-        # print(f"Included packages: {include_pkgs}")
-        print("Installing packages from repository")
-        for repo, packages in include_pkgs.items():
-            print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+        print(f"Included packages: {include_pkgs}")
+        print(f"Excluded packages: {exclude_pkgs}")
+        print("-+-" * 40)
+
+        packages_to_install = self.base.packages_to_install(include_pkgs, exclude_pkgs)
+        # print(f"Packages to install: {packages_to_install}")
+        # print("-+-" * 40)
+
+        # print("Installing packages from repository")
+        for repo, packages in packages_to_install.items():
+            # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
             cmd = repo.install_package(set(packages))
             # print(f"  Command: {cmd}")
             exec_chroot(cmd, mount_point=self.mount_point)
-        # TODO: Exclude packages
-        # print("Excluding packages to install")
-        # for repo, packages in exclude_pkgs.items():
-        #     print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
-        # for package in packages:
-        # self.base.install_package(package, self.mount_point)
-        # print(f"Excluded packages: {exclude_pkgs}")
 
         # ### 6. **Service Management** (lines 124-126)
         #    - Gets system services to enable from configuration
         #    - Enables all services using `enable_services()` with chroot
-        # list_enabled_services = []
-        # if "DesktopManager" in elements:
-        #     desktop_manager = list(elements["DesktopManager"].values())[0]
-        #     display_manger = desktop_manager.display_manager
-        #     display_manger.enable_service(display_manger.service_name)
-        #     list_enabled_services.append(display_manger.service_name)
-        # if "Services" in elements:
-        #     for key, services in elements["Services"].items():
-        #         services.enable(self)
-        #         list_enabled_services.extend(services.list_enabled_services())
-        # print(f"Enabling services: {list_enabled_services}")
-
-        # list_enabled_services = []
         services = Services()
         if "Services" in elements:
             for svc in elements["Services"].values():
@@ -223,6 +217,13 @@ class Configuration:
         #    - Copies the KodOS source to `/store/root/`
         #    - Final unmount
         #    - Prints "Done installing KodOS"
+
+        exec(f"umount -R {self.mount_point}")
+        print("Done")
+        exec(f"mount {devices.root_partition} {self.mount_point}")
+        exec(f"cp -r /root/pykod {self.mount_point}/store/root/")
+        exec(f"umount {self.mount_point}")
+        print(" Done installing KodOS")
 
 
 def _find_package_list(

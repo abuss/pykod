@@ -143,7 +143,7 @@ conf.desktop = DesktopManager(
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
-            enable=False,
+            enable=True,
             # display_manager="gdm",
             package=archpkgs["gnome"],
             exclude_packages=archpkgs["gnome-tour", "yelp"],
@@ -206,6 +206,7 @@ conf.desktop = DesktopManager(
 conf.fonts = Fonts(
     font_dir=True,
     packages=archpkgs[
+        "nerd-fonts",
         "ttf-firacode-nerd",
         "ttf-nerd-fonts-symbols",
         "ttf-nerd-fonts-symbols-common",

@@ -53,7 +53,7 @@ class PackageList:
     def __repr__(self) -> str:
         res = "PKGS["
         for x in self._pkgs.items():
-            res += f"\n => {x}"
+            res += f"\n\n => {x}"
         res += "\n]"
         # return pprint.pformat(self._data, indent=2, width=10)
         return res
@@ -67,7 +67,7 @@ class PackageList:
 
     def remove(self):
         for repo, items in self._pkgs.items():
-            print(f"Removing from repo {repo}:")
+            # print(f"Removing from repo {repo}:")
             repo.remove(items)
             # for item in items:
             #     print(f"  - {item}")
@@ -88,7 +88,7 @@ class Repository:
         self._pkgs = {}
 
     def __getitem__(self, items) -> PackageList:
-        print(self, items)
+        # print(self, items)
         if isinstance(items, (list, tuple)):
             return PackageList().new(self, items)
         return PackageList().new(self, (items,))
@@ -100,3 +100,12 @@ class Repository:
 
     def packages(self):
         return self._pkgs
+
+    def packages_to_install(
+        self, install_pkgs: PackageList, exclude_pkgd: PackageList
+    ) -> PackageList:
+        """Generate a list of packages to install per repository by excluding the packages from the exclude list.
+        Some packages are groups that include other packages but are not packages by themselves. The list of all available groups can be obtained by running `pacman -Sg`.
+        So, converting groups to packages is necessary before excluding packages.
+        """
+        return install_pkgs

@@ -1,12 +1,12 @@
 """Devices configuration."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, override
 
 from pykod.base import NestedDict
 
 # from pykod.common import fake_exec as exec
-from pykod.common import exec
+from pykod.common import exec, open_with_dry_run
 from pykod.core import generate_fstab, setup_bootloader
 
 _filesystem_cmd: dict[str, str | None] = {
@@ -37,22 +37,30 @@ _filesystem_type: dict[str, str | None] = {
 }
 
 
-class Disk(NestedDict):
+@dataclass
+class Partition:  # (NestedDict, Install, Rebuild):
+    name: str
+    size: str
+    type: str
+    mountpoint: str | None = None
+    format: bool = True
+
+
+@dataclass
+class Disk:
     """Represents a disk device with partitions."""
 
-    def __init__(self, **kwargs):
-        """Initialize Disk with device and partitions."""
-        super().__init__(**kwargs)
+    device: str
+    partitions: list[Partition] = field(default_factory=list)
 
-    @override
     def install(self):
         """Install disk partitions as per configuration."""
         print("\n\n[install] Partitioning disk:", self.device)
         print(f"with partitions {self.partitions}")
-        device = self._data.get("device", "")
-        partitions = self._data.get("partitions", [])
+        # device = self._data.get("device", "")
+        # partitions = self._data.get("partitions", [])
         boot_part, root_part, part_list = self._create_disk_partitions(
-            device, partitions
+            self.device, self.partitions
         )
         return boot_part, root_part, part_list
 
@@ -157,39 +165,36 @@ class Disk(NestedDict):
         return boot_partition, root_partition, partitions_list
 
 
-@dataclass
-class Partition:  # (NestedDict, Install, Rebuild):
-    name: str
-    size: str
-    type: str
-    mountpoint: str | None = None
-    format: bool = True
-
-
 # class Devices(NestedDict, Install, Rebuild):
-class Devices(NestedDict):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._boot_partition = None
-        self._root_partition = None
-        self._partition_list = []
+class Devices(dict):
+    def __init__(self, *args, **kwargs):
+        """Initialize devices configuration."""
+        super().__init__(*args, **kwargs)
+        self.boot_partition = None
+        self.root_partition = None
+        self.partition_list = []
 
-    def install(self, config, mount_point: str = "/mnt") -> list:
+    def install(self, config, mount_point: str) -> list:
         print(f"[install] in {mount_point} create partitions:")
-        print(self._data)
+        print(self)
         print("=" * 50)
-        disks = [disk for disk in self._data.values() if isinstance(disk, Disk)]
+        disks = [disk for disk in self.values() if isinstance(disk, Disk)]
+        print(f"Disks to process: {disks}")
         for disk in disks:
             boot_part, root_part, part_list = disk.install()
-            self._partition_list += part_list
+            print(f"Disk {disk.device} created partitions:")
+            print(f"  Boot partition: {boot_part}")
+            print(f"  Root partition: {root_part}")
+            print(f"  Other partitions: {part_list}")
+            self.partition_list += part_list
             if boot_part:
-                if self._boot_partition is None and boot_part:
-                    self._boot_partition = boot_part
+                if self.boot_partition is None and boot_part:
+                    self.boot_partition = boot_part
                 else:
                     raise Exception(f"Multiple boot partitions detected! {boot_part}")
             if root_part:
-                if self._root_partition is None and root_part:
-                    self._root_partition = root_part
+                if self.root_partition is None and root_part:
+                    self.root_partition = root_part
                 else:
                     raise Exception("Multiple root partitions detected!")
 
@@ -198,14 +203,14 @@ class Devices(NestedDict):
         #     print(" >>>", p)
         #
         # Create filesystem hierarchy if we have both boot and root partitions
-        if self._boot_partition and self._root_partition:
+        if self.boot_partition and self.root_partition:
             partition_list = self._create_filesystem_hierarchy(mount_point)
         else:
             partition_list = []
 
         # Add any additional partitions that weren't handled by the hierarchy
         # (like scratch, additional data partitions, etc.)
-        for p in self._partition_list:
+        for p in self.partition_list:
             # Check if this partition is already in the final list
             if not any(
                 existing.source == p.source and existing.destination == p.destination
@@ -249,11 +254,11 @@ class Devices(NestedDict):
         # Mounting first generation
         exec(f"umount -R {mount_point}")
         exec(
-            f"mount -o subvol=generations/{generation}/rootfs {self._root_partition} {mount_point}"
+            f"mount -o subvol=generations/{generation}/rootfs {self.root_partition} {mount_point}"
         )
         partition_list = [
             FsEntry(
-                self._root_partition,
+                self.root_partition,
                 "/",
                 "btrfs",
                 f"rw,relatime,ssd,space_cache=v2,subvol=generations/{generation}/rootfs",
@@ -263,25 +268,25 @@ class Devices(NestedDict):
         for dir in subdirs + ["boot", "home", "kod"]:
             exec(f"mkdir -p {mount_point}/{dir}")
 
-        exec(f"mount {self._boot_partition} {mount_point}/boot")
+        exec(f"mount {self.boot_partition} {mount_point}/boot")
         boot_options = "rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro"
         partition_list.append(
-            FsEntry(self._boot_partition, "/boot", "vfat", boot_options)
+            FsEntry(self.boot_partition, "/boot", "vfat", boot_options)
         )
 
-        exec(f"mount {self._root_partition} {mount_point}/kod")
+        exec(f"mount {self.root_partition} {mount_point}/kod")
         partition_list.append(
             FsEntry(
-                self._root_partition, "/kod", "btrfs", "rw,relatime,ssd,space_cache=v2"
+                self.root_partition, "/kod", "btrfs", "rw,relatime,ssd,space_cache=v2"
             )
         )
 
         btrfs_options = "rw,relatime,ssd,space_cache=v2"
 
-        exec(f"mount -o subvol=store/home {self._root_partition} {mount_point}/home")
+        exec(f"mount -o subvol=store/home {self.root_partition} {mount_point}/home")
         partition_list.append(
             FsEntry(
-                self._root_partition,
+                self.root_partition,
                 "/home",
                 "btrfs",
                 btrfs_options + ",subvol=store/home",
@@ -295,8 +300,8 @@ class Devices(NestedDict):
             )
 
         # Write generation number
-        # with open(f"{mount_point}/.generation", "w") as f:
-        #     f.write(str(generation))
+        with open_with_dry_run(f"{mount_point}/.generation", "w") as f:
+            f.write(str(generation))
 
         print("===================================")
 
