@@ -26,31 +26,13 @@ class Service:
     service_name: str | None = None
     extra_packages: PackageList | None = None
     settings: dict[str, Any] = field(default_factory=dict)
+    service_type: str = "system"  # or "user"
+    config: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         """Post-initialization processing."""
         if self.service_name is None and self.enable:
             self.service_name = self.package.to_list()[0]
-
-    # if not self.service_name:
-    #     self.service_name = sel
-    #     self.extra_packages = None
-
-    # def install(self, _config):
-    #     status = "Enabled" if self.enable else "Disabled"
-    #     print(
-    #         "[install] "
-    #         f"Service: {status}, Name: {self.service_name}, Package: {self.package}, "
-    #         f"Extra Packages: {self.extra_packages}, Settings: {self.settings}"
-    #     )
-
-    # def rebuild(self, _config):
-    #     status = "Enabled" if self.enable else "Disabled"
-    #     print(
-    #         "[rebuild] "
-    #         f"Service: {status}, Name: {self.service_name}, Package: {self.package}, "
-    #         f"Extra Packages: {self.extra_packages}, Settings: {self.settings}"
-    # )
 
     def enable_service(self, service) -> str:
         """Enable a list of services in the specified mount point."""

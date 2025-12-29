@@ -2,10 +2,11 @@
 
 from dataclasses import dataclass, field
 
-# from typing import Any, KeysView, Optional
-from pykod.base import NestedDict
 from pykod.common import exec_chroot
 from pykod.repositories.base import PackageList
+
+# from typing import Any, KeysView, Optional
+from pykod.service import Service
 
 # @dataclass
 # class ProgramManager:
@@ -186,7 +187,7 @@ class User:
     dotfile_manager: ConfigManagerBaee | None = None
     programs: dict[str, Program] | None = None
     deploy_configs: list[str] | None = None
-    services: dict[str, UserService] | None = None
+    services: dict[str, Service] | None = None
     home_config: dict | None = None
 
     # def __init__(self, **kwargs):

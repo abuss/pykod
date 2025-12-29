@@ -278,7 +278,7 @@ conf.abuss = User(
     },
     # ),
     services={
-        "syncthing": UserService(
+        "syncthing": Service(
             enable=False,
             package=archpkgs["syncthing"],
             config=SyncthingConfig(
