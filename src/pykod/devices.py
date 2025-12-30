@@ -228,9 +228,9 @@ class Devices(dict):
 
         return partition_list
 
-    def rebuild(self) -> None:
-        print("[rebuild] Arch repo:", self)
-        print("Refresh repos")
+    # def rebuild(self) -> None:
+    #     print("[rebuild] Arch repo:", self)
+    #     print("Refresh repos")
 
     # Core
     def _create_filesystem_hierarchy(self, mount_point: str) -> list:

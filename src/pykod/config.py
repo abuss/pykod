@@ -227,6 +227,8 @@ class Configuration:
         installed_packages_cmd = self.base.list_installed_packages()
         store_installed_packages(generation_path, self, installed_packages_cmd)
 
+        # TODO: Save current configurtion
+
         # ### 9. **Cleanup and Finalization** (lines 136)
         #    - Unmounts all filesystems under the mount point
         #    - Remounts the root partition
@@ -241,8 +243,27 @@ class Configuration:
         exec(f"umount {self.mount_point}")
         print(" Done installing KodOS")
 
+    def rebuild(self) -> None:
+        print("Rebuilding configuration...")
+        self.state = "rebuild"
+        # list all attributes that have an install method and call it
+        elements = defaultdict(dict)
+        for name, obj in vars(self).items():
+            class_name = type(obj).__name__
+            if hasattr(type(obj), "rebuild"):
+                elements[class_name][name] = obj
+            # name: obj
+        print(f"==== Elements =====\n{elements.keys()=}")
+        # # list all attributes that have a rebuild method and call it
+        # for name, obj in vars(self).items():
+        #     if hasattr(type(obj), "rebuild"):
+        #         print(f"Rebuilding {name}...")
+        #         obj.rebuild()
+
     def packages_to_remove(self, exclude_pkgs):
         installed_packages_cmd = self.base.list_installed_packages()
+        print(f"*** {installed_packages_cmd=}")
+        installed_pakages_version = []
         if self.state == "install":
             installed_pakages_version = exec_chroot(
                 installed_packages_cmd, mount_point=self.mount_point, get_output=True
@@ -250,8 +271,8 @@ class Configuration:
             # installed_pakages_version = subprocess.run(
             #     installed_packages_cmd, shell=True, capture_output=True, text=True
             # ).stdout
-        else:
-            installed_pakages_version = exec(installed_packages_cmd, get_output=True)
+        # else:
+        # installed_pakages_version = exec(installed_packages_cmd, get_output=True)
         print(f"{installed_pakages_version=}")
         installed_pakages = set(
             [line.split(" ")[0] for line in installed_pakages_version.splitlines()]
