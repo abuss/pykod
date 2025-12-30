@@ -22,7 +22,7 @@ class OpenSSH:
     keys: list[str] = field(default_factory=list)
 
 
-class ConfigManagerBaee:
+class ConfigManagerBase:
     """Configuration manager placeholder for user dependency."""
 
     def install(self, _config) -> list[str]: ...
@@ -32,7 +32,7 @@ class ConfigManagerBaee:
 
 
 @dataclass
-class Stow(ConfigManagerBaee):
+class Stow(ConfigManagerBase):
     """Stow Dotfile manager."""
 
     repo_url: str
@@ -184,7 +184,7 @@ class User:
     ssh_keys: list[str] | None = None
     no_password: bool | None = None
     ssh_authorized: OpenSSH | None = None
-    dotfile_manager: ConfigManagerBaee | None = None
+    dotfile_manager: ConfigManagerBase | None = None
     programs: dict[str, Program] | None = None
     deploy_configs: list[str] | None = None
     services: dict[str, Service] | None = None
@@ -212,6 +212,7 @@ class User:
             )
             cmds = self.dotfile_manager.install(config)
             for cmd in cmds:
+                cmd = cmd.replace("~", f"/home/{self.username}")
                 cmd = f"runuser -u {self.username} -- " + cmd
                 exec_chroot(cmd, mount_point=config.mount_point)
 
