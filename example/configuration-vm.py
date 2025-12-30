@@ -1,29 +1,6 @@
-# Structure
-#
-# - repository (package sources)
-# - system
-#   - devices (disk)
-#   - boot
-#       - kernel
-#       - loader
-#   - locale
-#   - network
-#   - hardware
-#       - sound
-#       - scanner
-# - desktop
-#   - windows manager (gnome, kde, cosmic, ...)
-#   - desktop manager (gdm, lightdm, etc)
-# - users
-# - environment
-#   - services
-#   - fonts
-#   - programs
-#
+# VM Configuration
 
 from pykod import Configuration
-
-# from pykod._hardware import HardwareManager
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
 from pykod.fonts import Fonts
@@ -41,7 +18,6 @@ from pykod.user import (
     Stow,
     SyncthingConfig,
     User,
-    UserService,
 )
 
 # from pykod.repositories import Repository
@@ -53,14 +29,8 @@ flatpakpkgs = Flatpak(hub_url="flathub")
 
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs)
+conf = Configuration(base=archpkgs, debug=True, verbose=True)
 # use_virtualization = False
-
-# git_config = ndict
-# syncthing_config = ndict
-# stow_config = ndict
-# themes_config = ndict
-# mount_config = ndict
 
 # use_gnome = True
 # use_plasma = False
@@ -169,7 +139,7 @@ conf.desktop = DesktopManager(
             extra_packages=archpkgs["kde-applications"],
         ),
         "cosmic": DesktopEnvironment(
-            enable=True,
+            enable=False,
             package=archpkgs["cosmic"],
             # display_manager="cosmic-greeter"
         ),
@@ -211,14 +181,14 @@ conf.fonts = Fonts(
         # "ttf-nerd-fonts-symbols",
         # "ttf-nerd-fonts-symbols-common",
         # "ttf-sourcecodepro-nerd",
-        "ttf-fira-sans",
-        "ttf-fira-code",
-        "ttf-liberation",
-        "noto-fonts-emoji",
-        "adobe-source-serif-fonts",
-        "ttf-ubuntu-font-family",
-    ]
-    + aurpkgs["ttf-work-sans"],
+        # "ttf-fira-sans",
+        # "ttf-fira-code",
+        # "ttf-liberation",
+        # "noto-fonts-emoji",
+        # "adobe-source-serif-fonts",
+        # "ttf-ubuntu-font-family",
+    ],
+    # + aurpkgs["ttf-work-sans"],
 )
 
 conf.root = User(username="root", no_password=True, shell="/bin/bash")
@@ -226,7 +196,7 @@ conf.root = User(username="root", no_password=True, shell="/bin/bash")
 conf.abuss = User(
     username="abuss",
     name="Antal Buss",
-    shell="/usr/bin/zsh",
+    # shell="/usr/bin/zsh",
     groups=["audio", "input", "users", "video"],
     allow_sudo=True,
     # TODO: Set password and SSH keys from environment variables or secure config
@@ -251,7 +221,7 @@ conf.abuss = User(
                 {
                     "user.name": "Antal Buss",
                     "user.email": "antal.buss@gmail.com",
-                    "core.editor": "helix",
+                    "core.editor": "nvim",
                 }
             ),
         ),
@@ -259,14 +229,14 @@ conf.abuss = User(
             enable=True, package=archpkgs["starship"], deploy_config=True
         ),
         "ghostty": Program(
-            enable=True, package=archpkgs["ghostty"], deploy_config=True
+            enable=False, package=archpkgs["ghostty"], deploy_config=True
         ),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         #         "neovim": c.Program(enable=True, deploy_config=True),
         #         "helix": c.Program(enable=True, deploy_config=True),
         "emacs": Program(
-            enable=True,
+            enable=False,
             package=archpkgs["emacs-wayland"],
             deploy_config=True,
             extra_packages=archpkgs["aspell", "aspell-en"],
@@ -312,7 +282,7 @@ conf.packages = Packages(
         # "power-profiles-daemon",
         "system-config-printer",
         # "git",
-        "ghostty",
+        # "ghostty",
         # "alacritty",
         # "blueman", # TODO: Maybe a better location is required
         # AUR packages
@@ -325,32 +295,32 @@ conf.packages = Packages(
         # "spice-gtk",
         # "remmina",
         # "papers",
-        "firefox",
+        # "firefox",
         # "thunderbird",
         # "freecad",
         # "openscad",
         # "prusa-slicer",
     ]
-    + aurpkgs[
-        # "visual-studio-code-bin",
-        # "opera",
-        # "quickemu",
-        "uxplay",
-        # "megasync-bin",
-        "brave-bin",
-        # "zen-browser-bin",
-    ]
+    # + aurpkgs[
+    # "visual-studio-code-bin",
+    # "opera",
+    # "quickemu",
+    # "uxplay",
+    # "megasync-bin",
+    # "brave-bin",
+    # "zen-browser-bin",
+    # ]
     # CLI tools
-    + cli.packages(archpkgs, aurpkgs)
+    # + cli.packages(archpkgs, aurpkgs)
     # Development tools
-    + development.packages(archpkgs)
+    # + development.packages(archpkgs)
     # Flatpak packages
-    + flatpakpkgs[
-        # "freecad",
-        # "openscad",
-        # "prusa-slicer",
-        "net.nokyan.Resources"
-    ]
+    # + flatpakpkgs[
+    # "freecad",
+    # "openscad",
+    # "prusa-slicer",
+    # "net.nokyan.Resources"
+    # ]
 )
 
 # System services configuration
@@ -366,14 +336,13 @@ conf.services = Services(
             package=archpkgs["pipewire"],
             extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
         ),
-        "fwupd": Service(enable=True, package=archpkgs["fwupd"]),
+        "fwupd": Service(enable=False, package=archpkgs["fwupd"]),
         "tailscale": Service(enable=False, package=archpkgs["tailscale"]),
         "networkmanager": Service(
             enable=True,
             package=archpkgs["networkmanager"],
             service_name="NetworkManager",
         ),
-        # "nix": Service(enable=True, service_name="nix_daemon"),
         "openssh": Service(
             enable=True,
             package=archpkgs["openssh-server"],
@@ -387,11 +356,11 @@ conf.services = Services(
             extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
         ),
         "bluetooth": Service(
-            enable=True, package=archpkgs["bluez"], service_name="bluetooth"
+            enable=False, package=archpkgs["bluez"], service_name="bluetooth"
         ),
     }
 )
-conf.services["avahi"].enable = False
+# conf.services["avahi"].enable = False
 
 # System mount configuration (disabled by default)
 # conf.mount = MountManager(
