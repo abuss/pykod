@@ -176,11 +176,11 @@ conf.desktop = DesktopManager(
 conf.fonts = Fonts(
     font_dir=True,
     packages=archpkgs[
-        "nerd-fonts",
-        # "ttf-firacode-nerd",
-        # "ttf-nerd-fonts-symbols",
-        # "ttf-nerd-fonts-symbols-common",
-        # "ttf-sourcecodepro-nerd",
+        # "nerd-fonts",
+        "ttf-firacode-nerd",
+        "ttf-nerd-fonts-symbols",
+        "ttf-nerd-fonts-symbols-common",
+        "ttf-sourcecodepro-nerd",
         "ttf-fira-sans",
         "ttf-fira-code",
         # "ttf-liberation",
@@ -310,9 +310,9 @@ conf.packages = Packages(
         # "zen-browser-bin",
     ]
     # CLI tools
-    + cli.packages(archpkgs, aurpkgs)
+    # + cli.packages(archpkgs, aurpkgs)
     # Development tools
-    + development.packages(archpkgs)
+    # + development.packages(archpkgs)
     # Flatpak packages
     + flatpakpkgs[
         "com.mattjakeman.ExtensionManager",
