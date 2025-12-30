@@ -187,7 +187,7 @@ conf.fonts = Fonts(
         # "noto-fonts-emoji",
         # "adobe-source-serif-fonts",
         # "ttf-ubuntu-font-family",
-    ],
+    ]
     + aurpkgs["ttf-work-sans"],
 )
 
@@ -301,13 +301,13 @@ conf.packages = Packages(
         # "prusa-slicer",
     ]
     + aurpkgs[
-    # "visual-studio-code-bin",
-    # "opera",
-    # "quickemu",
-    # "uxplay",
-    # "megasync-bin",
+        # "visual-studio-code-bin",
+        # "opera",
+        # "quickemu",
+        # "uxplay",
+        # "megasync-bin",
         "brave-bin",
-    # "zen-browser-bin",
+        # "zen-browser-bin",
     ]
     # CLI tools
     + cli.packages(archpkgs, aurpkgs)
@@ -316,10 +316,10 @@ conf.packages = Packages(
     # Flatpak packages
     + flatpakpkgs[
         "com.mattjakeman.ExtensionManager",
-    # "freecad",
-    # "openscad",
-    # "prusa-slicer",
-        "net.nokyan.Resources"
+        # "freecad",
+        # "openscad",
+        # "prusa-slicer",
+        "net.nokyan.Resources",
     ]
 )
 
