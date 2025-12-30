@@ -101,6 +101,10 @@ class Repository:
     def packages(self):
         return self._pkgs
 
+    def remove_package(self, packages_name: set | list) -> str:
+        """Remove packages from the repository."""
+        return ""
+
     def packages_to_install(
         self, install_pkgs: PackageList, exclude_pkgd: PackageList
     ) -> PackageList:

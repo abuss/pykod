@@ -98,8 +98,8 @@ class Arch(Repository):
         cmd = f"pacman -S --needed --noconfirm {pkgs}"
         return cmd
 
-    def remove_package(self, package_name) -> str:
-        pkgs = " ".join(package_name)
+    def remove_package(self, packages_name: set | list) -> str:
+        pkgs = " ".join(packages_name)
         cmd = f"pacman -Rnsc --noconfirm {pkgs}"
         return cmd
 
@@ -111,57 +111,57 @@ class Arch(Repository):
         cmd = "pacman -Sy"
         return cmd
 
-    def packages_to_install(
-        self, include_pkgs: PackageList, exclude_pkgs: PackageList
-    ) -> PackageList:
-        """Generate a list of packages to install per repossitory by excluding the packages from the exclude list.
-        Some packages are groups that include other packages but are not packages by themselves. The list of all available groups can be obtained by running `pacman -Sg`.
-        So, converting groups to packages is necessary before excluding packages.
-        """
-        updated_pkgs_list = PackageList()
+    # def _packages_to_install(
+    #     self, include_pkgs: PackageList, exclude_pkgs: PackageList
+    # ) -> PackageList:
+    #     """Generate a list of packages to install per repossitory by excluding the packages from the exclude list.
+    #     Some packages are groups that include other packages but are not packages by themselves. The list of all available groups can be obtained by running `pacman -Sg`.
+    #     So, converting groups to packages is necessary before excluding packages.
+    #     """
+    #     updated_pkgs_list = PackageList()
 
-        list_groups = set(exec("pacman -Sg", get_output=True).splitlines())
-        # -----------------------------------------
-        # For debugging purposes
-        # cmd = "pacman -Sg"
-        # list_groups = set(
-        #     subprocess.run(
-        #         cmd, shell=True, capture_output=True, text=True
-        #     ).stdout.splitlines()
-        # )
-        # print(f"{list_groups=}")
-        # -----------------------------------------
-        list_excluded_pkgs = exclude_pkgs.to_list() if exclude_pkgs else []
-        # print(f"{list_excluded_pkgs=}")
-        # Add packages from repository groups
-        for repo, packages in include_pkgs.items():
-            all_pkgs = set()
-            groups_to_install = set(packages) & list_groups
-            # print(f"{groups_to_install=}")
-            normal_pkgs = set(packages) - groups_to_install
-            # print(f"{normal_pkgs=}")
-            all_pkgs.update(normal_pkgs)
-            for group in groups_to_install:
-                pkgs_in_group = set(
-                    exec(
-                        f"pacman -Sg {group} | awk '{{print $2}}'", get_output=True
-                    ).splitlines()
-                )
-                # -----------------------------------------
-                # For debugging purposes
-                # cmd = f"pacman -Sg {group} | awk '{{print $2}}'"
-                # pkgs_in_group = set(
-                #     subprocess.run(
-                #         cmd, shell=True, capture_output=True, text=True
-                #     ).stdout.splitlines()
-                # )
-                # -----------------------------------------
-                pkgs_to_add = pkgs_in_group - set(list_excluded_pkgs)
-                all_pkgs.update(pkgs_to_add)
-            # Create a new PackageList with all the pacakges to install
-            updated_pkgs_list += repo[list(all_pkgs)]
+    #     list_groups = set(exec("pacman -Sg", get_output=True).splitlines())
+    #     # -----------------------------------------
+    #     # For debugging purposes
+    #     # cmd = "pacman -Sg"
+    #     # list_groups = set(
+    #     #     subprocess.run(
+    #     #         cmd, shell=True, capture_output=True, text=True
+    #     #     ).stdout.splitlines()
+    #     # )
+    #     # print(f"{list_groups=}")
+    #     # -----------------------------------------
+    #     list_excluded_pkgs = exclude_pkgs.to_list() if exclude_pkgs else []
+    #     # print(f"{list_excluded_pkgs=}")
+    #     # Add packages from repository groups
+    #     for repo, packages in include_pkgs.items():
+    #         all_pkgs = set()
+    #         groups_to_install = set(packages) & list_groups
+    #         # print(f"{groups_to_install=}")
+    #         normal_pkgs = set(packages) - groups_to_install
+    #         # print(f"{normal_pkgs=}")
+    #         all_pkgs.update(normal_pkgs)
+    #         for group in groups_to_install:
+    #             pkgs_in_group = set(
+    #                 exec(
+    #                     f"pacman -Sg {group} | awk '{{print $2}}'", get_output=True
+    #                 ).splitlines()
+    #             )
+    #             # -----------------------------------------
+    #             # For debugging purposes
+    #             # cmd = f"pacman -Sg {group} | awk '{{print $2}}'"
+    #             # pkgs_in_group = set(
+    #             #     subprocess.run(
+    #             #         cmd, shell=True, capture_output=True, text=True
+    #             #     ).stdout.splitlines()
+    #             # )
+    #             # -----------------------------------------
+    #             pkgs_to_add = pkgs_in_group - set(list_excluded_pkgs)
+    #             all_pkgs.update(pkgs_to_add)
+    #         # Create a new PackageList with all the pacakges to install
+    #         updated_pkgs_list += repo[list(all_pkgs)]
 
-        return updated_pkgs_list
+    #     return updated_pkgs_list
 
     def list_installed_packages(self):
         """Generate a file containing the list of installed packages and their versions."""

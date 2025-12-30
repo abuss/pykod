@@ -1,4 +1,5 @@
 import json
+import subprocess
 from collections import defaultdict
 
 from pykod.common import (
@@ -41,6 +42,7 @@ class Configuration:
         set_debug(self.debug)
         set_verbose(self.verbose)
         self.partition_list = []
+        self.state: str = ""
 
     # 1. **Initialization** (lines 78-86)
     #    - Creates a `Context` object with the current user, mount point (`/mnt` by default), and sets `use_chroot=True` and `stage="install"`
@@ -91,6 +93,7 @@ class Configuration:
         print(f"{self.dry_run=}")
         print(f"{self.debug=}")
         print(f"{self.verbose=}")
+        self.state = "install"
         # list all attributes that have an install method and call it
         elements = defaultdict(dict)
         for name, obj in vars(self).items():
@@ -168,7 +171,8 @@ class Configuration:
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
 
-        packages_to_install = self.base.packages_to_install(include_pkgs, exclude_pkgs)
+        # packages_to_install = self.base.packages_to_install(include_pkgs, exclude_pkgs)
+        packages_to_install = include_pkgs
         print(f"Packages to install: {packages_to_install}")
         print("-+-" * 40)
         x = input()
@@ -177,6 +181,17 @@ class Configuration:
         for repo, packages in packages_to_install.items():
             # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
             cmd = repo.install_package(set(packages))
+            # print(f"  Command: {cmd}")
+            exec_chroot(cmd, mount_point=self.mount_point)
+
+        # print("Excluding packages")
+        pkgs_to_remove = self.packages_to_remove(exclude_pkgs)
+        print(f"Packages to remove: {pkgs_to_remove}")
+        print("-+-" * 40)
+        x = input()
+        for packages in pkgs_to_remove:
+            # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+            cmd = self.base.remove_package(set(packages))
             # print(f"  Command: {cmd}")
             exec_chroot(cmd, mount_point=self.mount_point)
 
@@ -225,6 +240,23 @@ class Configuration:
         exec(f"cp -r /root/pykod {self.mount_point}/store/root/")
         exec(f"umount {self.mount_point}")
         print(" Done installing KodOS")
+
+    def packages_to_remove(self, exclude_pkgs):
+        installed_packages_cmd = self.base.list_installed_packages()
+        if self.state == "install":
+            installed_pakages_version = exec_chroot(
+                installed_packages_cmd, mount_point=self.mount_point, get_output=True
+            )
+            # installed_pakages_version = subprocess.run(
+            #     installed_packages_cmd, shell=True, capture_output=True, text=True
+            # ).stdout
+        else:
+            installed_pakages_version = exec(installed_packages_cmd, get_output=True)
+        installed_pakages = set(
+            [line.split()[0] for line in installed_pakages_version.splitlines()]
+        )
+        pkgs_to_remove = installed_pakages & set(exclude_pkgs.to_list())
+        return pkgs_to_remove
 
 
 def _find_package_list(
