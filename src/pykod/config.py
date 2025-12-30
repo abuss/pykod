@@ -189,11 +189,11 @@ class Configuration:
         print(f"Packages to remove: {pkgs_to_remove}")
         print("-+-" * 40)
         x = input()
-        for packages in pkgs_to_remove:
-            # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
-            cmd = self.base.remove_package(set(packages))
-            # print(f"  Command: {cmd}")
-            exec_chroot(cmd, mount_point=self.mount_point)
+        # for packages in pkgs_to_remove:
+        # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+        cmd = self.base.remove_package(pkgs_to_remove)
+        # print(f"  Command: {cmd}")
+        exec_chroot(cmd, mount_point=self.mount_point)
 
         # ### 6. **Service Management** (lines 124-126)
         #    - Gets system services to enable from configuration
@@ -252,10 +252,13 @@ class Configuration:
             # ).stdout
         else:
             installed_pakages_version = exec(installed_packages_cmd, get_output=True)
+            # print(f"{installed_pakages_version=}")
         installed_pakages = set(
-            [line.split()[0] for line in installed_pakages_version.splitlines()]
+            [line.split(" ")[0] for line in installed_pakages_version.splitlines()]
         )
+        # print(f"{installed_pakages=}")
         pkgs_to_remove = installed_pakages & set(exclude_pkgs.to_list())
+        # print(f"{pkgs_to_remove=}")
         return pkgs_to_remove
 
 
