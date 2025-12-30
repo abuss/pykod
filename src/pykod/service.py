@@ -70,6 +70,7 @@ class Services(dict):
             if obj.enable:
                 print(f"\n - {key}: {obj}")
                 cmd = obj.enable_service(key)
+                print("   ->", cmd)
                 exec_chroot(cmd, mount_point=config.mount_point)
 
     def rebuild(self):

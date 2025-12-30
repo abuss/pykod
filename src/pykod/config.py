@@ -252,13 +252,13 @@ class Configuration:
             # ).stdout
         else:
             installed_pakages_version = exec(installed_packages_cmd, get_output=True)
-            # print(f"{installed_pakages_version=}")
+        print(f"{installed_pakages_version=}")
         installed_pakages = set(
             [line.split(" ")[0] for line in installed_pakages_version.splitlines()]
         )
-        # print(f"{installed_pakages=}")
+        print(f"{installed_pakages=}")
         pkgs_to_remove = installed_pakages & set(exclude_pkgs.to_list())
-        # print(f"{pkgs_to_remove=}")
+        print(f"{pkgs_to_remove=}")
         return pkgs_to_remove
 
 
