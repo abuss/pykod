@@ -29,7 +29,7 @@ flatpakpkgs = Flatpak(hub_url="flathub")
 
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs, debug=True, verbose=True)
+conf = Configuration(base=archpkgs)
 # use_virtualization = False
 
 # use_gnome = True
@@ -122,7 +122,6 @@ conf.desktop = DesktopManager(
                 "showtime",
                 "gnome-connections",
                 "gnome-shell-extension-weather-oclock",
-                # "flatpak:com.mattjakeman.ExtensionManager",
                 "gnome-shell-extension-appindicator",
             ]
             + aurpkgs[
@@ -130,7 +129,8 @@ conf.desktop = DesktopManager(
                 "gnome-shell-extension-blur-my-shell",
                 "gnome-shell-extension-arc-menu-git",
                 "gnome-shell-extension-gsconnect",
-            ],
+            ]
+            + flatpakpkgs["com.mattjakeman.ExtensionManager"],
         ),
         "plasma": DesktopEnvironment(
             enable=False,
@@ -139,7 +139,7 @@ conf.desktop = DesktopManager(
             extra_packages=archpkgs["kde-applications"],
         ),
         "cosmic": DesktopEnvironment(
-            enable=False,
+            enable=True,
             package=archpkgs["cosmic"],
             # display_manager="cosmic-greeter"
         ),

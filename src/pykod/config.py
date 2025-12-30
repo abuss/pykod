@@ -169,8 +169,9 @@ class Configuration:
         print("-+-" * 40)
 
         packages_to_install = self.base.packages_to_install(include_pkgs, exclude_pkgs)
-        # print(f"Packages to install: {packages_to_install}")
-        # print("-+-" * 40)
+        print(f"Packages to install: {packages_to_install}")
+        print("-+-" * 40)
+        x = input()
 
         # print("Installing packages from repository")
         for repo, packages in packages_to_install.items():
