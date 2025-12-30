@@ -134,7 +134,7 @@ conf.desktop = DesktopManager(
             + flatpakpkgs["com.mattjakeman.ExtensionManager"],
         ),
         "plasma": DesktopEnvironment(
-            enable=False,
+            enable=True,
             package=archpkgs["plasma"],
             # display_manager="sddm",
             extra_packages=archpkgs["kde-applications"],
@@ -296,7 +296,7 @@ conf.packages = Packages(
         # "spice-gtk",
         # "remmina",
         # "papers",
-        # "firefox",
+        "firefox",
         # "thunderbird",
         # "freecad",
         # "openscad",
@@ -322,6 +322,7 @@ conf.packages = Packages(
         # "openscad",
         # "prusa-slicer",
         "net.nokyan.Resources",
+        "dev.edfloreshz.CosmicTweaks",
     ]
 )
 
