@@ -172,6 +172,7 @@ conf.desktop = DesktopManager(
             enable=True,
             package=archpkgs["cosmic"],
             # display_manager="cosmic-greeter"
+            exclude_packages=archpkgs["cosmic-initial-setup"],
         ),
         "budgie": DesktopEnvironment(
             enable=False,
