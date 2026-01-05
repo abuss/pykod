@@ -1,26 +1,3 @@
-# Structure
-#
-# - repository (package sources)
-# - system
-#   - devices (disk)
-#   - boot
-#       - kernel
-#       - loader
-#   - locale
-#   - network
-#   - hardware
-#       - sound
-#       - scanner
-# - desktop
-#   - windows manager (gnome, kde, cosmic, ...)
-#   - desktop manager (gdm, lightdm, etc)
-# - users
-# - environment
-#   - services
-#   - fonts
-#   - programs
-#
-
 from pykod import Configuration
 
 # from pykod._hardware import HardwareManager
@@ -41,7 +18,6 @@ from pykod.user import (
     Stow,
     SyncthingConfig,
     User,
-    UserService,
 )
 
 # from pykod.repositories import Repository
@@ -70,7 +46,7 @@ conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 import cli
 import development
 
-conf.device = Devices(
+conf.devices = Devices(
     disk0=Disk(
         device="/dev/vda",
         partitions=[
@@ -347,7 +323,7 @@ conf.packages = Packages(
     + development.packages(archpkgs)
     # Flatpak packages
     + flatpakpkgs[
-        "freecad",
+        # "freecad",
         # "openscad",
         "prusa-slicer",
     ]
@@ -380,7 +356,7 @@ conf.services = Services(
             service_name="sshd",
             settings={"PermitRootLogin": False},
         ),
-        "avahi": Service(enable=False, package=archpkgs["avahi-daemon"]),
+        "avahi": Service(enable=True, package=archpkgs["avahi-daemon"]),
         "cups": Service(
             enable=True,
             package=archpkgs["cups"],
