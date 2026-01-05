@@ -1,13 +1,10 @@
 """Devices configuration."""
 
 from dataclasses import dataclass, field
-from typing import Any, override
+from typing import Any
 
-from pykod.base import NestedDict
-
-# from pykod.common import fake_exec as exec
 from pykod.common import exec, open_with_dry_run
-from pykod.core import generate_fstab, setup_bootloader
+from pykod.core import setup_bootloader
 
 _filesystem_cmd: dict[str, str | None] = {
     "esp": "mkfs.vfat -F32",
@@ -164,6 +161,34 @@ class Disk:
 
         return boot_partition, root_partition, partitions_list
 
+    def info_partitions(self):
+        """Get information about boot and root partitions from the disk configuration.
+
+        Returns:
+            Tuple containing (boot_partition, root_partition) where each is either
+            a device path string or None if that partition type is not found.
+        """
+        # self.device, self.partitions
+        if "nvme" in self.device or "mmcblk" in self.device:
+            device_suffix = "p"
+        else:
+            device_suffix = ""
+
+        if not self.partitions:
+            return None, None, []
+
+        boot_partition = None
+        root_partition = None
+
+        for pid, part in enumerate(self.partitions, 1):
+            name = part.name
+            blockdevice = f"{self.device}{device_suffix}{pid}"
+            if name.lower() in ["boot", "efi"]:
+                boot_partition = blockdevice
+            elif name.lower() == "root":
+                root_partition = blockdevice
+        return boot_partition, root_partition
+
 
 # class Devices(NestedDict, Install, Rebuild):
 class Devices(dict):
@@ -227,10 +252,6 @@ class Devices(dict):
         # generate_fstab(config, partition_list, mount_point)
 
         return partition_list
-
-    # def rebuild(self) -> None:
-    #     print("[rebuild] Arch repo:", self)
-    #     print("Refresh repos")
 
     # Core
     def _create_filesystem_hierarchy(self, mount_point: str) -> list:
@@ -308,6 +329,7 @@ class Devices(dict):
         return partition_list
 
 
+@dataclass
 class FsEntry:
     """Represents a filesystem entry for fstab configuration.
 
@@ -324,31 +346,12 @@ class FsEntry:
         pass_ (int): Filesystem check order (0=no check, 1=root, 2=other)
     """
 
-    def __init__(
-        self,
-        source: str,
-        destination: str,
-        fs_type: str,
-        options: str,
-        dump: int = 0,
-        pass_: int = 0,
-    ) -> None:
-        """Initialize a filesystem entry.
-
-        Args:
-            source: Source device path or UUID
-            destination: Mount point destination
-            fs_type: Filesystem type
-            options: Mount options string
-            dump: Dump backup frequency. Defaults to 0.
-            pass_: Filesystem check pass number. Defaults to 0.
-        """
-        self.source = source
-        self.destination = destination
-        self.fs_type = fs_type
-        self.options = options
-        self.dump = dump
-        self.pass_ = pass_
+    source: str
+    destination: str
+    fs_type: str
+    options: str
+    dump: int = 0
+    pass_: int = 0
 
     def __str__(self) -> str:
         """Return a formatted string representation of the fstab entry.
@@ -378,17 +381,55 @@ class FsEntry:
         return self.source
 
 
-class Boot(NestedDict):
+@dataclass
+class Kernel:
+    package: str = "linux"
+    modules: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Loader:
+    type: str = "systemd-boot"
+    timeout: int = 3
+    include: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Boot:
+    kernel: Kernel = field(default_factory=Kernel)
+    loader: Loader = field(default_factory=Loader)
+
     def install(self, config):
         print("[install] Boot configuration:", self)
         setup_bootloader(self, config.partition_list, config.base)
 
 
-class Kernel(NestedDict):
-    def install(self, _config):
-        print("[install] Kernel configuration:", self)
+def load_fstab(root_path: str = "") -> list[str]:
+    """
+    Load a list of Partition objects from the specified fstab file.
 
+    This function reads the specified fstab file, parses its entries, and
+    returns a list of Partition objects representing the filesystem
+    hierarchy described in the file. The Partition objects are created
+    using the FsEntry class.
 
-class Loader(NestedDict):
-    def install(self, _config):
-        print("[install] Loader configuration:", self)
+    Args:
+        root_path (str, optional): The root path from which to read the
+            fstab file. Defaults to the current working directory.
+
+    Returns:
+        list: A list of Partition objects representing the filesystem
+            hierarchy described in the fstab file.
+    """
+    partition_list = []
+    with open(f"{root_path}/etc/fstab") as f:
+        entries = f.readlines()
+
+    for entry in entries:
+        if not entry or entry == "\n" or entry.startswith("#"):
+            continue
+        (device, mount_point, fs_type, options, dump, pass_) = entry.split()
+        partition_list.append(
+            FsEntry(device, mount_point, fs_type, options, int(dump), int(pass_))
+        )
+    return partition_list

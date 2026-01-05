@@ -98,6 +98,11 @@ class Repository:
         # return pprint.pformat(self._data, indent=2, width=10)
         return f"{self.__dict__}"
 
+    def get_base_packages(self, conf) -> dict:
+        return {}
+
+    def install_base(self, mount_point, packages): ...
+
     def packages(self):
         return self._pkgs
 

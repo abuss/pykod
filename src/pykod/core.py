@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any
 
 from pykod.common import exec, exec_chroot, get_dry_run, open_with_dry_run
+
+# from pykod.devices import FsEntry
 from pykod.repositories.base import Repository
 
 os_release = """NAME="KodOS Linux"

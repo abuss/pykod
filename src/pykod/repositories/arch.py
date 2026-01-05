@@ -108,7 +108,7 @@ class Arch(Repository):
         return cmd
 
     def update_database(self) -> str:
-        cmd = "pacman -Sy"
+        cmd = "pacman -Syy"
         return cmd
 
     # def _packages_to_install(
@@ -167,3 +167,13 @@ class Arch(Repository):
         """Generate a file containing the list of installed packages and their versions."""
         cmd = "pacman -Q --noconfirm"
         return cmd
+
+
+def get_kernel_file(mount_point: str, package: str = "linux"):
+    """Retrieve the kernel file path and version from the specified mount point."""
+    kernel_file = exec_chroot(
+        f"pacman -Ql {package} | grep vmlinuz", mount_point=mount_point, get_output=True
+    )
+    kernel_file = kernel_file.split(" ")[-1].strip()
+    kver = kernel_file.split("/")[-2]
+    return kernel_file, kver

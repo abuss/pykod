@@ -21,7 +21,7 @@ class Service:
         settings: Service-specific configuration settings
     """
 
-    package: PackageList
+    package: PackageList | None = None
     enable: bool = True
     service_name: str | None = None
     extra_packages: PackageList | None = None
@@ -31,7 +31,7 @@ class Service:
 
     def __post_init__(self):
         """Post-initialization processing."""
-        if self.service_name is None and self.enable:
+        if self.package is not None and self.service_name is None and self.enable:
             self.service_name = self.package.to_list()[0]
 
     def enable_service(self, service) -> str:
@@ -42,7 +42,7 @@ class Service:
         cmd = f"systemctl enable {service}"
         return cmd
 
-    def disable_services(self, service) -> str:
+    def disable_service(self, service) -> str:
         """Disable a list of services in the specified mount point."""
         print(f"Disabling service: {service}")
         cmd = f"systemctl disable {service}"
@@ -72,6 +72,16 @@ class Services(dict):
                 cmd = obj.enable_service(key)
                 print("   ->", cmd)
                 exec_chroot(cmd, mount_point=config.mount_point)
+
+    # def disable(self, config):
+    #     """Creating a Service manager."""
+    #     print("\n[DISABLE] Services:")
+    #     for key, obj in self.items():
+    #         if not obj.enable:
+    #             print(f"\n - {key}: {obj}")
+    #             cmd = obj.disable_service(key)
+    #             print("   ->", cmd)
+    #             exec_chroot(cmd, mount_point=config.mount_point)
 
     def rebuild(self):
         print("[rebuild] Updating services:")

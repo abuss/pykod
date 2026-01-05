@@ -139,7 +139,8 @@ conf.network = Network(
 
 # Desktop environment configuration - using DesktopManager directly
 conf.desktop = DesktopManager(
-    display_manager=Service(package=archpkgs["gdm"]),
+    # display_manager=Service(package=archpkgs["gdm"]),
+    display_manager=Service(package=archpkgs["cosmic-greeter"]),
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
@@ -208,10 +209,10 @@ conf.fonts = Fonts(
     font_dir=True,
     packages=archpkgs[
         "nerd-fonts",
-        "ttf-firacode-nerd",
-        "ttf-nerd-fonts-symbols",
-        "ttf-nerd-fonts-symbols-common",
-        "ttf-sourcecodepro-nerd",
+        # "ttf-firacode-nerd",
+        # "ttf-nerd-fonts-symbols",
+        # "ttf-nerd-fonts-symbols-common",
+        # "ttf-sourcecodepro-nerd",
         "ttf-fira-sans",
         "ttf-fira-code",
         "ttf-liberation",
@@ -319,7 +320,7 @@ conf.packages = Packages(
         # Flatpak packages
         # "flatpak:com.mattjakeman.ExtensionManager",
         # "flatpak:com.visualstudio.code",
-        "distrobox",
+        # "distrobox",
         "podman",
         "qemu-desktop",
         "spice-gtk",
@@ -329,7 +330,7 @@ conf.packages = Packages(
         "thunderbird",
         "freecad",
         "openscad",
-        "prusa-slicer",
+        # "prusa-slicer",
     ]
     + aurpkgs[
         "visual-studio-code-bin",
@@ -338,7 +339,7 @@ conf.packages = Packages(
         "uxplay",
         "megasync-bin",
         "brave-bin",
-        "zen-browser-bin",
+        # "zen-browser-bin",
     ]
     # CLI tools
     + cli.packages(archpkgs, aurpkgs)
@@ -347,7 +348,7 @@ conf.packages = Packages(
     # Flatpak packages
     + flatpakpkgs[
         "freecad",
-        "openscad",
+        # "openscad",
         "prusa-slicer",
     ]
 )
@@ -439,4 +440,4 @@ if __name__ == "__main__":
     if command == "install":
         conf.install()
     elif command == "rebuild":
-        conf.rebuild()
+        conf.rebuild(new_generation=True, update=True)

@@ -26,7 +26,7 @@ def packages(archpkgs=None, aurpkgs=None, flatpakpkgs=None):
         # Editors
         # "neovim",
         # "lite-xl",
-        "emacs-wayland",
+        # "emacs-wayland",
         "zed",
         # "obsidian",
         "typst",
