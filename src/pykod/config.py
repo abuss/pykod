@@ -1,8 +1,6 @@
 import json
 import subprocess
-from asyncio.events import new_event_loop
 from collections import defaultdict
-from modulefinder import packagePathMap
 from pathlib import Path
 from typing import Callable
 
@@ -123,15 +121,12 @@ class Configuration:
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
 
-        # packages_to_install = self.base.packages_to_install(include_pkgs, exclude_pkgs)
         packages_to_install = include_pkgs
         print(f"Packages to install: {packages_to_install}")
         print("-+-" * 40)
-        x = input()
 
         # print("Installing packages from repository")
         for repo, packages in packages_to_install.items():
-            # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
             cmd = repo.install_package(set(packages))
             # print(f"  Command: {cmd}")
             exec_chroot(cmd, mount_point=self.mount_point)
@@ -140,11 +135,8 @@ class Configuration:
         pkgs_to_remove = self.packages_to_remove(exclude_pkgs)
         print(f"Packages to remove: {pkgs_to_remove}")
         print("-+-" * 40)
-        x = input()
-        # for packages in pkgs_to_remove:
-        # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
+
         cmd = self.base.remove_package(pkgs_to_remove)
-        # print(f"  Command: {cmd}")
         exec_chroot(cmd, mount_point=self.mount_point)
 
         # ### 6. **Service Management** (lines 124-126)
@@ -174,15 +166,15 @@ class Configuration:
         # ### 8. **Generation Storage** (lines 133-134)
         #    - Stores installed packages and enabled services to generation 0 path (`/kod/generations/0`)
         #    - Generates package lock file using `dist.generale_package_lock()`
-        # generation_path = f"{self.mount_point}/kod/generations/0"
-        generation_path = "mnt/kod/generations/0"
+        generation_path = f"{self.mount_point}/kod/generations/0"
+        # generation_path = "mnt/kod/generations/0"
         kernel = boot.kernel.package.to_list()[0]
-        store_packages_services_tmp(
+        store_packages_services(
             generation_path, kernel, include_pkgs, list_enabled_services
         )
         #
         installed_packages_cmd = self.base.list_installed_packages()
-        store_installed_packages_tmp(generation_path, self, installed_packages_cmd)
+        store_installed_packages(generation_path, self, installed_packages_cmd)
 
         # TODO: Save current configurtion
 
@@ -215,14 +207,14 @@ class Configuration:
         # ['Locale', 'Network', 'DesktopManager', 'Fonts', 'User', 'Services']
 
         # Get next generation number
-        # max_generation = get_max_generation()
-        max_generation = 0  # FOR TESTING
+        max_generation = get_max_generation()
+        # max_generation = 0  # FOR TESTING
         next_generation_id = int(max_generation) + 1
         print(f"Next generation ID: {next_generation_id}")
 
         with open_with_dry_run("/.generation") as f:
             current_generation_id = int(f.readline().strip())
-        current_generation_id = 0  # FOR TESTING
+        # current_generation_id = 0  # FOR TESTING
         print(f"{current_generation_id = }")
 
         # 3. Current State Loading (lines 171-179)
@@ -230,13 +222,13 @@ class Configuration:
         # - Validates that the current generation state files exist
 
         # Load current installed packages and enabled services
-        current_generation_path = Path(f"mnt/kod/generations/{current_generation_id}")
+        current_generation_path = Path(f"/kod/generations/{current_generation_id}")
         print(f"Loading current generation from {current_generation_path}")
         if not (current_generation_path / "installed_packages").is_file():
             print("Missing installed packages information")
             return
 
-        current_packages, current_services = load_packages_services_tmp(
+        current_packages, current_services = load_packages_services(
             current_generation_path
         )
         print(f"{current_packages = }")
@@ -262,9 +254,7 @@ class Configuration:
 
         # 4. Snapshot and Root Path Preparation (lines 181-200)
         # - Creates directory for the next generation state
-        next_generation_path = Path(
-            f"mnt/kod/generations/{next_generation_id}"
-        )  # FOR TESTING
+        next_generation_path = Path(f"/kod/generations/{next_generation_id}")
         next_generation_path.mkdir(parents=True, exist_ok=True)
 
         # - If --new_generation flag is used:
@@ -434,15 +424,15 @@ class Configuration:
         #    - Stores installed packages and enabled services to generation 0 path (`/kod/generations/0`)
         #    - Generates package lock file using `dist.generale_package_lock()`
 
-        # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
-        generation_path = f"mnt/kod/generations/{next_generation_id}"
+        generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
+        # generation_path = f"mnt/kod/generations/{next_generation_id}"
         # kernel = boot.kernel.package.to_list()[0]
-        store_packages_services_tmp(
+        store_packages_services(
             generation_path, next_kernel, include_pkgs, new_enabled_services
         )
         #
         installed_packages_cmd = self.base.list_installed_packages()
-        store_installed_packages_tmp(generation_path, self, installed_packages_cmd)
+        store_installed_packages(generation_path, self, installed_packages_cmd)
 
         #
         # 10. Generation Deployment (lines 290-310)
@@ -643,18 +633,18 @@ def store_packages_services(state_path: str, kernel, packages, services) -> None
         f.write("\n".join(list_services))
 
 
-def store_packages_services_tmp(state_path: str, kernel, packages, services) -> None:
-    """Store the list of packages that are installed and the list of services that are enabled."""
-    list_packages = repo_packages_list(kernel, packages)
-    packages_json = json.dumps(list_packages, indent=2)
-    with open(f"{state_path}/installed_packages", "w") as f:
-        f.write(packages_json)
+# def store_packages_services_tmp(state_path: str, kernel, packages, services) -> None:
+#     """Store the list of packages that are installed and the list of services that are enabled."""
+#     list_packages = repo_packages_list(kernel, packages)
+#     packages_json = json.dumps(list_packages, indent=2)
+#     with open(f"{state_path}/installed_packages", "w") as f:
+#         f.write(packages_json)
 
-    print(f"Storing enabled services to {state_path}/enabled_services")
-    # print(f"Services: {services}")
-    list_services = services
-    with open(f"{state_path}/enabled_services", "w") as f:
-        f.write("\n".join(list_services))
+#     print(f"Storing enabled services to {state_path}/enabled_services")
+#     # print(f"Services: {services}")
+#     list_services = services
+#     with open(f"{state_path}/enabled_services", "w") as f:
+#         f.write("\n".join(list_services))
 
 
 def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
@@ -666,16 +656,16 @@ def store_installed_packages(state_path: str, config, installed_cmd: str) -> Non
         f.write(installed_pakages_version)
 
 
-def store_installed_packages_tmp(state_path: str, config, installed_cmd: str) -> None:
-    """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
-    # installed_pakages_version = exec_chroot(
-    #     installed_cmd, mount_point=config.mount_point, get_output=True
-    # )
-    installed_pakages_version = subprocess.run(
-        installed_cmd, shell=True, capture_output=True, text=True
-    ).stdout
-    with open(f"{state_path}/packages.lock", "w") as f:
-        f.write(installed_pakages_version)
+# def store_installed_packages_tmp(state_path: str, config, installed_cmd: str) -> None:
+#     """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
+#     # installed_pakages_version = exec_chroot(
+#     #     installed_cmd, mount_point=config.mount_point, get_output=True
+#     # )
+#     installed_pakages_version = subprocess.run(
+#         installed_cmd, shell=True, capture_output=True, text=True
+#     ).stdout
+#     with open(f"{state_path}/packages.lock", "w") as f:
+#         f.write(installed_pakages_version)
 
 
 def get_max_generation() -> int:
@@ -704,15 +694,15 @@ def load_packages_services(state_path: Path) -> tuple[dict, list]:
     return (packages, services)
 
 
-def load_packages_services_tmp(state_path: Path) -> tuple[dict, list]:
-    """Load the list of packages that are installed and the list of services that are enabled."""
-    packages = None
-    services = None
-    with open(f"{state_path}/installed_packages", "r") as f:
-        packages = json.load(f)
-    with open(f"{state_path}/enabled_services", "r") as f:
-        services = [pkg.strip() for pkg in f.readlines() if pkg.strip()]
-    return (packages, services)
+# def load_packages_services_tmp(state_path: Path) -> tuple[dict, list]:
+#     """Load the list of packages that are installed and the list of services that are enabled."""
+#     packages = None
+#     services = None
+#     with open(f"{state_path}/installed_packages", "r") as f:
+#         packages = json.load(f)
+#     with open(f"{state_path}/enabled_services", "r") as f:
+#         services = [pkg.strip() for pkg in f.readlines() if pkg.strip()]
+#     return (packages, services)
 
 
 def create_next_generation(boot_part: str, root_part: str, generation: int) -> str:
@@ -730,7 +720,7 @@ def create_next_generation(boot_part: str, root_part: str, generation: int) -> s
     Returns:
         str: The path to the mounted generation
     """
-    next_current = Path("mnt/kod/current/.next_current")
+    next_current = Path("/kod/current/.next_current")
     # Mounting generation
     # if next_current.is_mount():
     #     print("Reboot is required to update generation")
