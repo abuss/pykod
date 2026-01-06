@@ -395,13 +395,21 @@ conf.services = Services(
 
 
 if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
+        print("Usage: python script.py [install|rebuild]")
+        sys.exit(1)
+
+    command = sys.argv[1]
+
     print("-" * 100)
-    # Print all attributes from conf
+    print(f"Running {command} command...")
     print("Configuration attributes:")
 
     print("\n", "-" * 80)
-    conf.install()
-    # print("Conf.packages:", conf.packages)
-    # print("\n", "-" * 80)
-    # print("-" * 100)
-    # conf._list_packages()
+
+    if command == "install":
+        conf.install()
+    elif command == "rebuild":
+        conf.rebuild(new_generation=True, update=True)

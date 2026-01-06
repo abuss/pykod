@@ -1,6 +1,5 @@
 import json
 import subprocess
-from collections import defaultdict
 from pathlib import Path
 from typing import Callable
 
@@ -62,17 +61,6 @@ class Configuration:
         _find_package_list(self, include, exclude)
         return include, exclude
 
-    # def _apply_repo_action(
-    #     self, packages: PackageList, action: str, mount_point: str
-    # ) -> None:
-    #     for repo, items in packages.items():
-    #         cmd = (
-    #             repo.install_package(set(items))
-    #             if action == "install"
-    #             else repo.remove_package(set(items))
-    #         )
-    #         exec_chroot(cmd, mount_point=mount_point)
-
     def _apply_repo_install(
         self, packages: PackageList, mount_point: str | None = None
     ) -> None:
@@ -92,11 +80,6 @@ class Configuration:
             services[display_mgr.service_name] = display_mgr
         print(f"*******> Collected services: {services}")
         return services
-
-    # def _get_devices(self, elements: dict):
-    #     if "Devices" in elements and elements["Devices"]:
-    #         return list(elements["Devices"].values())[0]
-    #     return None
 
     def _get_boot_root_partitions(self, devices) -> tuple[str, str]:
         boot_partition = ""
@@ -143,6 +126,7 @@ class Configuration:
         base_packages = list_base_pkgs["kernel"] + list_base_pkgs["base"]
         print(f"Base packages to install: {base_packages}")
         self._base.install_base(self._mount_point, base_packages)
+        exec_chroot(self._base.update_database(), mount_point=self._mount_point)
 
         generate_fstab(self, self._partition_list, self._mount_point)
         configure_system(self._mount_point)
