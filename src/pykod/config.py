@@ -62,16 +62,28 @@ class Configuration:
         _find_package_list(self, include, exclude)
         return include, exclude
 
-    def _apply_repo_action(
-        self, packages: PackageList, action: str, mount_point: str
+    # def _apply_repo_action(
+    #     self, packages: PackageList, action: str, mount_point: str
+    # ) -> None:
+    #     for repo, items in packages.items():
+    #         cmd = (
+    #             repo.install_package(set(items))
+    #             if action == "install"
+    #             else repo.remove_package(set(items))
+    #         )
+    #         exec_chroot(cmd, mount_point=mount_point)
+
+    def _apply_repo_install(
+        self, packages: PackageList, mount_point: str | None = None
     ) -> None:
         for repo, items in packages.items():
-            cmd = (
-                repo.install_package(set(items))
-                if action == "install"
-                else repo.remove_package(set(items))
-            )
-            exec_chroot(cmd, mount_point=mount_point)
+            if not items:
+                continue
+            cmd = repo.install_package(set(items))
+            if mount_point is None:
+                exec(cmd)
+            else:
+                exec_chroot(cmd, mount_point=mount_point)
 
     def _collect_and_prepare_services(self) -> Services:
         services = self.services
@@ -159,7 +171,7 @@ class Configuration:
         print("-+-" * 40)
 
         packages_to_install = self._base.packages_to_install(include_pkgs, exclude_pkgs)
-        self._apply_repo_action(packages_to_install, "install", self._mount_point)
+        self._apply_repo_install(packages_to_install, self._mount_point)
 
         services = self._collect_and_prepare_services()
         services.enable(self)
@@ -350,7 +362,10 @@ class Configuration:
         print(f"Packages to remove: {new_to_remove}\n")
 
         # print("Installing packages from repository")
-        self._apply_repo_action(new_to_install, "install", new_root_path)
+        if new_generation:
+            self._apply_repo_install(new_to_install, new_root_path)
+        else:
+            self._apply_repo_install(new_to_install)
 
         # print(f"Packages to remove: {pkgs_to_remove}")
         #
@@ -402,6 +417,8 @@ class Configuration:
 
         # print("Removing packages")
         for repo, packages in new_to_remove.items():
+            if len(packages) == 0:
+                continue
             cmd = repo.remove_package(set(packages))
             exec_chroot(cmd, mount_point=new_root_path)
 

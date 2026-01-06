@@ -1,6 +1,4 @@
 from pykod import Configuration
-
-# from pykod._hardware import HardwareManager
 from pykod.desktop import DesktopEnvironment, DesktopManager
 from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
 from pykod.fonts import Fonts
@@ -20,8 +18,6 @@ from pykod.user import (
     User,
 )
 
-# from pykod.repositories import Repository
-
 archpkgs = Arch(mirror_url="https://mirror.rackspace.com/archlinux")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
 aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru.git")
@@ -32,17 +28,10 @@ conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 # conf = Configuration(base=archpkgs)
 # use_virtualization = False
 
-# git_config = ndict
-# syncthing_config = ndict
-# stow_config = ndict
-# themes_config = ndict
-# mount_config = ndict
-
 # use_gnome = True
 # use_plasma = False
 # use_cosmic = True
 
-# with conf as c:
 import cli
 import development
 
@@ -140,13 +129,13 @@ conf.desktop = DesktopManager(
             ],
         ),
         "plasma": DesktopEnvironment(
-            enable=False,
+            enable=True,
             package=archpkgs["plasma"],
             # display_manager="sddm",
             extra_packages=archpkgs["kde-applications"],
         ),
         "cosmic": DesktopEnvironment(
-            enable=True,
+            enable=False,
             package=archpkgs["cosmic"],
             # display_manager="cosmic-greeter"
             exclude_packages=archpkgs["cosmic-initial-setup"],
@@ -193,7 +182,7 @@ conf.fonts = Fonts(
         "ttf-fira-code",
         "ttf-liberation",
         "noto-fonts-emoji",
-        "adobe-source-serif-fonts",
+        # "adobe-source-serif-fonts",
         "ttf-ubuntu-font-family",
     ]
     + aurpkgs["ttf-work-sans"],
@@ -241,7 +230,7 @@ conf.abuss = User(
         ),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
-        #         "neovim": c.Program(enable=True, deploy_config=True),
+        "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
         #         "helix": c.Program(enable=True, deploy_config=True),
         "emacs": Program(
             enable=True,
@@ -257,7 +246,7 @@ conf.abuss = User(
     # ),
     services={
         "syncthing": Service(
-            enable=False,
+            enable=True,
             package=archpkgs["syncthing"],
             config=SyncthingConfig(
                 {
@@ -283,7 +272,7 @@ conf.packages = Packages(
         "stow",
         "mc",
         "less",
-        "neovim",
+        # "neovim",
         "htop",
         "libgtop",
         "power-profiles-daemon",
@@ -303,10 +292,11 @@ conf.packages = Packages(
         "remmina",
         "papers",
         "firefox",
-        "thunderbird",
+        # "thunderbird",
         "freecad",
         "openscad",
-        # "prusa-slicer",
+        "prusa-slicer",
+        "flatpak",
     ]
     + aurpkgs[
         "visual-studio-code-bin",
@@ -325,7 +315,8 @@ conf.packages = Packages(
     + flatpakpkgs[
         # "freecad",
         # "openscad",
-        "prusa-slicer",
+        "com.mattjakeman.ExtensionManager",
+        "com.visualstudio.code",
     ]
 )
 
@@ -343,7 +334,7 @@ conf.services = Services(
             extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
         ),
         "fwupd": Service(enable=True, package=archpkgs["fwupd"]),
-        "tailscale": Service(enable=True, package=archpkgs["tailscale"]),
+        "tailscale": Service(enable=False, package=archpkgs["tailscale"]),
         "networkmanager": Service(
             enable=True,
             package=archpkgs["networkmanager"],
