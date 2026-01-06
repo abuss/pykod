@@ -40,7 +40,7 @@ conf = Configuration(base=archpkgs)
 import cli
 import development
 
-conf.device = Devices(
+conf.devices = Devices(
     disk0=Disk(
         device="/dev/vda",
         partitions=[
