@@ -405,22 +405,7 @@ class Boot:
 
 
 def load_fstab(root_path: str = "") -> list[str]:
-    """
-    Load a list of Partition objects from the specified fstab file.
-
-    This function reads the specified fstab file, parses its entries, and
-    returns a list of Partition objects representing the filesystem
-    hierarchy described in the file. The Partition objects are created
-    using the FsEntry class.
-
-    Args:
-        root_path (str, optional): The root path from which to read the
-            fstab file. Defaults to the current working directory.
-
-    Returns:
-        list: A list of Partition objects representing the filesystem
-            hierarchy described in the fstab file.
-    """
+    """Load a list of Partition objects from the specified fstab file."""
     partition_list = []
     with open(f"{root_path}/etc/fstab") as f:
         entries = f.readlines()
@@ -432,4 +417,5 @@ def load_fstab(root_path: str = "") -> list[str]:
         partition_list.append(
             FsEntry(device, mount_point, fs_type, options, int(dump), int(pass_))
         )
+    print(f"{partition_list = }")
     return partition_list

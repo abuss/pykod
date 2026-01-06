@@ -21,6 +21,7 @@ from pykod.core import (
 from pykod.devices import load_fstab
 from pykod.repositories.base import PackageList, Repository
 from pykod.service import Service, Services
+from pykod.user import User
 
 
 class Configuration:
@@ -47,12 +48,13 @@ class Configuration:
         self.packages = PackageList()
 
     # ---- internal helpers (no behavior change) ----
-    def _collect_elements(self) -> dict:
-        elements: dict = defaultdict(dict)
-        for name, obj in vars(self).items():
-            class_name = type(obj).__name__
-            elements[class_name][name] = obj
-        return elements
+
+    def get_users(self) -> dict:
+        users: dict[str, User] = {}
+        for username, user in vars(self).items():
+            if isinstance(user, User):
+                users[username] = user
+        return users
 
     def _collect_package_sets(self) -> tuple[PackageList, PackageList]:
         include = PackageList()
@@ -71,21 +73,18 @@ class Configuration:
             )
             exec_chroot(cmd, mount_point=mount_point)
 
-    def _collect_and_prepare_services(self, elements: dict) -> Services:
-        services = Services()
-        if "Services" in elements:
-            for svc in elements["Services"].values():
-                services.update(svc)
-        if "DesktopManager" in elements:
-            dm = list(elements["DesktopManager"].values())[0]
-            display_mgr = dm.display_manager
+    def _collect_and_prepare_services(self) -> Services:
+        services = self.services
+        if hasattr(self, "desktop"):
+            display_mgr = self.desktop.display_manager
             services[display_mgr.service_name] = display_mgr
+        print(f"*******> Collected services: {services}")
         return services
 
-    def _get_devices(self, elements: dict):
-        if "Devices" in elements and elements["Devices"]:
-            return list(elements["Devices"].values())[0]
-        return None
+    # def _get_devices(self, elements: dict):
+    #     if "Devices" in elements and elements["Devices"]:
+    #         return list(elements["Devices"].values())[0]
+    #     return None
 
     def _get_boot_root_partitions(self, devices) -> tuple[str, str]:
         boot_partition = ""
@@ -104,22 +103,12 @@ class Configuration:
         kernel: str,
         include_pkgs: PackageList,
         enabled_services: list[str],
-        # installed_cmd: str,
-        # mount_point: str,
     ) -> None:
         print("Storing generation state...")
         print(f"{state_path=}")
         if self._dry_run:
-            # store_packages_services_tmp(
-            #     state_path, kernel, include_pkgs, enabled_services
-            # )
-            # # cfg_like = type("_Cfg", (), {"mount_point": mount_point})()
-            # store_installed_packages_tmp(state_path, self, installed_cmd)
             store_state_tmp(state_path, self, kernel, include_pkgs, enabled_services)
         else:
-            # store_packages_services(state_path, kernel, include_pkgs, enabled_services)
-            # cfg_like = type("_Cfg", (), {"mount_point": mount_point})()
-            # store_installed_packages(state_path, cfg_like, installed_cmd)
             store_state(state_path, self, kernel, include_pkgs, enabled_services)
 
     # =============================== INSTALL ================================
@@ -128,45 +117,42 @@ class Configuration:
         print(f"{self._dry_run=}")
         print(f"{self._debug=}")
         print(f"{self._verbose=}")
-        elements = self._collect_elements()
+        # elements = self._collect_elements()
 
-        devices = None
-        if "Devices" in elements:
-            print("Installing device configuration...")
-            devices = list(elements["Devices"].values())[0]
-            if devices is None:
-                raise ValueError("No devices configuration found.")
-            self._partition_list = devices.install(self, self._mount_point)
+        # Device installation
+        devices = self.devices
+        if devices is None:
+            raise ValueError("No devices configuration found.")
+        print("Installing device configuration...")
+        self._partition_list = devices.install(self, self._mount_point)
 
-            list_base_pkgs = self._base.get_base_packages(self)
-            print(f"Base packages to install: {list_base_pkgs['base']}")
-            base_packages = list_base_pkgs["kernel"] + list_base_pkgs["base"]
-            print(f"Base packages to install: {base_packages}")
-            self._base.install_base(self._mount_point, base_packages)
+        list_base_pkgs = self._base.get_base_packages(self)
+        print(f"Base packages to install: {list_base_pkgs['base']}")
+        base_packages = list_base_pkgs["kernel"] + list_base_pkgs["base"]
+        print(f"Base packages to install: {base_packages}")
+        self._base.install_base(self._mount_point, base_packages)
 
-            generate_fstab(self, self._partition_list, self._mount_point)
-            configure_system(self._mount_point)
+        generate_fstab(self, self._partition_list, self._mount_point)
+        configure_system(self._mount_point)
 
-        if "Boot" in elements:
-            print("Installing boot configuration...")
-            boot = list(elements["Boot"].values())[0]
-            boot.install(self)
-        else:
-            boot = None
+        # Boot installation
+        print("Installing boot configuration...")
+        boot = self.boot
+        boot.install(self)
 
+        # User Kod installation
         print("\nCreating KodOS user...")
         create_kod_user(self._mount_point)
 
-        if "Locale" in elements:
-            print("Installing locale configuration...")
-            locale = list(elements["Locale"].values())[0]
-            locale.install(self)
+        # Locale installation
+        print("Installing locale configuration...")
+        self.locale.install(self)
 
-        if "Network" in elements:
-            print("Installing network configuration...")
-            network = list(elements["Network"].values())[0]
-            network.install(self)
+        # Network installation
+        print("Installing network configuration...")
+        self.network.install(self)
 
+        # Repository and Package installation
         include_pkgs, exclude_pkgs = self._collect_package_sets()
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
@@ -175,15 +161,18 @@ class Configuration:
         packages_to_install = self._base.packages_to_install(include_pkgs, exclude_pkgs)
         self._apply_repo_action(packages_to_install, "install", self._mount_point)
 
-        services = self._collect_and_prepare_services(elements)
+        services = self._collect_and_prepare_services()
         services.enable(self)
         list_enabled_services = services.list_enabled_services()
         print(f"Enabling services: {list_enabled_services}")
 
+        # User installation
         print("--" * 40)
-        if "User" in elements:
-            for obj in elements["User"].values():
-                obj.install(self)
+        users = self.get_users()
+        print(users)
+        # if "User" in elements:
+        for user in users.values():
+            user.install(self)
 
         generation_path = Path(f"{self._mount_point}/kod/generations/0")
         generation_path.mkdir(parents=True, exist_ok=True)
@@ -213,11 +202,6 @@ class Configuration:
     def rebuild(self, new_generation: bool = True, update: bool = False) -> None:
         print("Rebuilding configuration...")
         self._state = "rebuild"
-        # list all attributes that have an install method and call it
-        elements = self._collect_elements()
-        print(f"==== Elements =====\n{elements.keys()=}")
-
-        # ['Locale', 'Network', 'DesktopManager', 'Fonts', 'User', 'Services']
 
         # Get next generation number
         if self._dry_run:
@@ -234,10 +218,6 @@ class Configuration:
                 current_generation_id = int(f.readline().strip())
             print(f"{current_generation_id = }")
 
-        # 3. Current State Loading (lines 171-179)
-        # - Loads current installed packages and enabled services from /kod/generations/{current_generation}/
-        # - Validates that the current generation state files exist
-
         # Load current installed packages and enabled services
         current_generation_path = Path(f"/kod/generations/{current_generation_id}")
         print(f"Loading current generation from {current_generation_path}")
@@ -247,7 +227,7 @@ class Configuration:
 
         if self._dry_run:
             current_packages, current_services = load_packages_services_tmp(
-                current_generation_path
+                f"mnt{current_generation_path}"
             )
         else:
             current_packages, current_services = load_packages_services(
@@ -257,19 +237,22 @@ class Configuration:
         print(f"{current_services = }")
 
         # Get boot and root partitions from partition list
-        devices = None
-        boot_partition = ""
-        root_partition = ""
-        if "Devices" in elements:
-            devices = list(elements["Devices"].values())[0]
-            if devices is None:
-                raise ValueError("No devices configuration found.")
-            for disk in devices.values():
-                boot_part, root_part = disk.info_partitions()
-                if boot_partition == "":
-                    boot_partition = boot_part
-                if root_partition == "":
-                    root_partition = root_part
+        devices = self.devices
+        # boot_partition = ""
+        # root_partition = ""
+
+        boot_partition, root_partition = self._get_boot_root_partitions(devices)
+
+        # if "Devices" in elements:
+        #     devices = list(elements["Devices"].values())[0]
+        #     if devices is None:
+        #         raise ValueError("No devices configuration found.")
+        #     for disk in devices.values():
+        #         boot_part, root_part = disk.info_partitions()
+        #         if boot_partition == "":
+        #             boot_partition = boot_part
+        #         if root_partition == "":
+        #             root_partition = root_part
 
         print(f"{boot_partition=}")
         print(f"{root_partition=}")
@@ -340,8 +323,9 @@ class Configuration:
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
 
-        boot = list(elements["Boot"].values())[0]
-        next_kernel_package = boot.kernel.package
+        # boot = list(elements["Boot"].values())[0]
+        # boot = self.boot
+        next_kernel_package = self.boot.kernel.package
         next_kernel = next_kernel_package.to_list()[0]
         pkgs_to_install = repo_packages_list(next_kernel, include_pkgs)
 
@@ -398,7 +382,7 @@ class Configuration:
         #   - Services to disable (in current but not in desired)
         #   - New services to enable (in desired but not in current)
         # - Disables obsolete services if not creating new generation
-        services = self._collect_and_prepare_services(elements)
+        services = self._collect_and_prepare_services()
         services.enable(self)
 
         new_enabled_services = services.list_enabled_services()
@@ -418,53 +402,25 @@ class Configuration:
 
         # print("Removing packages")
         for repo, packages in new_to_remove.items():
-            # print(f"- {repo.__class__.__name__}:\n   {sorted(packages)}")
             cmd = repo.remove_package(set(packages))
-            # print(f"  Command: {cmd}")
             exec_chroot(cmd, mount_point=new_root_path)
 
-        #
-        # 7. Package Operations (lines 246-262)
-        # - Package Removal: Removes packages that are no longer needed
-        # - Package Installation: Installs new packages
-        # - Hook Execution: Runs any post-installation hooks
-        #
-        # 8. Service Enablement (lines 264-266)
-        # - Enables new system services
-        #
-        # 9. State Storage (lines 279-288)
-        # - Stores the list of installed packages and enabled services for the new generation
-        # - Generates package lock file
-        # - Gets kernel information for boot entry creation
-
-        # ### 8. **Generation Storage** (lines 133-134)
-        #    - Stores installed packages and enabled services to generation 0 path (`/kod/generations/0`)
-        #    - Generates package lock file using `dist.generale_package_lock()`
-
+        # Store new generation state
         generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
-        # if self.dry_run:
-        #     generation_path = "mnt" + generation_path
-        # installed_packages_cmd = self._base.list_installed_packages()
         self._store_generation_state(
             generation_path,
             next_kernel,
             include_pkgs,
             new_enabled_services,
-            # installed_packages_cmd,
-            # mount_point=self._mount_point,
         )
 
-        #
-        # 10. Generation Deployment (lines 290-310)
-        # - If new generation:
-        #   - Creates new boot entry with the kernel version
-
+        # Generation Deployment
         print("==== Deploying new generation ====")
         partition_list = load_fstab("/")
         if new_generation:
-            kver = self._base.setup_linux(new_root_path, next_kernel_package)
+            kver = self._base.setup_linux(new_root_path, next_kernel)
             print("KVER:", kver)
-            print(f"{self._partition_list=}")
+            # print(f"{self._partition_list=}")
             create_boot_entry(
                 next_generation_id,
                 partition_list,

@@ -90,4 +90,10 @@ class Services(dict):
 
     def list_enabled_services(self):
         """Creating a Service manager."""
-        return [key for key, obj in self.items() if obj.enable]
+        services = []
+        for service, obj in self.items():
+            if obj.service_name is not None:
+                service = obj.service_name
+            if obj.enable:
+                services.append(service)
+        return services

@@ -214,14 +214,14 @@ class User:
             for cmd in cmds:
                 cmd = cmd.replace("~", f"/home/{self.username}")
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config.mount_point)
+                exec_chroot(cmd, mount_point=config._mount_point)
 
             # Process user programs
             print(f"\n[install] User Programs for: {self.username}")
             cmds = self._programs()
             for cmd in cmds:
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config.mount_point)
+                exec_chroot(cmd, mount_point=config._mount_point)
 
             # enable user services
             # TODO: Fix service enabling for users
@@ -229,7 +229,7 @@ class User:
             cmds = self._services()
             for cmd in cmds:
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config.mount_point)
+                exec_chroot(cmd, mount_point=config._mount_point)
 
     def rebuild(self):
         print("[rebuild] Updating user:")
