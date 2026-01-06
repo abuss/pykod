@@ -35,7 +35,7 @@ class Locale(NestedDict):
         # if "extra_generate" in locale_spec and locale_spec.extra_generate:
         locale_to_generate += "\n".join(list(self.additional_locales))
 
-        mount_point = config.mount_point
+        mount_point = config._mount_point
 
         with open_with_dry_run(f"{mount_point}/etc/locale.gen", "w") as locale_file:
             locale_file.write(locale_to_generate + "\n")

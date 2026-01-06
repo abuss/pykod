@@ -71,7 +71,7 @@ class Services(dict):
                 print(f"\n - {key}: {obj}")
                 cmd = obj.enable_service(key)
                 print("   ->", cmd)
-                exec_chroot(cmd, mount_point=config.mount_point)
+                exec_chroot(cmd, mount_point=config._mount_point)
 
     # def disable(self, config):
     #     """Creating a Service manager."""
@@ -91,29 +91,3 @@ class Services(dict):
     def list_enabled_services(self):
         """Creating a Service manager."""
         return [key for key, obj in self.items() if obj.enable]
-
-    # def __getattr__(self, name) -> Service:
-    #     if name in self._data:
-    #         return self[name]
-    #     else:
-    #         self._data[name] = None
-    #         return self._data[name]
-
-
-# class Services(NestedDict):
-#     """Service manager configuration."""
-
-#     def __init__(self, **kwargs):
-#         """Initialize desktop manager."""
-#         super().__init__(**kwargs)
-
-#     def install(self, _config):
-#         """Creating a Service manager."""
-#         print("\n[install] Services:")
-#         for key, extra in self.services.items():
-#             print(f" - {key}: {extra}")
-
-#     def rebuild(self):
-#         print("[rebuild] Updating services:")
-#         for key, extra in self.services.items():
-#             print(f" - {key}: {extra}")

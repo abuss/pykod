@@ -23,7 +23,7 @@ class Network(NestedDict):
         # network_conf = conf.network
 
         # hostname
-        mount_point = config.mount_point
+        mount_point = config._mount_point
         hostname = self.hostname
         with open_with_dry_run(f"{mount_point}/etc/hostname", "w") as f:
             f.write(hostname + "\n")

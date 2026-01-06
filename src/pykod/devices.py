@@ -401,7 +401,7 @@ class Boot:
 
     def install(self, config):
         print("[install] Boot configuration:", self)
-        setup_bootloader(self, config.partition_list, config.base)
+        setup_bootloader(self, config._partition_list, config._base)
 
 
 def load_fstab(root_path: str = "") -> list[str]:

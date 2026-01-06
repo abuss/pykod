@@ -199,7 +199,7 @@ class User:
         # print(f"\n[install] User: {self.username}")
         cmds = self._create()
         for cmd in cmds:
-            exec_chroot(cmd, mount_point=config.mount_point)
+            exec_chroot(cmd, mount_point=config._mount_point)
 
         print(
             f"\n[install] User: {self.username} {self.dotfile_manager} {type(self.dotfile_manager)}"
