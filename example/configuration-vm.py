@@ -134,7 +134,7 @@ conf.desktop = DesktopManager(
             + flatpakpkgs["com.mattjakeman.ExtensionManager"],
         ),
         "plasma": DesktopEnvironment(
-            enable=True,
+            enable=False,
             package=archpkgs["plasma"],
             # display_manager="sddm",
             extra_packages=archpkgs["kde-applications"],
