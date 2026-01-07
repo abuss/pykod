@@ -129,13 +129,13 @@ conf.desktop = DesktopManager(
             ],
         ),
         "plasma": DesktopEnvironment(
-            enable=True,
+            enable=False,
             package=archpkgs["plasma"],
             # display_manager="sddm",
             extra_packages=archpkgs["kde-applications"],
         ),
         "cosmic": DesktopEnvironment(
-            enable=False,
+            enable=True,
             package=archpkgs["cosmic"],
             # display_manager="cosmic-greeter"
             exclude_packages=archpkgs["cosmic-initial-setup"],

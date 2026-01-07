@@ -61,17 +61,47 @@ class Configuration:
         _find_package_list(self, include, exclude)
         return include, exclude
 
-    def _apply_repo_install(
-        self, packages: PackageList, mount_point: str | None = None
+    def _apply_repo(
+        self, packages: PackageList, action: str, mount_point: str | None = None
     ) -> None:
         for repo, items in packages.items():
             if not items:
                 continue
-            cmd = repo.install_package(set(items))
+            match action:
+                case "install":
+                    cmd = repo.install_package(set(items))
+                case "remove":
+                    cmd = repo.remove_package(set(items))
+                case _:
+                    raise ValueError(f"Unknown action: {action}")
             if mount_point is None:
                 exec(cmd)
             else:
                 exec_chroot(cmd, mount_point=mount_point)
+
+    # def _apply_repo_install(
+    #     self, packages: PackageList, mount_point: str | None = None
+    # ) -> None:
+    #     for repo, items in packages.items():
+    #         if not items:
+    #             continue
+    #         cmd = repo.install_package(set(items))
+    #         if mount_point is None:
+    #             exec(cmd)
+    #         else:
+    #             exec_chroot(cmd, mount_point=mount_point)
+
+    # def _apply_repo_remove(
+    #     self, packages: PackageList, mount_point: str | None = None
+    # ) -> None:
+    #     for repo, items in packages.items():
+    #         if not items:
+    #             continue
+    #         cmd = repo.remove_package(set(items))
+    #         if mount_point is None:
+    #             exec(cmd)
+    #         else:
+    #             exec_chroot(cmd, mount_point=mount_point)
 
     def _collect_and_prepare_services(self) -> Services:
         services = self.services
@@ -154,8 +184,9 @@ class Configuration:
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
 
-        packages_to_install = self._base.packages_to_install(include_pkgs, exclude_pkgs)
-        self._apply_repo_install(packages_to_install, self._mount_point)
+        # packages_to_install = self._base.packages_to_install(include_pkgs, exclude_pkgs)
+        self._apply_repo(include_pkgs, "install", self._mount_point)
+        self._apply_repo(exclude_pkgs, "remove", self._mount_point)
 
         services = self._collect_and_prepare_services()
         services.enable(self)
@@ -347,17 +378,13 @@ class Configuration:
 
         # print("Installing packages from repository")
         if new_generation:
-            self._apply_repo_install(new_to_install, new_root_path)
+            self._apply_repo(new_to_install, "install", new_root_path)
         else:
-            self._apply_repo_install(new_to_install)
+            self._apply_repo(new_to_install, "install")
 
         # print(f"Packages to remove: {pkgs_to_remove}")
         #
-        # - Compares current vs. desired package state to determine:
-        #   - New packages to install
-        #   - Packages to remove
-        #   - Packages to update
-        #   - Hooks to run
+        # Compares current vs. desired package state to determine:
         hooks_to_run = []
         current_kernel = current_packages["kernel"][0]
         if next_kernel != current_kernel:
@@ -373,14 +400,7 @@ class Configuration:
             print(f"Running {hook}")
             hook()
 
-        #
-        #
-        # 6. Service Management (lines 233-241)
-        # - Gets services to enable from configuration
-        # - Calculates service differences:
-        #   - Services to disable (in current but not in desired)
-        #   - New services to enable (in desired but not in current)
-        # - Disables obsolete services if not creating new generation
+        # Service Management (lines 233-241)
         services = self._collect_and_prepare_services()
         services.enable(self)
 
@@ -399,12 +419,18 @@ class Configuration:
                 cmd = service.disable_service(svc_name)
                 exec_chroot(cmd, mount_point=new_root_path)
 
-        # print("Removing packages")
-        for repo, packages in new_to_remove.items():
-            if len(packages) == 0:
-                continue
-            cmd = repo.remove_package(set(packages))
-            exec_chroot(cmd, mount_point=new_root_path)
+        print("Removing packages")
+        if new_generation:
+            self._apply_repo(new_to_remove, "remove", new_root_path)
+        else:
+            self._apply_repo(new_to_remove, "remove")
+
+        # for repo, packages in new_to_remove.items():
+        #     if len(packages) == 0:
+        #         continue
+        #     print(f"Removing from repo {repo}: {packages}")
+        #     cmd = repo.remove_package(set(packages))
+        #     exec_chroot(cmd, mount_point=new_root_path)
 
         # Store new generation state
         generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
@@ -421,7 +447,6 @@ class Configuration:
         if new_generation:
             kver = self._base.setup_linux(new_root_path, next_kernel_package)
             print("KVER:", kver)
-            # print(f"{self._partition_list=}")
             create_boot_entry(
                 next_generation_id,
                 partition_list,
