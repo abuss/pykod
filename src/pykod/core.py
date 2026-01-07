@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from pykod.common import exec, exec_chroot, get_dry_run, open_with_dry_run
-
-# from pykod.devices import FsEntry
 from pykod.repositories.base import Repository
 
 os_release = """NAME="KodOS Linux"
@@ -77,7 +75,6 @@ aliases=user_env
 
     # Setting profile
     kodos_dir = Path(mount_point) / "etc" / "schroot" / "kodos"
-    # print(f"{use_dry_run=}, {kodos_dir=}")
     if get_dry_run():
         print(f"[dry-run] mkdir -p {kodos_dir}")
         print(f"[dry-run] touch {kodos_dir / 'copyfiles'}")
@@ -209,11 +206,6 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
     if boot_type == "systemd-boot":
         print("==== Setting up systemd-boot ====")
         kver = base.setup_linux("/mnt", kernel_package)
-        # if base_distribution == "arch":
-        #     kernel_file, kver = get_kernel_file(mount_point="/mnt", package=kernel_package)
-        #     exec_chroot(f"cp {kernel_file} /boot/vmlinuz-linux-{kver}")
-        # else:
-        #     kernel_file, kver = get_kernel_file(mount_point="/mnt", package=kernel_package)
         exec_chroot("bootctl install")
         print("KVER:", kver)
         exec_chroot(f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img")

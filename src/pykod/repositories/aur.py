@@ -11,16 +11,6 @@ class AUR(Repository):
         self.helper_url = kwargs.get("helper_url", "https://aur.archlinux.org/yay.git")
         self.helper_installed = False
 
-    # def install(self, items) -> None:
-    #     print("[install] AUR repo:", self)
-    #     for item in items:
-    #         print(f"  - {item}")
-
-    # def remove(self, items) -> None:
-    #     print("[remove] AUR repo:", self)
-    #     for item in items:
-    #         print(f"  - {item}")
-
     def build(self, mount_point):
         name = self.helper
         url = self.helper_url
@@ -40,20 +30,16 @@ class AUR(Repository):
         pkgs = " ".join(package_name)
         cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {pkgs}"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
 
     def remove_package(self, package_name):
         pkgs = " ".join(package_name)
         cmd = f"runuser -u kod -- {self.helper} -R --noconfirm {pkgs}"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
 
     def update_installed_packages(self) -> str:
         cmd = f"runuser -u kod -- {self.helper} -Syu --noconfirm"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)
 
     def update_database(self) -> str:
         cmd = f"{self.helper} -Sy"
         return cmd
-        # exec_chroot(cmd, mount_point=mount_point)

@@ -1,10 +1,8 @@
 """Arch Linux repository configuration."""
 
-import subprocess
-
 from pykod.common import exec, exec_chroot, get_dry_run
 
-from .base import PackageList, Repository
+from .base import Repository
 
 
 class Arch(Repository):
@@ -49,7 +47,6 @@ class Arch(Repository):
         else:
             kernel_package = self["linux"]
 
-        # TODO: add verions to each package, if needed
         packages = {
             "kernel": kernel_package,
             "base": self[
@@ -67,9 +64,6 @@ class Arch(Repository):
                 "git",
             ],
         }
-
-        # TODO: remove this package dependency
-        # packages["base"] += ["arch-install-scripts"]
         return packages
 
     def get_kernel_file(self, mount_point: str, package):

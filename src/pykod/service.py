@@ -1,10 +1,8 @@
 """Service configuration base classes."""
 
 from dataclasses import dataclass, field
-from sqlite3.dbapi2 import Date
 from typing import Any
 
-from pykod.base import NestedDict
 from pykod.common import exec_chroot
 from pykod.repositories.base import PackageList
 
@@ -49,8 +47,6 @@ class Service:
         return cmd
 
 
-# class Services(NestedDict):
-# @dataclass
 class Services(dict):
     """Service manager configuration."""
 
@@ -72,16 +68,6 @@ class Services(dict):
                 cmd = obj.enable_service(key)
                 print("   ->", cmd)
                 exec_chroot(cmd, mount_point=config._mount_point)
-
-    # def disable(self, config):
-    #     """Creating a Service manager."""
-    #     print("\n[DISABLE] Services:")
-    #     for key, obj in self.items():
-    #         if not obj.enable:
-    #             print(f"\n - {key}: {obj}")
-    #             cmd = obj.disable_service(key)
-    #             print("   ->", cmd)
-    #             exec_chroot(cmd, mount_point=config.mount_point)
 
     def rebuild(self):
         print("[rebuild] Updating services:")

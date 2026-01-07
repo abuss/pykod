@@ -35,7 +35,7 @@ _filesystem_type: dict[str, str | None] = {
 
 
 @dataclass
-class Partition:  # (NestedDict, Install, Rebuild):
+class Partition:
     name: str
     size: str
     type: str
@@ -54,8 +54,6 @@ class Disk:
         """Install disk partitions as per configuration."""
         print("\n\n[install] Partitioning disk:", self.device)
         print(f"with partitions {self.partitions}")
-        # device = self._data.get("device", "")
-        # partitions = self._data.get("partitions", [])
         boot_part, root_part, part_list = self._create_disk_partitions(
             self.device, self.partitions
         )
@@ -126,9 +124,6 @@ class Disk:
                         f"Failed to format {blockdevice} as {filesystem_type}",
                     )
 
-            # if filesystem_type == "btrfs":
-            #     delay_action = create_btrfs(delay_action, part, blockdevice)
-
             if mountpoint and mountpoint != "none":
                 install_mountpoint = "/mnt" + mountpoint
                 if mountpoint != "/":
@@ -168,7 +163,6 @@ class Disk:
             Tuple containing (boot_partition, root_partition) where each is either
             a device path string or None if that partition type is not found.
         """
-        # self.device, self.partitions
         if "nvme" in self.device or "mmcblk" in self.device:
             device_suffix = "p"
         else:
@@ -223,10 +217,6 @@ class Devices(dict):
                 else:
                     raise Exception("Multiple root partitions detected!")
 
-        # print("Partitions list:", self._partition_list)
-        # for p in self._partition_list:
-        #     print(" >>>", p)
-        #
         # Create filesystem hierarchy if we have both boot and root partitions
         if self.boot_partition and self.root_partition:
             partition_list = self._create_filesystem_hierarchy(mount_point)
@@ -243,13 +233,6 @@ class Devices(dict):
             ):
                 partition_list.append(p)
                 print(f"Adding additional partition: {p.source} -> {p.destination}")
-
-        # print("Final partition list:")
-        # for p in partition_list:
-        #     print("    =>", p)
-
-        # Generate fstab
-        # generate_fstab(config, partition_list, mount_point)
 
         return partition_list
 

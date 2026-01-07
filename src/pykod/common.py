@@ -155,7 +155,6 @@ def exec(
     try:
         if get_output:
             # Use subprocess for better control and error handling
-            # result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout, encoding=encoding)
             if not use_dry_run:
                 result = subprocess.run(
                     cmd, shell=True, capture_output=True, text=True, encoding=encoding
@@ -182,7 +181,6 @@ def exec(
                 return ""
         else:
             # For commands without output capture, use subprocess.run
-            # result = subprocess.run(cmd, shell=True, timeout=timeout)
             if not use_dry_run:
                 result = subprocess.run(cmd, shell=True)
 
@@ -236,61 +234,6 @@ def exec_chroot(
     else:
         print(f"{Color.PURPLE}chroot {mount_point} {cmd}{Color.END}")
         return ""
-
-
-# def exec_critical(cmd: str, error_msg: str, **kwargs) -> str:
-#     """Execute a critical command that must succeed or raise RuntimeError.
-#
-#     This function is used for operations that are essential for system functionality.
-#     If the command fails, it logs the error and raises a RuntimeError with a
-#     descriptive message.
-#
-#     Args:
-#         cmd: Command to execute
-#         error_msg: Descriptive error message for RuntimeError
-#         **kwargs: Additional arguments passed to exec()
-#
-#     Returns:
-#         Command output
-#
-#     Raises:
-#         RuntimeError: If command fails, wrapping the original exception
-#     """
-#     initial_problem_count = len(problems)
-#     result = exec(cmd, **kwargs)
-#
-#     # Check if new problems were added (indicating command failure)
-#     if len(problems) > initial_problem_count:
-#         latest_problem = problems[-1]
-#         print(f"Error: {error_msg}")
-#         raise RuntimeError(error_msg)
-#
-#     return result
-#
-#
-# def exec_warn(cmd: str, warning_msg: str, **kwargs) -> Optional[str]:
-#     """Execute a command with warning on failure, continuing execution.
-#
-#     This function is used for non-critical operations where failure should
-#     be logged as a warning but execution should continue.
-#
-#     Args:
-#         cmd: Command to execute
-#         warning_msg: Warning message to display on failure
-#         **kwargs: Additional arguments passed to exec()
-#
-#     Returns:
-#         Command output on success, None on failure
-#     """
-#     initial_problem_count = len(problems)
-#     result = exec(cmd, **kwargs)
-#
-#     # Check if new problems were added (indicating command failure)
-#     if len(problems) > initial_problem_count:
-#         print(f"Warning: {warning_msg}")
-#         return None
-#
-#     return result
 
 
 # Create a wrapper that can be closed without affecting sys.stdout

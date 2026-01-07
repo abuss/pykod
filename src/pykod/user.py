@@ -4,15 +4,7 @@ from dataclasses import dataclass, field
 
 from pykod.common import exec_chroot
 from pykod.repositories.base import PackageList
-
-# from typing import Any, KeysView, Optional
 from pykod.service import Service
-
-# @dataclass
-# class ProgramManager:
-#     """Program manager placeholder for user dependency."""
-
-#     programs: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -27,8 +19,6 @@ class ConfigManagerBase:
 
     def install(self, _config) -> list[str]: ...
     def rebuild(self, _config) -> list[str]: ...
-
-    # def fetch(self, action) -> str: ...
 
 
 @dataclass
@@ -85,7 +75,6 @@ class Stow(ConfigManagerBase):
         cmd = f"stow -d {self.source} -t {self.target_dir} {program_name}"
         print(f"Executing: {cmd}")
         return [cmd]
-        # exec_chroot(cmd, mount_point=_config.mount_point)
 
 
 @dataclass
@@ -190,13 +179,8 @@ class User:
     services: dict[str, Service] | None = None
     home_config: dict | None = None
 
-    # def __init__(self, **kwargs):
-    #     """Initialize User."""
-    #     super().__init__(**kwargs)
-
     def install(self, config):
         """Creating a user."""
-        # print(f"\n[install] User: {self.username}")
         cmds = self._create()
         for cmd in cmds:
             exec_chroot(cmd, mount_point=config._mount_point)
@@ -205,8 +189,6 @@ class User:
             f"\n[install] User: {self.username} {self.dotfile_manager} {type(self.dotfile_manager)}"
         )
         if self.dotfile_manager:
-            # if hasattr(self, "dotfile_manager") and self.dotfile_manager is not None:
-            # if not isinstance(self.dotfile_manager, NestedDict):
             print(
                 f"[install] dotfile manager for user {self.username}: {self.dotfile_manager}",
             )
@@ -245,10 +227,6 @@ class User:
         shell = self.shell or "/bin/bash"
         groups: list = self.groups or []
         cmds = []
-        # print(f">>> Creating user {user}")
-        # print(
-        #     f"Creating user {user} with name '{name}', shell '{shell}', groups {groups}"
-        # )
         # Normal users (no root)
         if user != "root":
             # print(f"Creating user {user}")
@@ -285,9 +263,6 @@ class User:
             else:
                 cmds.append(f"passwd {user}")
 
-        # for cmd in cmds:
-        #     print(f"Executing: {cmd}")
-        #     # ctx.execute(cmd)
         return cmds
 
     def _programs(self) -> list[str]:
@@ -299,10 +274,8 @@ class User:
                     if prog.config:
                         cmds.extend(prog.config)
                     if prog.deploy_config:
-                        # print(f"Deploying configuration for program {prog_name}")
                         cmds.extend(self.dotfile_manager.deploy(prog_name))
         if self.deploy_configs:
-            # print(f"Deploying user config: {self.deploy_configs}")
             for config in self.deploy_configs:
                 cmds.extend(self.dotfile_manager.deploy(config))
 

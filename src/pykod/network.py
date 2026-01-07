@@ -1,7 +1,5 @@
 """Locale configuration."""
 
-from typing import Any
-
 from pykod.base import NestedDict
 from pykod.common import open_with_dry_run
 
@@ -19,8 +17,6 @@ class Network(NestedDict):
         print("Extra setings")
         for key, extra in self.settings.items():
             print(f"  {key}: {extra}")
-
-        # network_conf = conf.network
 
         # hostname
         mount_point = config._mount_point

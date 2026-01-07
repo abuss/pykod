@@ -1,10 +1,7 @@
 """Desktop environment manager."""
 
 from dataclasses import dataclass, field
-from pickletools import dis
-from typing import Optional
 
-from pykod.base import NestedDict
 from pykod.repositories.base import PackageList
 from pykod.service import Service
 
@@ -34,7 +31,6 @@ class DesktopEnvironment:
             self.exclude_packages = None
 
 
-# class DesktopManager(NestedDict):
 @dataclass
 class DesktopManager:
     """Desktop environment manager configuration.
@@ -64,12 +60,6 @@ class DesktopManager:
 
     display_manager: Service
     environments: dict[str, DesktopEnvironment] = field(default_factory=dict)
-
-    # def __init__(self, **kwargs):
-    #     """Initialize desktop manager."""
-    #     super().__init__(**kwargs)
-    #     self.environments: dict[str, DesktopEnvironment]
-    #     self.display_manager: Service | None = kwargs.get("display_manager", None)
 
     def install(self, _config):
         """Creating a Desktop manager."""
