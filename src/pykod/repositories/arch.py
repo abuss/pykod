@@ -75,7 +75,7 @@ class Arch(Repository):
     def get_kernel_file(self, mount_point: str, package):
         """Retrieve the kernel file path and version from the specified mount point."""
         print(f"[get_kernel_file] mount_point={mount_point}, package={package}")
-        kernel_pkg = package  # .to_list()[0]
+        kernel_pkg = package.to_list()[0]
         kernel_file = exec_chroot(
             f"pacman -Ql {kernel_pkg} | grep vmlinuz",
             mount_point=mount_point,

@@ -635,7 +635,7 @@ def store_state(state_path: str, config, kernel, packages, services) -> None:
     with open_with_dry_run(f"{state_path}/enabled_services", "w") as f:
         f.write("\n".join(list_services))
 
-    installed_packages_cmd = config.base.list_installed_packages()
+    installed_packages_cmd = config._base.list_installed_packages()
     # def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
     # """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
     installed_packages_version = exec_chroot(
