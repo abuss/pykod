@@ -3,8 +3,6 @@
 # from dataclasses import dataclass
 from typing import override
 
-# from pykod.base import NestedDict
-
 
 class PackageList:
     def __init__(self) -> None:

@@ -1,21 +1,13 @@
 # VM Configuration
 
-from pykod import Configuration
-from pykod.desktop import DesktopEnvironment, DesktopManager
-from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
-from pykod.fonts import Fonts
-from pykod.locale import Locale
-from pykod.network import Network
-from pykod.packages import Packages
+from pykod import *
 from pykod.repositories import AUR, Arch, Flatpak
-from pykod.service import Service, Services
 from pykod.user import (
     GitConfig,
     OpenSSH,
     Program,
     Stow,
     SyncthingConfig,
-    User,
 )
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
@@ -33,8 +25,6 @@ conf = Configuration(base=archpkgs)
 # use_cosmic = True
 
 # with conf as c:
-import cli
-import development
 
 conf.devices = Devices(
     disk0=Disk(

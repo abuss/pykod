@@ -184,7 +184,6 @@ class Disk:
         return boot_partition, root_partition
 
 
-# class Devices(NestedDict, Install, Rebuild):
 class Devices(dict):
     def __init__(self, *args, **kwargs):
         """Initialize devices configuration."""
