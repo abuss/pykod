@@ -92,7 +92,7 @@ class Arch(Repository):
         kernel_file, kver = self.get_kernel_file(
             mount_point=mount_point, package=kernel_package
         )
-        exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}")
+        exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
         return kver
 
     def install_package(self, package_name) -> str:
