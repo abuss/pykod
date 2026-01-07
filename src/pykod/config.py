@@ -548,6 +548,26 @@ class Configuration:
         print(f"{pkgs_to_remove=}")
         return pkgs_to_remove
 
+    def run(self):
+        import sys
+
+        if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
+            print("Usage: python script.py [install|rebuild]")
+            sys.exit(1)
+
+        command = sys.argv[1]
+
+        print("-" * 100)
+        print(f"Running {command} command...")
+        print("Configuration attributes:")
+
+        print("\n", "-" * 80)
+
+        if command == "install":
+            self.install()
+        elif command == "rebuild":
+            self.rebuild(new_generation=True, update=True)
+
 
 def _find_package_list(
     obj, include_pkgs, exclude_pkgs, visited=None, path=""

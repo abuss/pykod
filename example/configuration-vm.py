@@ -7,8 +7,6 @@ from pykod.fonts import Fonts
 from pykod.locale import Locale
 from pykod.network import Network
 from pykod.packages import Packages
-
-# from pykod.disk import Partition
 from pykod.repositories import AUR, Arch, Flatpak
 from pykod.service import Service, Services
 from pykod.user import (
@@ -19,8 +17,6 @@ from pykod.user import (
     SyncthingConfig,
     User,
 )
-
-# from pykod.repositories import Repository
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
@@ -395,21 +391,4 @@ conf.services = Services(
 
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
-        print("Usage: python script.py [install|rebuild]")
-        sys.exit(1)
-
-    command = sys.argv[1]
-
-    print("-" * 100)
-    print(f"Running {command} command...")
-    print("Configuration attributes:")
-
-    print("\n", "-" * 80)
-
-    if command == "install":
-        conf.install()
-    elif command == "rebuild":
-        conf.rebuild(new_generation=True, update=True)
+    conf.run()

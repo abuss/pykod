@@ -390,21 +390,4 @@ conf.services["avahi"].enable = False
 
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
-        print("Usage: python script.py [install|rebuild]")
-        sys.exit(1)
-
-    command = sys.argv[1]
-
-    print("-" * 100)
-    print(f"Running {command} command...")
-    print("Configuration attributes:")
-
-    print("\n", "-" * 80)
-
-    if command == "install":
-        conf.install()
-    elif command == "rebuild":
-        conf.rebuild(new_generation=True, update=True)
+    conf.run()
