@@ -419,7 +419,7 @@ class Configuration:
         print("==== Deploying new generation ====")
         partition_list = load_fstab("/")
         if new_generation:
-            kver = self._base.setup_linux(new_root_path, next_kernel)
+            kver = self._base.setup_linux(new_root_path, next_kernel_package)
             print("KVER:", kver)
             # print(f"{self._partition_list=}")
             create_boot_entry(
