@@ -84,6 +84,7 @@ class Arch(Repository):
         if get_dry_run():
             kernel_file = "linux /usr/lib/modules/6.18.1-kodos1-2/vmlinuz"
         kernel_file = kernel_file.split(" ")[-1].strip()
+        print(f"[get_kernel_file] kernel_file={kernel_file}")
         kver = kernel_file.split("/")[-2]
         return kernel_file, kver
 
