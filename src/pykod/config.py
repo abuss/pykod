@@ -298,7 +298,7 @@ class Configuration:
         print(f"Creating next current path at {next_current}, {self._dry_run=}")
         next_generation_path = Path(next_generation_path)
         next_generation_path.mkdir(parents=True, exist_ok=True)
-        next_current.mkdir(parents=True, exist_ok=True)
+        # next_current.mkdir(parents=True, exist_ok=True)
 
         # - If --new_generation flag is used:
         #   - Creates a BTRFS subvolume snapshot of the current root
@@ -322,8 +322,9 @@ class Configuration:
         #     )
         #     use_chroot = False
         #     new_root_path = "/"
+        x = input()
 
-        # 5Repository and Package Processing (lines 205-231)
+        # Repository and Package Processing (lines 205-231)
         # - Gets packages to install/remove from configuration
         include_pkgs, exclude_pkgs = self._collect_package_sets()
 
@@ -345,6 +346,7 @@ class Configuration:
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
+        x = input()
 
         # boot = list(elements["Boot"].values())[0]
         # boot = self.boot
@@ -371,6 +373,7 @@ class Configuration:
 
         print(f"\n\nNew packages to install: {new_to_install}\n")
         print(f"Packages to remove: {new_to_remove}\n")
+        x = input()
 
         # Prepare repositories for install inside the new root if needed
         if new_generation:
@@ -396,6 +399,7 @@ class Configuration:
         for hook in hooks_to_run:
             print(f"Running {hook}")
             hook()
+        x = input()
 
         # Service Management (lines 233-241)
         services = self._collect_and_prepare_services()
