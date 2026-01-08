@@ -24,6 +24,12 @@ class PackageList:
 
         return new_list
 
+    def __len__(self) -> int:
+        total = 0
+        for items in self._pkgs.values():
+            total += len(items)
+        return total
+
     def __iadd__(self, other_pkgs):
         """In-place addition operator (+=) for PackageList.
 
@@ -80,3 +86,9 @@ class Repository:
 
     def packages(self):
         return self._pkgs
+
+    def update_database(self) -> str:
+        return ""
+
+    def update_installed_packages(self, packages: tuple) -> str:
+        return ""

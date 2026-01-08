@@ -33,7 +33,9 @@ class Flatpak(Repository):
         cmd = f"flatpak uninstall -y flathub {pkgs}"
         return cmd
 
-    def update_installed_packages(self, package_name) -> str:
-        pkgs = " ".join(package_name)
+    def update_installed_packages(self, packages: tuple) -> str:
+        if len(packages) == 0:
+            return ""
+        pkgs = " ".join(packages)
         cmd = f"flatpak update -y {pkgs}"
         return cmd

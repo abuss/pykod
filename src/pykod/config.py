@@ -1,5 +1,6 @@
 import json
 import subprocess
+from modulefinder import packagePathMap
 from pathlib import Path
 from typing import Callable
 
@@ -78,6 +79,14 @@ class Configuration:
                 exec(cmd)
             else:
                 exec_chroot(cmd, mount_point=mount_point)
+
+    def _prepare_repos(self, packages: PackageList, mount_point: str) -> None:
+        """Run optional repository preparation steps (e.g., AUR helper bootstrap)."""
+        for repo, items in packages.items():
+            if not items:
+                continue
+            if hasattr(repo, "prepare"):
+                repo.prepare(mount_point)
 
     # def _apply_repo_install(
     #     self, packages: PackageList, mount_point: str | None = None
@@ -183,6 +192,9 @@ class Configuration:
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
+
+        # Prepare repositories that require bootstrapping (e.g., AUR helper)
+        self._prepare_repos(include_pkgs + exclude_pkgs, self._mount_point)
 
         # packages_to_install = self._base.packages_to_install(include_pkgs, exclude_pkgs)
         self._apply_repo(include_pkgs, "install", self._mount_point)
@@ -321,31 +333,25 @@ class Configuration:
         #     use_chroot = False
         #     new_root_path = "/"
 
-        if update:
-            print("Updating all packages to the latest version")
-            cmd_update_db = self._base.update_database()
-            exec_chroot(
-                cmd_update_db, mount_point=new_root_path
-            )  # Refresh package database
-            cmd_update_pkgs = self._base.update_installed_packages()
-            exec_chroot(
-                cmd_update_pkgs, mount_point=new_root_path
-            )  # Update all packages
-
-        #   - Sets up chroot environment for the new generation
-        # - If not creating new generation:
-        #   - Creates a snapshot of current root as backup (/kod/current/old-rootfs)
-        #   - Copies current state files to /kod/current/
-        #   - Uses the current root filesystem directly
-
-        # 5. Repository and Package Processing (lines 205-231)
-        # - Loads current repositories
-        # - Processes repositories from configuration
-        # - If --update flag is used:
-        #   - Refreshes package database
-        #   - Updates all packages
+        # 5Repository and Package Processing (lines 205-231)
         # - Gets packages to install/remove from configuration
         include_pkgs, exclude_pkgs = self._collect_package_sets()
+
+        if update:
+            print("Updating all packages to the latest version")
+            for repo, packages in include_pkgs.items():
+                print(f"Updating repository: {repo.__class__.__name__}")
+                cmd_update = repo.update_database()
+                if cmd_update:
+                    exec_chroot(
+                        cmd_update, mount_point=new_root_path
+                    )  # Refresh package database
+                cmd_update_pkgs = repo.update_installed_packages(packages)
+                if cmd_update_pkgs:
+                    exec_chroot(
+                        cmd_update_pkgs, mount_point=new_root_path
+                    )  # Update all packages
+
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
@@ -376,8 +382,9 @@ class Configuration:
         print(f"\n\nNew packages to install: {new_to_install}\n")
         print(f"Packages to remove: {new_to_remove}\n")
 
-        # print("Installing packages from repository")
+        # Prepare repositories for install inside the new root if needed
         if new_generation:
+            self._prepare_repos(new_to_install, new_root_path)
             self._apply_repo(new_to_install, "install", new_root_path)
         else:
             self._apply_repo(new_to_install, "install")

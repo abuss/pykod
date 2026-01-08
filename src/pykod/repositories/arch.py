@@ -99,8 +99,11 @@ class Arch(Repository):
         cmd = f"pacman -Rnsc --noconfirm {pkgs}"
         return cmd
 
-    def update_installed_packages(self) -> str:
-        cmd = "pacman -Syu --noconfirm"
+    def update_installed_packages(self, packages: tuple) -> str:
+        if len(packages) == 0:
+            return ""
+        pkgs = " ".join(packages)
+        cmd = f"pacman -Syu --noconfirm {pkgs}"
         return cmd
 
     def update_database(self) -> str:
