@@ -1,7 +1,7 @@
 """Locale configuration."""
 
-from pykod.base import NestedDict
 from pykod.common import exec_chroot, open_with_dry_run
+from pykod.core import NestedDict
 
 
 class Locale(NestedDict):

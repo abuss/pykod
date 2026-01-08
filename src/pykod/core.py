@@ -242,3 +242,32 @@ def create_kod_user(mount_point: str) -> None:
     exec_chroot("useradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod")
     with open_with_dry_run(f"{mount_point}/etc/sudoers.d/kod", "w") as f:
         f.write("kod ALL=(ALL) NOPASSWD: ALL")
+
+
+class NestedDict:
+    def __init__(self, *args, **kwargs):
+        self.__dict__["_data"] = {}
+        # self._data = {}
+        for k in args:
+            self._data[k] = NestedDict()
+        for k, v in kwargs.items():
+            self._data[k] = v
+
+    def __getattr__(self, name) -> "NestedDict":
+        if name in self._data:
+            return self._data[name]
+        else:
+            self._data[name] = NestedDict()
+            return self._data[name]
+
+    def __setattr__(self, name, value):
+        if name == "_data":
+            super().__setattr__(name, value)
+        else:
+            if isinstance(value, dict):
+                value = NestedDict(**value)
+            self._data[name] = value
+
+    def __repr__(self) -> str:
+        # return pprint.pformat(self._data, indent=2, width=10)
+        return str(self._data)

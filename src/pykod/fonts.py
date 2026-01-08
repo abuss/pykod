@@ -2,7 +2,7 @@
 
 from typing import Any, override
 
-from pykod.base import NestedDict
+from pykod.core import NestedDict
 
 
 class Fonts(NestedDict):
