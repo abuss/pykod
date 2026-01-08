@@ -5,19 +5,8 @@ from pykod.fonts import Fonts
 from pykod.locale import Locale
 from pykod.network import Network
 from pykod.packages import Packages
-
-# from pykod.repositories import AUR, Arch, Flatpak
 from pykod.service import Service, Services
 from pykod.user import User
-
-# (
-#     GitConfig,
-#     OpenSSH,
-#     Program,
-#     Stow,
-#     SyncthingConfig,
-#     User,
-# )
 
 __all__ = [
     "Configuration",
@@ -36,12 +25,4 @@ __all__ = [
     "Service",
     "Services",
     "User",
-    # "AUR",
-    # "Arch",
-    # "Flatpak",
-    # "GitConfig",
-    # "OpenSSH",
-    # "Program",
-    # "Stow",
-    # "SyncthingConfig",
 ]
