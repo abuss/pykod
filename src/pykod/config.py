@@ -526,28 +526,6 @@ class Configuration:
         # The rebuild process is designed to be safe and reversible, allowing the system to be
         # updated while maintaining the ability to rollback to previous generations if needed.
 
-    def packages_to_remove(self, exclude_pkgs):
-        installed_packages_cmd = self._base.list_installed_packages()
-        print(f"*** {installed_packages_cmd=}")
-        installed_pakages_version = []
-        if self._state == "install":
-            installed_pakages_version = exec_chroot(
-                installed_packages_cmd, mount_point=self._mount_point, get_output=True
-            )
-            # installed_pakages_version = subprocess.run(
-            #     installed_packages_cmd, shell=True, capture_output=True, text=True
-            # ).stdout
-        # else:
-        # installed_pakages_version = exec(installed_packages_cmd, get_output=True)
-        print(f"{installed_pakages_version=}")
-        installed_pakages = set(
-            [line.split(" ")[0] for line in installed_pakages_version.splitlines()]
-        )
-        print(f"{installed_pakages=}")
-        pkgs_to_remove = installed_pakages & set(exclude_pkgs.to_list())
-        print(f"{pkgs_to_remove=}")
-        return pkgs_to_remove
-
     def run(self):
         import sys
 
@@ -639,29 +617,6 @@ def repo_packages_list(kernel, packages) -> dict:
     for repo, packages in packages.items():
         list_packages[repo.__class__.__name__] = sorted(packages)
     return list_packages
-
-
-# def store_packages_services(state_path: str, kernel, packages, services) -> None:
-#     """Store the list of packages that are installed and the list of services that are enabled."""
-#     list_packages = repo_packages_list(kernel, packages)
-#     packages_json = json.dumps(list_packages, indent=2)
-#     with open_with_dry_run(f"{state_path}/installed_packages", "w") as f:
-#         f.write(packages_json)
-
-#     print(f"Storing enabled services to {state_path}/enabled_services")
-#     # print(f"Services: {services}")
-#     list_services = services
-#     with open_with_dry_run(f"{state_path}/enabled_services", "w") as f:
-#         f.write("\n".join(list_services))
-
-
-# def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
-#     """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
-#     installed_pakages_version = exec_chroot(
-#         installed_cmd, mount_point=config.mount_point, get_output=True
-#     )
-#     with open_with_dry_run(f"{state_path}/packages.lock", "w") as f:
-#         f.write(installed_pakages_version)
 
 
 def store_state(state_path: str, config, kernel, packages, services) -> None:
@@ -806,37 +761,8 @@ def update_initramfs_hook(
 # Temporary version without dry-run support
 
 
-# def store_packages_services_tmp(state_path: str, kernel, packages, services) -> None:
-#     """Store the list of packages that are installed and the list of services that are enabled."""
-#     list_packages = repo_packages_list(kernel, packages)
-#     # packages_json = json.dumps(list_packages, indent=2)
-#     with open(f"{state_path}/installed_packages", "w") as f:
-#         json.dump(list_packages, f, indent=2)
-#         # f.write(packages_json)
-
-#     print(f"Storing enabled services to {state_path}/enabled_services")
-#     # print(f"Services: {services}")
-#     list_services = services
-#     with open(f"{state_path}/enabled_services", "w") as f:
-#         f.write("\n".join(list_services))
-
-
-# def store_installed_packages_tmp(state_path: str, config, installed_cmd: str) -> None:
-#     """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
-#     # installed_pakages_version = exec_chroot(
-#     #     installed_cmd, mount_point=config.mount_point, get_output=True
-#     # )
-#     installed_pakages_version = subprocess.run(
-#         installed_cmd, shell=True, capture_output=True, text=True
-#     ).stdout
-#     with open(f"{state_path}/packages.lock", "w") as f:
-#         f.write(installed_pakages_version)
-
-
 def store_state_tmp(state_path: str, config, kernel, packages, services) -> None:
     """Store the list of packages that are installed and the list of services that are enabled."""
-    # boot = config["Boot"].values()[0]
-    # kernel = config.boot.kernel.package.to_list()[0]
 
     list_packages = repo_packages_list(kernel, packages)
     with open(f"{state_path}/installed_packages", "w") as f:

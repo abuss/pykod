@@ -1,20 +1,16 @@
 """Base repository configuration classes."""
 
-# from dataclasses import dataclass
-from typing import override
-
 
 class PackageList:
     def __init__(self) -> None:
         self._pkgs = {}  # (Repository, [])
 
-    def new(self, repo, items) -> None:
+    def new(self, repo, items) -> "PackageList":
         self._pkgs = {repo: items}  # (Repository, [])
         return self
 
     def __add__(self, other_pkgs):
         new_list = PackageList()
-        # _list = new_list._pkgs
         for repo, items in self._pkgs.items():
             if repo in new_list._pkgs:
                 new_list._pkgs[repo] += items
@@ -47,28 +43,12 @@ class PackageList:
 
         return self
 
-    @override
     def __repr__(self) -> str:
         res = "PKGS["
-        for x in self._pkgs.items():
-            res += f"\n\n => {x}"
+        for repo, pkgs in self._pkgs.items():
+            res += f"\n   => {repo.__class__.__name__}: {pkgs}"
         res += "\n]"
-        # return pprint.pformat(self._data, indent=2, width=10)
         return res
-
-    def install(self):
-        for repo, items in self._pkgs.items():
-            # print(f"Installing from repo {repo}:")
-            repo.install(items)
-            # for item in items:
-            #     print(f"  - {item}")
-
-    def remove(self):
-        for repo, items in self._pkgs.items():
-            # print(f"Removing from repo {repo}:")
-            repo.remove(items)
-            # for item in items:
-            #     print(f"  - {item}")
 
     def items(self):
         for repo, items in self._pkgs.items():
@@ -86,33 +66,17 @@ class Repository:
         self._pkgs = {}
 
     def __getitem__(self, items) -> PackageList:
-        # print(self, items)
         if isinstance(items, (list, tuple)):
             return PackageList().new(self, items)
         return PackageList().new(self, (items,))
 
-    @override
     def __repr__(self) -> str:
-        # return pprint.pformat(self._data, indent=2, width=10)
         return f"{self.__dict__}"
 
-    def get_base_packages(self, conf) -> dict:
-        return {}
+    # def get_base_packages(self, conf) -> dict:
+    #     return {}
 
-    def install_base(self, mount_point, packages): ...
+    # def install_base(self, mount_point, packages): ...
 
     def packages(self):
         return self._pkgs
-
-    def remove_package(self, packages_name: set | list) -> str:
-        """Remove packages from the repository."""
-        return ""
-
-    def packages_to_install(
-        self, install_pkgs: PackageList, exclude_pkgd: PackageList
-    ) -> PackageList:
-        """Generate a list of packages to install per repository by excluding the packages from the exclude list.
-        Some packages are groups that include other packages but are not packages by themselves. The list of all available groups can be obtained by running `pacman -Sg`.
-        So, converting groups to packages is necessary before excluding packages.
-        """
-        return install_pkgs

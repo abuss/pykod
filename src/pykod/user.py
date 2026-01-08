@@ -78,28 +78,6 @@ class Stow(ConfigManagerBase):
 
 
 @dataclass
-class UserService:
-    """User-level service configuration.
-
-    Args:
-        enable: Whether to enable this service for the user
-        config: Service-specific configuration
-        extra_packages: Additional packages required
-    """
-
-    enable: bool
-    package: PackageList | None
-    config: dict | None = None
-    extra_packages: PackageList | None = None
-
-    def __post_init__(self):
-        """Post-initialization processing."""
-        if not self.enable:
-            self.package = None
-            self.extra_packages = None
-
-
-@dataclass
 class Program:
     """User program configuration."""
 
@@ -297,32 +275,3 @@ class User:
         for cmd in cmds:
             print(f"Executing program command: {cmd}")
         return cmds
-
-
-def proc_users(ctx, conf) -> None:
-    """
-    Process all users in the given configuration.
-
-    For each user, this function creates the user, configures their dotfile manager,
-    configures their programs, and enables their services.
-
-    Args:
-        ctx (Context): The context object used for executing commands.
-        conf (dict): The configuration dictionary containing user information.
-    """
-    users = conf.users
-    # For each user: create user, configure dotfile manager, configure user programs
-    for user, info in users.items():
-        create_user(ctx, user, info)
-
-        dotfile_mngrs = user_dotfile_manager(info)
-        user_configs_def = user_configs(user, info)
-
-        configure_user_dotfiles(ctx, user, user_configs_def, dotfile_mngrs)
-        configure_user_scripts(ctx, user, user_configs_def)
-
-        proc_user_home(ctx, user, info)
-
-        services_to_enable = user_services(user, info)
-        print(f"User services to enable: {services_to_enable}")
-        enable_user_services(ctx, user, services_to_enable)

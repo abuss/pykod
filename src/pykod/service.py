@@ -69,11 +69,6 @@ class Services(dict):
                 print("   ->", cmd)
                 exec_chroot(cmd, mount_point=config._mount_point)
 
-    def rebuild(self):
-        print("[rebuild] Updating services:")
-        for key, extra in self.items():
-            print(f" - {key}: {extra}")
-
     def list_enabled_services(self):
         """Creating a Service manager."""
         services = []

@@ -46,6 +46,3 @@ class Locale(NestedDict):
                 locale_extra += f"{k}={v}\n"
         with open_with_dry_run(f"{mount_point}/etc/locale.conf", "w") as locale_file:
             locale_file.write(f"LANG={locale_extra}\n")
-
-    def rebuild(self):
-        print("[rebuild] Using default:", self.default)

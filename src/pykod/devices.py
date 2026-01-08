@@ -59,9 +59,6 @@ class Disk:
         )
         return boot_part, root_part, part_list
 
-    def rebuild(self):
-        print("[rebuild] Using disk:", self.device)
-
     def _create_disk_partitions(self, device: str, partitions: list[Any]):
         """Create partitions on a single disk device.
 
