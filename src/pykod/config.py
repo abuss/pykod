@@ -277,21 +277,8 @@ class Configuration:
 
         # Get boot and root partitions from partition list
         devices = self.devices
-        # boot_partition = ""
-        # root_partition = ""
 
         boot_partition, root_partition = self._get_boot_root_partitions(devices)
-
-        # if "Devices" in elements:
-        #     devices = list(elements["Devices"].values())[0]
-        #     if devices is None:
-        #         raise ValueError("No devices configuration found.")
-        #     for disk in devices.values():
-        #         boot_part, root_part = disk.info_partitions()
-        #         if boot_partition == "":
-        #             boot_partition = boot_part
-        #         if root_partition == "":
-        #             root_partition = root_part
 
         print(f"{boot_partition=}")
         print(f"{root_partition=}")
@@ -299,13 +286,16 @@ class Configuration:
         # 4. Snapshot and Root Path Preparation (lines 181-200)
         # - Creates directory for the next generation state
         next_generation_path = f"/kod/generations/{next_generation_id}"
-        next_current = Path("/kod/current/.next_current")
+        # next_current = Path("/kod/current/.next_current")
+        next_current = Path(f"{next_generation_path}/rootfs")
         if self._dry_run:
             next_generation_path = "mnt" + next_generation_path
-            next_current = Path("mnt/kod/current/.next_current")
+            # next_current = Path("mnt/kod/current/.next_current")
+            next_current = Path(f"{next_generation_path}/rootfs")
         print(
             f"Creating next generation path at {next_generation_path}, {self._dry_run=}"
         )
+        print(f"Creating next current path at {next_current}, {self._dry_run=}")
         next_generation_path = Path(next_generation_path)
         next_generation_path.mkdir(parents=True, exist_ok=True)
         next_current.mkdir(parents=True, exist_ok=True)
@@ -440,7 +430,8 @@ class Configuration:
         #     exec_chroot(cmd, mount_point=new_root_path)
 
         # Store new generation state
-        generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
+        # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
+        generation_path = next_generation_path
         self._store_generation_state(
             generation_path,
             next_kernel,
@@ -505,8 +496,8 @@ class Configuration:
         if new_generation:
             for m in kod_paths:
                 exec(f"umount {new_root_path}{m}")
-            exec(f"umount {new_root_path}")
-            exec(f"rm -rf {new_root_path}")
+            # exec(f"umount {new_root_path}")
+            # exec(f"rm -rf {new_root_path}")
 
         # else:
         # exec("mount -o remount,ro /usr")
@@ -628,8 +619,6 @@ def repo_packages_list(kernel, packages) -> dict:
 
 def store_state(state_path: str, config, kernel, packages, services) -> None:
     """Store the list of packages that are installed and the list of services that are enabled."""
-    # boot = config["Boot"].values()[0]
-    # kernel = config.boot.kernel.package.to_list()[0]
 
     list_packages = repo_packages_list(kernel, packages)
     packages_json = json.dumps(list_packages, indent=2)
@@ -706,7 +695,7 @@ def create_next_generation(
 
     # next_current.mkdir(parents=True, exist_ok=True)
 
-    exec(f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}")
+    # exec(f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}")
     exec(f"mount {boot_part} {next_current}/boot")
     exec(f"mount {root_part} {next_current}/kod")
     exec(f"mount -o subvol=store/home {root_part} {next_current}/home")
