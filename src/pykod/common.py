@@ -227,6 +227,9 @@ def exec_chroot(
         OSError: If chroot environment is not accessible.
     """
     # return exec(chroot_cmd, get_output=get_output, **kwargs)
+    if use_debug or use_verbose:
+        print(">>", Color.PURPLE + cmd + Color.END)
+
     if not use_dry_run:
         with ChrootManager(mount_point) as chroot:
             result = chroot.execute(cmd, capture_output=get_output)
