@@ -17,7 +17,7 @@ flatpakpkgs = Flatpak(hub_url="flathub")
 
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs)
+conf = Configuration(base=archpkgs, verbose=True)
 # use_virtualization = False
 
 # use_gnome = True
@@ -298,16 +298,16 @@ conf.packages = Packages(
         # "zen-browser-bin",
     ]
     # CLI tools
-    # + cli.packages(archpkgs, aurpkgs)
+    + cli.packages(archpkgs, aurpkgs)
     # Development tools
     # + development.packages(archpkgs)
     # Flatpak packages
     + flatpakpkgs[
-        "com.mattjakeman.ExtensionManager",
+        # "com.mattjakeman.ExtensionManager",
         # "freecad",
         # "openscad",
         # "prusa-slicer",
-        "net.nokyan.Resources",
+        # "net.nokyan.Resources",
         "dev.edfloreshz.CosmicTweaks",
     ]
 )
