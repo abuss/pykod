@@ -287,19 +287,19 @@ class Configuration:
             # 4. Snapshot and Root Path Preparation (lines 181-200)
             # - Creates directory for the next generation state
             next_generation_path = f"/kod/generations/{next_generation_id}"
-            # next_current = Path("/kod/current/.next_current")
-            next_current = Path(f"{next_generation_path}/rootfs")
+            next_current = Path("/kod/current/.next_current")
+            # next_current = Path(f"{next_generation_path}/rootfs")
             if self._dry_run:
                 next_generation_path = "mnt" + next_generation_path
-                # next_current = Path("mnt/kod/current/.next_current")
-                next_current = Path(f"{next_generation_path}/rootfs")
+                next_current = Path("mnt/kod/current/.next_current")
+                # next_current = Path(f"{next_generation_path}/rootfs")
             print(
                 f"Creating next generation path at {next_generation_path}, {self._dry_run=}"
             )
             print(f"Creating next current path at {next_current}, {self._dry_run=}")
             next_generation_path = Path(next_generation_path)
             next_generation_path.mkdir(parents=True, exist_ok=True)
-            # next_current.mkdir(parents=True, exist_ok=True)
+            next_current.mkdir(parents=True, exist_ok=True)
 
             # - If --new_generation flag is used:
             #   - Creates a BTRFS subvolume snapshot of the current root
@@ -510,7 +510,7 @@ class Configuration:
             if new_generation:
                 for m in kod_paths:
                     exec(f"umount {new_root_path}{m}")
-                # exec(f"umount {new_root_path}")
+                exec(f"umount -R {new_root_path}")
                 # exec(f"rm -rf {new_root_path}")
 
             if remove_next_generation and next_generation_path.is_dir():
@@ -712,7 +712,7 @@ def create_next_generation(
 
     # next_current.mkdir(parents=True, exist_ok=True)
 
-    # exec(f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}")
+    exec(f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}")
     exec(f"mount {boot_part} {next_current}/boot")
     exec(f"mount {root_part} {next_current}/kod")
     exec(f"mount -o subvol=store/home {root_part} {next_current}/home")
