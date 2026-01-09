@@ -59,15 +59,18 @@ class Services(dict):
 
         super().__init__(data)
 
-    def enable(self, config):
+    def enable(self, config, mount_point: str | None = None):
         """Creating a Service manager."""
         print("\n[ENABLE] Services:")
+        if mount_point is None:
+            mount_point = config._mount_point
+        print(f"-> Mount point: {mount_point}")
         for key, obj in self.items():
             if obj.enable:
                 print(f"\n - {key}: {obj}")
                 cmd = obj.enable_service(key)
                 print("   ->", cmd)
-                exec_chroot(cmd, mount_point=config._mount_point)
+                exec_chroot(cmd, mount_point=mount_point)
 
     def list_enabled_services(self):
         """Creating a Service manager."""

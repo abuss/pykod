@@ -1,6 +1,5 @@
 import json
 import subprocess
-from modulefinder import packagePathMap
 from pathlib import Path
 from typing import Callable
 
@@ -201,7 +200,7 @@ class Configuration:
         self._apply_repo(exclude_pkgs, "remove", self._mount_point)
 
         services = self._collect_and_prepare_services()
-        services.enable(self)
+        services.enable(self, self._mount_point)
         list_enabled_services = services.list_enabled_services()
         print(f"Enabling services: {list_enabled_services}")
 
@@ -264,269 +263,283 @@ class Configuration:
             print("Missing installed packages information")
             return
 
-        if self._dry_run:
-            current_packages, current_services = load_packages_services_tmp(
-                f"mnt{current_generation_path}"
-            )
-        else:
-            current_packages, current_services = load_packages_services(
-                current_generation_path
-            )
-        print(f"{current_packages = }")
-        print(f"{current_services = }")
+        remove_next_generation = False
+        try:
+            if self._dry_run:
+                current_packages, current_services = load_packages_services_tmp(
+                    f"mnt{current_generation_path}"
+                )
+            else:
+                current_packages, current_services = load_packages_services(
+                    current_generation_path
+                )
+            print(f"{current_packages = }")
+            print(f"{current_services = }")
 
-        # Get boot and root partitions from partition list
-        devices = self.devices
+            # Get boot and root partitions from partition list
+            devices = self.devices
 
-        boot_partition, root_partition = self._get_boot_root_partitions(devices)
+            boot_partition, root_partition = self._get_boot_root_partitions(devices)
 
-        print(f"{boot_partition=}")
-        print(f"{root_partition=}")
+            print(f"{boot_partition=}")
+            print(f"{root_partition=}")
 
-        # 4. Snapshot and Root Path Preparation (lines 181-200)
-        # - Creates directory for the next generation state
-        next_generation_path = f"/kod/generations/{next_generation_id}"
-        # next_current = Path("/kod/current/.next_current")
-        next_current = Path(f"{next_generation_path}/rootfs")
-        if self._dry_run:
-            next_generation_path = "mnt" + next_generation_path
-            # next_current = Path("mnt/kod/current/.next_current")
+            # 4. Snapshot and Root Path Preparation (lines 181-200)
+            # - Creates directory for the next generation state
+            next_generation_path = f"/kod/generations/{next_generation_id}"
+            # next_current = Path("/kod/current/.next_current")
             next_current = Path(f"{next_generation_path}/rootfs")
-        print(
-            f"Creating next generation path at {next_generation_path}, {self._dry_run=}"
-        )
-        print(f"Creating next current path at {next_current}, {self._dry_run=}")
-        next_generation_path = Path(next_generation_path)
-        next_generation_path.mkdir(parents=True, exist_ok=True)
-        # next_current.mkdir(parents=True, exist_ok=True)
-
-        # - If --new_generation flag is used:
-        #   - Creates a BTRFS subvolume snapshot of the current root
-        if new_generation:
-            print("Creating a new generation")
-            exec(f"btrfs subvolume snapshot / {next_generation_path}/rootfs")
-
-            # use_chroot = True
-            new_root_path = create_next_generation(
-                boot_partition, root_partition, next_generation_id, next_current
+            if self._dry_run:
+                next_generation_path = "mnt" + next_generation_path
+                # next_current = Path("mnt/kod/current/.next_current")
+                next_current = Path(f"{next_generation_path}/rootfs")
+            print(
+                f"Creating next generation path at {next_generation_path}, {self._dry_run=}"
             )
-            print(f"{new_root_path=}")
-        # else:
-        #     # os._exit(0)
-        #     exec("btrfs subvolume snapshot / /kod/current/old-rootfs")
-        #     exec(
-        #         f"cp /kod/generations/{current_generation_id}/installed_packages /kod/current/installed_packages"
-        #     )
-        #     exec(
-        #         f"cp /kod/generations/{current_generation_id}/enabled_services /kod/current/enabled_services"
-        #     )
-        #     use_chroot = False
-        #     new_root_path = "/"
-        x = input()
+            print(f"Creating next current path at {next_current}, {self._dry_run=}")
+            next_generation_path = Path(next_generation_path)
+            next_generation_path.mkdir(parents=True, exist_ok=True)
+            # next_current.mkdir(parents=True, exist_ok=True)
 
-        # Repository and Package Processing (lines 205-231)
-        # - Gets packages to install/remove from configuration
-        include_pkgs, exclude_pkgs = self._collect_package_sets()
-
-        if update:
-            print("Updating all packages to the latest version")
-            for repo, packages in include_pkgs.items():
-                print(f"Updating repository: {repo.__class__.__name__}")
-                cmd_update = repo.update_database()
-                if cmd_update:
-                    exec_chroot(
-                        cmd_update, mount_point=new_root_path
-                    )  # Refresh package database
-                cmd_update_pkgs = repo.update_installed_packages(packages)
-                if cmd_update_pkgs:
-                    exec_chroot(
-                        cmd_update_pkgs, mount_point=new_root_path
-                    )  # Update all packages
-
-        print(f"Included packages: {include_pkgs}")
-        print(f"Excluded packages: {exclude_pkgs}")
-        print("-+-" * 40)
-        x = input()
-
-        # boot = list(elements["Boot"].values())[0]
-        # boot = self.boot
-        next_kernel_package = self.boot.kernel.package
-        next_kernel = next_kernel_package.to_list()[0]
-        pkgs_to_install = repo_packages_list(next_kernel, include_pkgs)
-
-        print(f"Packages to install: {pkgs_to_install}")
-        print("-+-" * 40)
-        print(f"current_packages: {current_packages}")
-        new_to_install = PackageList()
-        new_to_remove = PackageList()
-        for repo, packages in include_pkgs.items():
-            repo_name = repo.__class__.__name__
-            pkgs_installed_set = set(current_packages.get(repo_name, []))
-            pkgs_to_install_set = set(packages)
-            new_pkgs = list(pkgs_to_install_set - pkgs_installed_set)
-            remove_pkgs = list(pkgs_installed_set - pkgs_to_install_set)
-            new_to_install += repo[new_pkgs]
-            new_to_remove += repo[remove_pkgs]
-            print(f"For repo {repo_name}:")
-            print(f"  To install: {new_pkgs}")
-            print(f"  To remove: {remove_pkgs}")
-
-        print(f"\n\nNew packages to install: {new_to_install}\n")
-        print(f"Packages to remove: {new_to_remove}\n")
-        x = input()
-
-        # Prepare repositories for install inside the new root if needed
-        if new_generation:
-            self._prepare_repos(new_to_install, new_root_path)
-            self._apply_repo(new_to_install, "install", new_root_path)
-        else:
-            self._apply_repo(new_to_install, "install")
-
-        # print(f"Packages to remove: {pkgs_to_remove}")
-        #
-        # Compares current vs. desired package state to determine:
-        hooks_to_run = []
-        current_kernel = current_packages["kernel"][0]
-        if next_kernel != current_kernel:
-            print(f"Kernel update detected: {current_kernel} -> {next_kernel}")
-            hooks_to_run += [
-                update_kernel_hook(self, next_kernel, new_root_path),
-                update_initramfs_hook(self, next_kernel, new_root_path),
-            ]
-
-        print(f"Hooks to run: {hooks_to_run}")
-        print("Running hooks")
-        for hook in hooks_to_run:
-            print(f"Running {hook}")
-            hook()
-        x = input()
-
-        # Service Management (lines 233-241)
-        services = self._collect_and_prepare_services()
-        services.enable(self)
-
-        new_enabled_services = services.list_enabled_services()
-        print(f"New enabled services: {new_enabled_services}")
-        print(f"Current enabled services: {current_services}")
-        services_to_disable = set(current_services) - set(new_enabled_services)
-        print(f"Services to disable: {services_to_disable}")
-
-        # Disable removed services
-        service = Service()
-        for svc_name in services_to_disable:
-            service.service_name = svc_name
+            # - If --new_generation flag is used:
+            #   - Creates a BTRFS subvolume snapshot of the current root
             if new_generation:
-                print(f"Disabling service: {svc_name}")
-                cmd = service.disable_service(svc_name)
-                exec_chroot(cmd, mount_point=new_root_path)
+                print("Creating a new generation")
+                exec(f"btrfs subvolume snapshot / {next_generation_path}/rootfs")
 
-        print("Removing packages")
-        if new_generation:
-            self._apply_repo(new_to_remove, "remove", new_root_path)
-        else:
-            self._apply_repo(new_to_remove, "remove")
+                # use_chroot = True
+                new_root_path = create_next_generation(
+                    boot_partition, root_partition, next_generation_id, next_current
+                )
+                print(f"{new_root_path=}")
+            # else:
+            #     # os._exit(0)
+            #     exec("btrfs subvolume snapshot / /kod/current/old-rootfs")
+            #     exec(
+            #         f"cp /kod/generations/{current_generation_id}/installed_packages /kod/current/installed_packages"
+            #     )
+            #     exec(
+            #         f"cp /kod/generations/{current_generation_id}/enabled_services /kod/current/enabled_services"
+            #     )
+            #     use_chroot = False
+            #     new_root_path = "/"
+            x = input()
 
-        # for repo, packages in new_to_remove.items():
-        #     if len(packages) == 0:
-        #         continue
-        #     print(f"Removing from repo {repo}: {packages}")
-        #     cmd = repo.remove_package(set(packages))
-        #     exec_chroot(cmd, mount_point=new_root_path)
+            # Repository and Package Processing (lines 205-231)
+            # - Gets packages to install/remove from configuration
+            include_pkgs, exclude_pkgs = self._collect_package_sets()
 
-        # Store new generation state
-        # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
-        generation_path = next_generation_path
-        self._store_generation_state(
-            generation_path,
-            next_kernel,
-            include_pkgs,
-            new_enabled_services,
-        )
+            if update:
+                print("Updating all packages to the latest version")
+                for repo, packages in include_pkgs.items():
+                    print(f"Updating repository: {repo.__class__.__name__}")
+                    cmd_update = repo.update_database()
+                    if cmd_update:
+                        exec_chroot(
+                            cmd_update, mount_point=new_root_path
+                        )  # Refresh package database
+                    cmd_update_pkgs = repo.update_installed_packages(packages)
+                    if cmd_update_pkgs:
+                        exec_chroot(
+                            cmd_update_pkgs, mount_point=new_root_path
+                        )  # Update all packages
 
-        # Generation Deployment
-        print("==== Deploying new generation ====")
-        partition_list = load_fstab("/")
-        if new_generation:
-            kver = self._base.setup_linux(new_root_path, next_kernel_package)
-            print("KVER:", kver)
-            create_boot_entry(
-                next_generation_id,
-                partition_list,
-                mount_point=new_root_path,
-                kver=kver,
+            print(f"Included packages: {include_pkgs}")
+            print(f"Excluded packages: {exclude_pkgs}")
+            print("-+-" * 40)
+            x = input()
+            # print(x / 0)  # FOR TESTING
+
+            # boot = list(elements["Boot"].values())[0]
+            # boot = self.boot
+            next_kernel_package = self.boot.kernel.package
+            next_kernel = next_kernel_package.to_list()[0]
+            pkgs_to_install = repo_packages_list(next_kernel, include_pkgs)
+
+            print(f"Packages to install: {pkgs_to_install}")
+            print("-+-" * 40)
+            print(f"current_packages: {current_packages}")
+            new_to_install = PackageList()
+            new_to_remove = PackageList()
+            for repo, packages in include_pkgs.items():
+                repo_name = repo.__class__.__name__
+                pkgs_installed_set = set(current_packages.get(repo_name, []))
+                pkgs_to_install_set = set(packages)
+                new_pkgs = list(pkgs_to_install_set - pkgs_installed_set)
+                remove_pkgs = list(pkgs_installed_set - pkgs_to_install_set)
+                new_to_install += repo[new_pkgs]
+                new_to_remove += repo[remove_pkgs]
+                print(f"For repo {repo_name}:")
+                print(f"  To install: {new_pkgs}")
+                print(f"  To remove: {remove_pkgs}")
+
+            print(f"\n\nNew packages to install: {new_to_install}\n")
+            print(f"Packages to remove: {new_to_remove}\n")
+            x = input()
+
+            # Prepare repositories for install inside the new root if needed
+            if new_generation:
+                self._prepare_repos(new_to_install, new_root_path)
+                self._apply_repo(new_to_install, "install", new_root_path)
+            else:
+                self._apply_repo(new_to_install, "install")
+
+            # print(f"Packages to remove: {pkgs_to_remove}")
+            #
+            # Compares current vs. desired package state to determine:
+            hooks_to_run = []
+            current_kernel = current_packages["kernel"][0]
+            if next_kernel != current_kernel:
+                print(f"Kernel update detected: {current_kernel} -> {next_kernel}")
+                hooks_to_run += [
+                    update_kernel_hook(self, next_kernel, new_root_path),
+                    update_initramfs_hook(self, next_kernel, new_root_path),
+                ]
+
+            print(f"Hooks to run: {hooks_to_run}")
+            print("Running hooks")
+            for hook in hooks_to_run:
+                print(f"Running {hook}")
+                hook()
+
+            # Service Management (lines 233-241)
+            services = self._collect_and_prepare_services()
+            print(f"Enabling services {new_root_path = }")
+            services.enable(self, new_root_path)
+            x = input()
+
+            new_enabled_services = services.list_enabled_services()
+            print(f"New enabled services: {new_enabled_services}")
+            print(f"Current enabled services: {current_services}")
+            services_to_disable = set(current_services) - set(new_enabled_services)
+            print(f"Services to disable: {services_to_disable}")
+
+            # Disable removed services
+            service = Service()
+            for svc_name in services_to_disable:
+                service.service_name = svc_name
+                if new_generation:
+                    print(f"Disabling service: {svc_name}")
+                    cmd = service.disable_service(svc_name)
+                    exec_chroot(cmd, mount_point=new_root_path)
+
+            print("Removing packages")
+            if new_generation:
+                self._apply_repo(new_to_remove, "remove", new_root_path)
+            else:
+                self._apply_repo(new_to_remove, "remove")
+
+            # for repo, packages in new_to_remove.items():
+            #     if len(packages) == 0:
+            #         continue
+            #     print(f"Removing from repo {repo}: {packages}")
+            #     cmd = repo.remove_package(set(packages))
+            #     exec_chroot(cmd, mount_point=new_root_path)
+
+            # Store new generation state
+            # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
+            generation_path = next_generation_path
+            self._store_generation_state(
+                generation_path,
+                next_kernel,
+                include_pkgs,
+                new_enabled_services,
             )
-        # else:
-        #     # Move current updated rootfs to a new generation
-        #     exec(
-        #         f"mv /kod/generations/{current_generation}/rootfs /kod/generations/{generation_id}/"
-        #     )
-        #     # Moving the current rootfs copy to the current generation path
-        #     exec(
-        #         f"mv /kod/current/old-rootfs /kod/generations/{current_generation}/rootfs"
-        #     )
-        #     exec(
-        #         f"mv /kod/current/installed_packages /kod/generations/{current_generation}/installed_packages"
-        #     )
-        #     exec(
-        #         f"mv /kod/current/enabled_services /kod/generations/{current_generation}/enabled_services"
-        #     )
-        #     updated_partition_list = change_subvol(
-        #         partition_list,
-        #         subvol=f"generations/{generation_id}",
-        #         mount_points=["/"],
-        #     )
-        #     generate_fstab(updated_partition_list, new_root_path)
-        #     create_boot_entry(
-        #         generation_id,
-        #         updated_partition_list,
-        #         mount_point=new_root_path,
-        #         kver=kver,
-        #     )
 
-        # Write generation number
-        with open_with_dry_run(f"{next_generation_path}/rootfs/.generation", "w") as f:
-            f.write(str(next_generation_id))
+            # Generation Deployment
+            print("==== Deploying new generation ====")
+            partition_list = load_fstab("/")
+            if new_generation:
+                kver = self._base.setup_linux(new_root_path, next_kernel_package)
+                print("KVER:", kver)
+                create_boot_entry(
+                    next_generation_id,
+                    partition_list,
+                    mount_point=new_root_path,
+                    kver=kver,
+                )
+            # else:
+            #     # Move current updated rootfs to a new generation
+            #     exec(
+            #         f"mv /kod/generations/{current_generation}/rootfs /kod/generations/{generation_id}/"
+            #     )
+            #     # Moving the current rootfs copy to the current generation path
+            #     exec(
+            #         f"mv /kod/current/old-rootfs /kod/generations/{current_generation}/rootfs"
+            #     )
+            #     exec(
+            #         f"mv /kod/current/installed_packages /kod/generations/{current_generation}/installed_packages"
+            #     )
+            #     exec(
+            #         f"mv /kod/current/enabled_services /kod/generations/{current_generation}/enabled_services"
+            #     )
+            #     updated_partition_list = change_subvol(
+            #         partition_list,
+            #         subvol=f"generations/{generation_id}",
+            #         mount_points=["/"],
+            #     )
+            #     generate_fstab(updated_partition_list, new_root_path)
+            #     create_boot_entry(
+            #         generation_id,
+            #         updated_partition_list,
+            #         mount_point=new_root_path,
+            #         kver=kver,
+            #     )
 
-        kod_paths = [
-            "/boot",
-            "/kod",
-            "/home",
-            "/root",
-            "/var/log",
-            "/var/tmp",
-            "/var/cache",
-            "/var/kod",
-        ]
-        if new_generation:
-            for m in kod_paths:
-                exec(f"umount {new_root_path}{m}")
-            # exec(f"umount {new_root_path}")
-            # exec(f"rm -rf {new_root_path}")
+            # Write generation number
+            with open_with_dry_run(
+                f"{next_generation_path}/rootfs/.generation", "w"
+            ) as f:
+                f.write(str(next_generation_id))
 
-        # else:
-        # exec("mount -o remount,ro /usr")
+        except Exception as e:
+            print(f"Error during rebuild: {e}")
+            remove_next_generation = True
+            # return
+        finally:
+            kod_paths = [
+                "/boot",
+                "/kod",
+                "/home",
+                "/root",
+                "/var/log",
+                "/var/tmp",
+                "/var/cache",
+                "/var/kod",
+            ]
+            if new_generation:
+                for m in kod_paths:
+                    exec(f"umount {new_root_path}{m}")
+                # exec(f"umount {new_root_path}")
+                # exec(f"rm -rf {new_root_path}")
 
-        print(f"Done. Generation {next_generation_id} created")
+            if remove_next_generation and next_generation_path.is_dir():
+                exec(f"btrfs subvolume delete {next_generation_path}")
 
-        # - If in-place update:
-        #   - Reorganizes filesystem structure to create generation hierarchy
-        #   - Updates filesystem table (fstab) with new subvolume path
-        #   - Creates boot entry for the updated generation
-        # - Writes the generation number to the new generation's .generation file
-        #
-        # 11. Cleanup (lines 312-330)
-        # - If new generation: Unmounts all mount points and removes temporary directories
-        # - Prints completion message with the new generation ID
-        #
-        # Key Features:
-        # - Atomic updates: Can create snapshots before changes
-        # - Rollback capability: Maintains generation history
-        # - Package management: Handles installation, removal, and updates
-        # - Service management: Manages systemd services
-        # - BTRFS integration: Uses subvolumes for generation management
-        # - Boot loader integration: Updates boot entries for new generations
-        # The rebuild process is designed to be safe and reversible, allowing the system to be
-        # updated while maintaining the ability to rollback to previous generations if needed.
+            # else:
+            # exec("mount -o remount,ro /usr")
+
+            print(f"Done. Generation {next_generation_id} created")
+
+            # - If in-place update:
+            #   - Reorganizes filesystem structure to create generation hierarchy
+            #   - Updates filesystem table (fstab) with new subvolume path
+            #   - Creates boot entry for the updated generation
+            # - Writes the generation number to the new generation's .generation file
+            #
+            # 11. Cleanup (lines 312-330)
+            # - If new generation: Unmounts all mount points and removes temporary directories
+            # - Prints completion message with the new generation ID
+            #
+            # Key Features:
+            # - Atomic updates: Can create snapshots before changes
+            # - Rollback capability: Maintains generation history
+            # - Package management: Handles installation, removal, and updates
+            # - Service management: Manages systemd services
+            # - BTRFS integration: Uses subvolumes for generation management
+            # - Boot loader integration: Updates boot entries for new generations
+            # The rebuild process is designed to be safe and reversible, allowing the system to be
+            # updated while maintaining the ability to rollback to previous generations if needed.
 
     def run(self):
         import sys
