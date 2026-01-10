@@ -333,7 +333,6 @@ class Configuration:
             #     )
             #     use_chroot = False
             #     new_root_path = "/"
-            x = input()
 
             # Repository and Package Processing (lines 205-231)
             # - Gets packages to install/remove from configuration
