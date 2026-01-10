@@ -514,6 +514,7 @@ class Configuration:
                 "/var/tmp",
                 "/var/cache",
                 "/var/kod",
+                "/dev",
             ]
             if new_generation:
                 for m in kod_paths:
@@ -528,26 +529,6 @@ class Configuration:
             # exec("mount -o remount,ro /usr")
 
             print(f"Done. Generation {next_generation_id} created")
-
-            # - If in-place update:
-            #   - Reorganizes filesystem structure to create generation hierarchy
-            #   - Updates filesystem table (fstab) with new subvolume path
-            #   - Creates boot entry for the updated generation
-            # - Writes the generation number to the new generation's .generation file
-            #
-            # 11. Cleanup (lines 312-330)
-            # - If new generation: Unmounts all mount points and removes temporary directories
-            # - Prints completion message with the new generation ID
-            #
-            # Key Features:
-            # - Atomic updates: Can create snapshots before changes
-            # - Rollback capability: Maintains generation history
-            # - Package management: Handles installation, removal, and updates
-            # - Service management: Manages systemd services
-            # - BTRFS integration: Uses subvolumes for generation management
-            # - Boot loader integration: Updates boot entries for new generations
-            # The rebuild process is designed to be safe and reversible, allowing the system to be
-            # updated while maintaining the ability to rollback to previous generations if needed.
 
     def run(self):
         import sys
@@ -660,7 +641,7 @@ def store_state(state_path: str, config, kernel, packages, services) -> None:
     # def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
     # """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
     installed_packages_version = exec_chroot(
-        installed_packages_cmd, mount_point=config._mount_point, get_output=True
+        installed_packages_cmd, mount_point=state_path, get_output=True
     )
     with open_with_dry_run(f"{state_path}/packages.lock", "w") as f:
         f.write(installed_packages_version)
