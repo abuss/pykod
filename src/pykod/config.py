@@ -134,6 +134,7 @@ class Configuration:
     def _store_generation_state(
         self,
         state_path: str,
+        generation_path: str,
         kernel: str,
         include_pkgs: PackageList,
         enabled_services: list[str],
@@ -141,9 +142,12 @@ class Configuration:
         print("Storing generation state...")
         print(f"{state_path=}")
         if self._dry_run:
-            store_state_tmp(state_path, self, kernel, include_pkgs, enabled_services)
+            store_state_tmp(
+                generation_path, self, kernel, include_pkgs, enabled_services
+            )
         else:
-            store_state(state_path, self, kernel, include_pkgs, enabled_services)
+            store_state(generation_path, kernel, include_pkgs, enabled_services)
+            store_installed_packages(state_path, self)
 
     # =============================== INSTALL ================================
     def install(self) -> None:
@@ -221,6 +225,7 @@ class Configuration:
         kernel = self.boot.kernel.package.to_list()[0]
         # installed_packages_cmd = self.base.list_installed_packages()
         self._store_generation_state(
+            self._mount_point,
             generation_path,
             kernel,
             include_pkgs,
@@ -445,7 +450,8 @@ class Configuration:
             # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
             # generation_path = next_current
             self._store_generation_state(
-                next_current,
+                new_root_path,
+                next_generation_path,
                 next_kernel,
                 include_pkgs,
                 new_enabled_services,
@@ -623,7 +629,7 @@ def repo_packages_list(kernel, packages) -> dict:
     return list_packages
 
 
-def store_state(state_path: str, config, kernel, packages, services) -> None:
+def store_state(state_path: str, kernel, packages, services) -> None:
     """Store the list of packages that are installed and the list of services that are enabled."""
 
     list_packages = repo_packages_list(kernel, packages)
@@ -637,6 +643,8 @@ def store_state(state_path: str, config, kernel, packages, services) -> None:
     with open_with_dry_run(f"{state_path}/enabled_services", "w") as f:
         f.write("\n".join(list_services))
 
+
+def store_installed_packages(state_path: str, config) -> None:
     installed_packages_cmd = config._base.list_installed_packages()
     # def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
     # """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
