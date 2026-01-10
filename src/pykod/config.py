@@ -357,8 +357,6 @@ class Configuration:
             print(f"Included packages: {include_pkgs}")
             print(f"Excluded packages: {exclude_pkgs}")
             print("-+-" * 40)
-            x = input()
-            # print(x / 0)  # FOR TESTING
 
             # boot = list(elements["Boot"].values())[0]
             # boot = self.boot
@@ -385,7 +383,6 @@ class Configuration:
 
             print(f"\n\nNew packages to install: {new_to_install}\n")
             print(f"Packages to remove: {new_to_remove}\n")
-            x = input()
 
             # Prepare repositories for install inside the new root if needed
             if new_generation:
@@ -416,7 +413,6 @@ class Configuration:
             services = self._collect_and_prepare_services()
             print(f"Enabling services {new_root_path = }")
             services.enable(self, new_root_path)
-            x = input()
 
             new_enabled_services = services.list_enabled_services()
             print(f"New enabled services: {new_enabled_services}")
@@ -529,7 +525,8 @@ class Configuration:
                 # exec(f"rm -rf {new_root_path}")
 
             if remove_next_generation and next_generation_path.is_dir():
-                exec(f"btrfs subvolume delete {next_generation_path}")
+                exec(f"btrfs subvolume delete {next_generation_path}/rootfs")
+                exec(f"rm -rf {next_generation_path}")
 
             # else:
             # exec("mount -o remount,ro /usr")
