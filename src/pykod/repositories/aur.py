@@ -1,6 +1,6 @@
 """AUR (Arch User Repository) configuration."""
 
-from pykod.common import exec_chroot
+from pykod.common import execute_chroot as exec_chroot
 
 from .base import Repository
 
@@ -65,12 +65,12 @@ class AUR(Repository):
             self.build(mount_point=mount_point)
             self.helper_installed = True
 
-    def install_package(self, package_name):
+    def install_packages(self, package_name):
         pkgs = " ".join(package_name)
         cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {pkgs}"
         return cmd
 
-    def remove_package(self, package_name):
+    def remove_packages(self, package_name):
         pkgs = " ".join(package_name)
         cmd = f"runuser -u kod -- {self.helper} -R --noconfirm {pkgs}"
         return cmd

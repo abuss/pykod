@@ -1,6 +1,6 @@
 """Locale configuration."""
 
-from pykod.common import exec_chroot, open_with_dry_run
+from pykod.common import execute_chroot as exec_chroot, open_with_dry_run
 from pykod.core import NestedDict
 
 

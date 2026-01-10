@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from pykod.common import exec_chroot
+from pykod.common import execute_chroot as exec_chroot
 from pykod.repositories.base import PackageList
 from pykod.service import Service
 

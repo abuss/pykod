@@ -13,10 +13,10 @@ from typing import Any, Optional
 
 from chorut import ChrootManager
 
+# Module-level variables
 use_debug: bool = False
 use_verbose: bool = False
 use_dry_run: bool = False
-
 problems: list[dict] = []
 
 # Set up logging
@@ -76,6 +76,7 @@ class Color:
     END = "\033[0m"
 
 
+# Mode getter/setter functions
 def set_debug(val: bool = True) -> None:
     """Set the global debug mode state.
 
@@ -106,11 +107,7 @@ def get_dry_run() -> bool:
     return use_dry_run
 
 
-def report_problems():
-    for prob in problems:
-        print("Problem:", prob)
-
-
+# Command execution functions
 def fake_exec(
     cmd: str,
     get_output: bool = False,
@@ -120,7 +117,7 @@ def fake_exec(
     return ""
 
 
-def exec(
+def execute_command(
     cmd: str,
     get_output: bool = False,
     encoding: str = "utf-8",
@@ -218,7 +215,7 @@ def exec(
         raise
 
 
-def exec_chroot(
+def execute_chroot(
     cmd: str, mount_point: str = "/mnt", get_output: bool = False, **kwargs
 ) -> str:
     """Execute a command within a chroot environment with error handling.
@@ -227,7 +224,7 @@ def exec_chroot(
         cmd: The command to execute inside the chroot.
         mount_point: The mount point for the chroot. Defaults to "/mnt".
         get_output: Whether to return command output. Defaults to False.
-        **kwargs: Additional arguments passed to exec().
+        **kwargs: Additional arguments passed to execute_command().
 
     Returns:
         Command output from the chroot execution.
@@ -236,7 +233,7 @@ def exec_chroot(
         CommandExecutionError: If chroot command fails.
         OSError: If chroot environment is not accessible.
     """
-    # return exec(chroot_cmd, get_output=get_output, **kwargs)
+    # return execute_command(chroot_cmd, get_output=get_output, **kwargs)
     if use_debug or use_verbose:
         print(f"({mount_point})>>", Color.PURPLE + cmd + Color.END)
 
@@ -249,7 +246,7 @@ def exec_chroot(
         return ""
 
 
-# Create a wrapper that can be closed without affecting sys.stdout
+# File utilities
 class CloseableStdoutWrapper:
     def __init__(self, original_stdout):
         self._stdout = original_stdout
@@ -305,3 +302,9 @@ def open_with_dry_run(
 
     # For read operations or when not in dry run mode, use normal open
     return open(file, mode, **kwargs)
+
+
+# Utility functions
+def report_problems():
+    for prob in problems:
+        print("Problem:", prob)

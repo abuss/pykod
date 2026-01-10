@@ -3,9 +3,9 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 
+from pykod.common import execute_command as exec
+from pykod.common import execute_chroot as exec_chroot
 from pykod.common import (
-    exec,
-    exec_chroot,
     open_with_dry_run,
     set_debug,
     set_dry_run,
@@ -70,9 +70,9 @@ class Configuration:
                 continue
             match action:
                 case "install":
-                    cmd = repo.install_package(set(items))
+                    cmd = repo.install_packages(set(items))
                 case "remove":
-                    cmd = repo.remove_package(set(items))
+                    cmd = repo.remove_packages(set(items))
                 case _:
                     raise ValueError(f"Unknown action: {action}")
             if mount_point is None:
@@ -120,11 +120,11 @@ class Configuration:
         print(f"*******> Collected services: {services}")
         return services
 
-    def _get_boot_root_partitions(self, devices) -> tuple[str, str]:
+    def _get_boot_and_root_partitions(self, devices) -> tuple[str, str]:
         boot_partition = ""
         root_partition = ""
         for disk in devices.values():
-            boot_part, root_part = disk.info_partitions()
+            boot_part, root_part = disk.get_partition_info()
             if not boot_partition:
                 boot_partition = boot_part
             if not root_partition:
@@ -206,7 +206,7 @@ class Configuration:
 
         services = self._collect_and_prepare_services()
         services.enable(self, self._mount_point)
-        list_enabled_services = services.list_enabled_services()
+        list_enabled_services = services.get_enabled_services()
         print(f"Enabling services: {list_enabled_services}")
 
         # User installation
@@ -289,7 +289,7 @@ class Configuration:
             # Get boot and root partitions from partition list
             devices = self.devices
 
-            boot_partition, root_partition = self._get_boot_root_partitions(devices)
+            boot_partition, root_partition = self._get_boot_and_root_partitions(devices)
 
             print(f"{boot_partition=}")
             print(f"{root_partition=}")
@@ -413,7 +413,7 @@ class Configuration:
             print(f"Enabling services {new_root_path = }")
             services.enable(self, new_root_path)
 
-            new_enabled_services = services.list_enabled_services()
+            new_enabled_services = services.get_enabled_services()
             print(f"New enabled services: {new_enabled_services}")
             print(f"Current enabled services: {current_services}")
             services_to_disable = set(current_services) - set(new_enabled_services)
@@ -735,7 +735,7 @@ def update_kernel_hook(
 
     def hook() -> None:
         print(f"Update kernel ....{kernel_package}")
-        kernel_file, kver = conf._base.get_kernel_file(
+        kernel_file, kver = conf._base.get_kernel_info(
             mount_point, package=kernel_package
         )
         print(f"{kver=}")
@@ -752,7 +752,7 @@ def update_initramfs_hook(
 
     def hook() -> None:
         print(f"Update initramfs ....{kernel_package}")
-        kernel_file, kver = conf._base.get_kernel_file(
+        kernel_file, kver = conf._base.get_kernel_info(
             mount_point, package=kernel_package
         )
         print(f"{kver=}")

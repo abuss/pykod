@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from pykod.common import exec_chroot
+from pykod.common import execute_chroot as exec_chroot
 from pykod.repositories.base import PackageList
 
 
@@ -33,7 +33,7 @@ class Service:
             self.service_name = self.package.to_list()[0]
 
     def enable_service(self, service) -> str:
-        """Enable a list of services in the specified mount point."""
+        """Enable a service in the specified mount point."""
         if self.service_name is not None:
             service = self.service_name
         print(f"Enabling service: {service}")
@@ -41,7 +41,7 @@ class Service:
         return cmd
 
     def disable_service(self, service) -> str:
-        """Disable a list of services in the specified mount point."""
+        """Disable a service in the specified mount point."""
         print(f"Disabling service: {service}")
         cmd = f"systemctl disable {service}"
         return cmd
@@ -60,7 +60,7 @@ class Services(dict):
         super().__init__(data)
 
     def enable(self, config, mount_point: str | None = None):
-        """Creating a Service manager."""
+        """Enable all services in the configuration."""
         print("\n[ENABLE] Services:")
         if mount_point is None:
             mount_point = config._mount_point
@@ -72,8 +72,8 @@ class Services(dict):
                 print("   ->", cmd)
                 exec_chroot(cmd, mount_point=mount_point)
 
-    def list_enabled_services(self):
-        """Creating a Service manager."""
+    def get_enabled_services(self):
+        """Get list of enabled services."""
         services = []
         for service, obj in self.items():
             if obj.service_name is not None:
