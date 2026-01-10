@@ -16,14 +16,48 @@ class AUR(Repository):
         url = self.helper_url
         build_cmd = "makepkg -si --noconfirm"
 
-        # TODO: Check if git and base-devel are installed before installing them
-        exec_chroot(
-            "pacman -S --needed --noconfirm git base-devel", mount_point=mount_point
-        )
-        exec_chroot(
-            f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
+        # Check if helper is already installed
+        helper_check_result = exec_chroot(
+            f"runuser -u kod -- /bin/bash -c 'command -v {name}'",
             mount_point=mount_point,
         )
+
+        helper_exists = (
+            helper_check_result.returncode == 0
+            if hasattr(helper_check_result, "returncode")
+            else False
+        )
+
+        if helper_exists:
+            # Check if helper requires update by checking for newer commits
+            update_check_result = exec_chroot(
+                f"runuser -u kod -- /bin/bash -c 'cd ~/{name} && git fetch && [ $(git rev-parse HEAD) != $(git rev-parse @{{u}}) ]'",
+                mount_point=mount_point,
+            )
+            needs_update = (
+                update_check_result.returncode == 0
+                if hasattr(update_check_result, "returncode")
+                else True
+            )
+
+            if not needs_update:
+                return  # Helper is installed and up to date
+
+            # Update existing helper
+            exec_chroot(
+                f"runuser -u kod -- /bin/bash -c 'cd ~/{name} && git pull && {build_cmd}'",
+                mount_point=mount_point,
+            )
+        else:
+            # Install helper for the first time
+            # TODO: Check if git and base-devel are installed before installing them
+            exec_chroot(
+                "pacman -S --needed --noconfirm git base-devel", mount_point=mount_point
+            )
+            exec_chroot(
+                f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
+                mount_point=mount_point,
+            )
 
     def prepare(self, mount_point: str) -> None:
         """Prepare the AUR helper inside the given chroot mount point."""

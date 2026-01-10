@@ -254,6 +254,10 @@ class NestedDict:
             self._data[k] = v
 
     def __getattr__(self, name) -> "NestedDict":
+        if "_data" not in self.__dict__:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
         if name in self._data:
             return self._data[name]
         else:
@@ -268,6 +272,83 @@ class NestedDict:
                 value = NestedDict(**value)
             self._data[name] = value
 
+    def __getstate__(self):
+        return {"_data": self._data}
+
+    def __setstate__(self, state):
+        self.__dict__["_data"] = state["_data"]
+
     def __repr__(self) -> str:
         # return pprint.pformat(self._data, indent=2, width=10)
         return str(self._data)
+
+
+def save_configuration(
+    config: "Configuration",
+    include_pkgs,
+    generation_path: Path,
+) -> None:
+    import json
+
+    # Store configuration instance and repositories as JSON
+    config_dict = {}
+
+    # Extract basic configuration attributes
+    for attr_name, attr_value in vars(config).items():
+        if not attr_name.startswith("_") and attr_name not in ["packages"]:
+            try:
+                # Try to serialize the attribute
+                json.dumps(attr_value)
+                config_dict[attr_name] = attr_value
+            except (TypeError, ValueError):
+                # Skip non-serializable attributes
+                config_dict[attr_name] = str(attr_value)
+
+    # Store repositories information with their definitions
+    repositories = {}
+
+    # Store base repository definition
+    base_repo_attrs = {}
+    for attr_name, attr_value in vars(config._base).items():
+        if not attr_name.startswith("_"):
+            try:
+                json.dumps(attr_value)
+                base_repo_attrs[attr_name] = attr_value
+            except (TypeError, ValueError):
+                base_repo_attrs[attr_name] = str(attr_value)
+
+    repositories["base"] = {
+        "class_name": config._base.__class__.__name__,
+        "type": "base_repository",
+        "attributes": base_repo_attrs,
+    }
+
+    # Collect all repositories from packages with their definitions
+    for repo, packages in include_pkgs.items():
+        repo_name = repo.__class__.__name__
+
+        # Extract repository attributes
+        repo_attrs = {}
+        for attr_name, attr_value in vars(repo).items():
+            if not attr_name.startswith("_"):
+                try:
+                    json.dumps(attr_value)
+                    repo_attrs[attr_name] = attr_value
+                except (TypeError, ValueError):
+                    repo_attrs[attr_name] = str(attr_value)
+
+        repositories[repo_name] = {
+            "class_name": repo_name,
+            "type": "package_repository",
+            "packages": list(packages),
+            "attributes": repo_attrs,
+        }
+
+    config_dict["repositories"] = repositories
+
+    # Write configuration to JSON file
+    config_json_path = generation_path / "configuration.json"
+    with open(str(config_json_path), "w") as f:
+        json.dump(config_dict, f, indent=2, default=str)
+
+    print(f"Configuration and repositories stored to: {config_json_path}")

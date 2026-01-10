@@ -16,6 +16,7 @@ from pykod.core import (
     create_boot_entry,
     create_kod_user,
     generate_fstab,
+    save_configuration,
 )
 from pykod.devices import load_fstab
 from pykod.repositories.base import PackageList, Repository
@@ -224,10 +225,14 @@ class Configuration:
             kernel,
             include_pkgs,
             list_enabled_services,
-            # installed_packages_cmd,
-            # mount_point=self.mount_point,
         )
+        # Store configuration files
+        # -----------------------------------------------------------------
+        # Store configuration instance and repositories as JSON
+        save_configuration(self, include_pkgs, generation_path)
+        # -----------------------------------------------------------------
 
+        print("\nInstalling KodOS files...")
         exec(f"umount -R {self._mount_point}")
         print("Done")
         if devices is not None:
@@ -485,6 +490,9 @@ class Configuration:
             #         mount_point=new_root_path,
             #         kver=kver,
             #     )
+
+            # Store configuration instance and repositories as JSON
+            save_configuration(self, include_pkgs, generation_path)
 
             # Write generation number
             with open_with_dry_run(
