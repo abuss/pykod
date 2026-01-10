@@ -492,7 +492,7 @@ class Configuration:
             #     )
 
             # Store configuration instance and repositories as JSON
-            save_configuration(self, include_pkgs, next_current)
+            save_configuration(self, include_pkgs, next_generation_path)
 
             # Write generation number
             with open_with_dry_run(
