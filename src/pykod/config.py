@@ -147,7 +147,7 @@ class Configuration:
             )
         else:
             store_state(generation_path, kernel, include_pkgs, enabled_services)
-            store_installed_packages(state_path, self)
+            store_installed_packages(state_path, generation_path, self)
 
     # =============================== INSTALL ================================
     def install(self) -> None:
@@ -644,14 +644,14 @@ def store_state(state_path: str, kernel, packages, services) -> None:
         f.write("\n".join(list_services))
 
 
-def store_installed_packages(state_path: str, config) -> None:
+def store_installed_packages(state_path: str, generation_path: str, config) -> None:
     installed_packages_cmd = config._base.list_installed_packages()
     # def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
     # """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
     installed_packages_version = exec_chroot(
         installed_packages_cmd, mount_point=state_path, get_output=True
     )
-    with open_with_dry_run(f"{state_path}/packages.lock", "w") as f:
+    with open_with_dry_run(f"{generation_path}/packages.lock", "w") as f:
         f.write(installed_packages_version)
 
 
