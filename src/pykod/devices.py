@@ -245,7 +245,7 @@ class Devices(dict):
 
         # Create home as subvolume if no /home is specified in the config
         # (TODO: Add support for custom home)
-        exec(f"sudo btrfs subvolume create {mount_point}/store/home")
+        exec(f"btrfs subvolume create {mount_point}/store/home")
 
         # First generation
         exec(f"mkdir -p {mount_point}/generations/{generation}")

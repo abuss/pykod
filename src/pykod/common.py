@@ -174,6 +174,12 @@ def exec(
                             "stdout": result.stdout,
                         }
                     )
+                    raise CommandExecutionError(
+                        cmd=cmd,
+                        return_code=result.returncode,
+                        stderr=result.stderr,
+                        stdout=result.stdout,
+                    )
 
                 return result.stdout
             else:
@@ -194,6 +200,10 @@ def exec(
                             "command": cmd,
                             "return_code": result.returncode,
                         }
+                    )
+                    raise CommandExecutionError(
+                        cmd=cmd,
+                        return_code=result.returncode,
                     )
                 return ""
             else:

@@ -15,7 +15,7 @@ HOME_URL="https://github.com/kodos-prj/kodos/"
 DOCUMENTATION_URL="https://github.com/kodos-prj/kodos/"
 SUPPORT_URL="https://github.com/kodos-prj/kodos/"
 BUG_REPORT_URL="https://github.com/kodos-prj/kodos/issues"
-RELEASE_TYPE="expeirimental"
+RELEASE_TYPE="experimental"
 """
 
 
