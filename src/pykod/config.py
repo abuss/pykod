@@ -443,9 +443,9 @@ class Configuration:
 
             # Store new generation state
             # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
-            generation_path = next_generation_path
+            # generation_path = next_current
             self._store_generation_state(
-                generation_path,
+                next_current,
                 next_kernel,
                 include_pkgs,
                 new_enabled_services,
@@ -492,7 +492,7 @@ class Configuration:
             #     )
 
             # Store configuration instance and repositories as JSON
-            save_configuration(self, include_pkgs, generation_path)
+            save_configuration(self, include_pkgs, next_current)
 
             # Write generation number
             with open_with_dry_run(
