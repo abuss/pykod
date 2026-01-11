@@ -3,9 +3,9 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 
-from pykod.common import execute_command as exec
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import (
+    execute_command,
     open_with_dry_run,
     set_debug,
     set_dry_run,
@@ -76,7 +76,7 @@ class Configuration:
                 case _:
                     raise ValueError(f"Unknown action: {action}")
             if mount_point is None:
-                exec(cmd)
+                execute_command(cmd)
             else:
                 exec_chroot(cmd, mount_point=mount_point)
 
@@ -238,12 +238,12 @@ class Configuration:
         # -----------------------------------------------------------------
 
         print("\nInstalling KodOS files...")
-        exec(f"umount -R {self._mount_point}")
+        execute_command(f"umount -R {self._mount_point}")
         print("Done")
         if devices is not None:
-            exec(f"mount {devices.root_partition} {self._mount_point}")
-        exec(f"cp -r /root/pykod {self._mount_point}/store/root/")
-        exec(f"umount {self._mount_point}")
+            execute_command(f"mount {devices.root_partition} {self._mount_point}")
+        execute_command(f"cp -r /root/pykod {self._mount_point}/store/root/")
+        execute_command(f"umount {self._mount_point}")
         print(" Done installing KodOS")
 
     # =============================== REBUILD ================================
@@ -315,7 +315,9 @@ class Configuration:
             #   - Creates a BTRFS subvolume snapshot of the current root
             if new_generation:
                 print("Creating a new generation")
-                exec(f"btrfs subvolume snapshot / {next_generation_path}/rootfs")
+                execute_command(
+                    f"btrfs subvolume snapshot / {next_generation_path}/rootfs"
+                )
 
                 # use_chroot = True
                 new_root_path = create_next_generation(
@@ -519,38 +521,33 @@ class Configuration:
             ]
             if new_generation:
                 for m in kod_paths:
-                    exec(f"umount {new_root_path}{m}")
-                exec(f"umount -R {new_root_path}")
+                    execute_command(f"umount {new_root_path}{m}")
+                execute_command(f"umount -R {new_root_path}")
                 # exec(f"rm -rf {new_root_path}")
 
             if remove_next_generation and next_generation_path.is_dir():
-                exec(f"btrfs subvolume delete {next_generation_path}/rootfs")
-                exec(f"rm -rf {next_generation_path}")
+                execute_command(f"btrfs subvolume delete {next_generation_path}/rootfs")
+                execute_command(f"rm -rf {next_generation_path}")
 
             # else:
             # exec("mount -o remount,ro /usr")
 
             print(f"Done. Generation {next_generation_id} created")
 
-    def run(self):
-        import sys
+    # def run(self):
+    #     from .cli import run as cli_run
 
-        if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
-            print("Usage: python script.py [install|rebuild]")
-            sys.exit(1)
+    #     return cli_run(self)
 
-        command = sys.argv[1]
+    # def remove_generation(self, generation_id: int):
+    #     from .cli import remove_generation as cli_remove_generation
 
-        print("-" * 100)
-        print(f"Running {command} command...")
-        print("Configuration attributes:")
+    #     return cli_remove_generation(self, generation_id)
 
-        print("\n", "-" * 80)
+    # def list_generations(self):
+    #     from .cli import list_generations as cli_list_generations
 
-        if command == "install":
-            self.install()
-        elif command == "rebuild":
-            self.rebuild(new_generation=True, update=True)
+    #     return cli_list_generations(self)
 
 
 def _find_package_list(

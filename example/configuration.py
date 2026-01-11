@@ -399,4 +399,6 @@ conf.services["avahi"].enable = False
 
 
 if __name__ == "__main__":
-    conf.run()
+    from pykod.cli import run
+
+    run(conf)
