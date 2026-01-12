@@ -33,10 +33,22 @@ def run(config: Any) -> None:
     # Rebuild command
     rebuild_parser = subparsers.add_parser("rebuild", help="Rebuild the configuration")
     rebuild_parser.add_argument(
-        "--new", action="store_true", help="Create a new generation"
+        "-s",
+        "--switch",
+        action="store_true",
+        help="Create a new generation and live switch to the new generation after rebuild",
     )
     rebuild_parser.add_argument(
-        "--update", action="store_true", help="Update packages to latest version"
+        "-u",
+        "--upgrade",
+        action="store_true",
+        help="Upgrade all packages to their latest versions during rebuild",
+    )
+    rebuild_parser.add_argument(
+        "-r",
+        "--reboot",
+        action="store_true",
+        help="Reboot the system to switch to the new generation after rebuild",
     )
 
     # Remove generation command
@@ -64,9 +76,10 @@ def run(config: Any) -> None:
     if args.command == "install":
         config.install()
     elif args.command == "rebuild":
-        new_generation = args.new if hasattr(args, "new") else True
-        update = args.update if hasattr(args, "update") else False
-        config.rebuild(new_generation=new_generation, update=update)
+        switch = args.switch if hasattr(args, "switch") else False
+        upgrade = args.upgrade if hasattr(args, "upgrade") else False
+        reboot = args.reboot if hasattr(args, "reboot") else False
+        config.rebuild(live_switch=switch, upgrade=upgrade, reboot=reboot)
     elif args.command == "remove_generation":
         remove_generation(config, args.generation_id)
     elif args.command == "list_generation":

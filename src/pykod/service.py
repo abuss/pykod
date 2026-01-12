@@ -40,10 +40,13 @@ class Service:
         cmd = f"systemctl enable {service}"
         return cmd
 
-    def disable_service(self, service) -> str:
+    def disable_service(self, service, is_live: bool = False) -> str:
         """Disable a service in the specified mount point."""
         print(f"Disabling service: {service}")
-        cmd = f"systemctl disable {service}"
+        if is_live:
+            cmd = f"systemctl --now disable {service}"
+        else:
+            cmd = f"systemctl disable {service}"
         return cmd
 
 
