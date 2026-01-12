@@ -290,19 +290,18 @@ class Configuration:
             execute_command(
                 f"btrfs subvolume snapshot / {current_generation_path}/rootfs"
             )
-            new_root_path = next_current_moun_point
         else:
             # Creates a BTRFS subvolume snapshot of the current root
             print("Creating a new generation")
             execute_command(f"btrfs subvolume snapshot / {next_generation_path}/rootfs")
 
-            new_root_path = create_next_generation(
-                boot_partition,
-                root_partition,
-                next_generation_id,
-                next_current_moun_point,
-            )
-            print(f"{new_root_path=}")
+        new_root_path = create_next_generation(
+            boot_partition,
+            root_partition,
+            next_generation_id,
+            next_current_moun_point,
+        )
+        print(f"{new_root_path=}")
         # -----
 
         # do_rollback = False
@@ -475,7 +474,7 @@ class Configuration:
             if not live_switch:
                 for m in kod_paths:
                     execute_command(f"umount {new_root_path}{m}")
-                execute_command(f"umount -R {new_root_path}")
+                # execute_command(f"umount -R {new_root_path}")
                 # exec(f"rm -rf {new_root_path}")
 
             if (
@@ -641,16 +640,6 @@ def create_next_generation(
     Returns:
         str: The path to the mounted generation
     """
-    # next_current = Path("/kod/current/.next_current")
-    # Mounting generation
-    # if next_current.is_mount():
-    #     print("Reboot is required to update generation")
-    #     import os
-    #     os._exit(0)
-    #     exec(f"umount -R {next_current}")
-    #     exec(f"rm -rf {next_current}")
-
-    # next_current.mkdir(parents=True, exist_ok=True)
 
     execute_command(
         f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}"
@@ -662,12 +651,6 @@ def create_next_generation(
     subdirs = ["root", "var/log", "var/tmp", "var/cache", "var/kod"]
     for dir in subdirs:
         execute_command(f"mount --bind /kod/store/{dir} {next_current}/{dir}")
-
-    # partition_list = load_fstab()
-    # change_subvol(
-    #     partition_list, subvol=f"generations/{generation}", mount_points=["/"]
-    # )
-    # generate_fstab(partition_list, str(next_current))
 
     # Write generation number
     (next_current / ".generation").write_text(str(generation))
