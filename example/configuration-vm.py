@@ -298,7 +298,7 @@ conf.packages = Packages(
         # "zen-browser-bin",
     ]
     # CLI tools
-    + cli.packages(archpkgs, aurpkgs)
+    # + cli.packages(archpkgs, aurpkgs)
     # Development tools
     # + development.packages(archpkgs)
     # Flatpak packages
@@ -307,7 +307,7 @@ conf.packages = Packages(
         # "freecad",
         # "openscad",
         # "prusa-slicer",
-        # "net.nokyan.Resources",
+        "net.nokyan.Resources",
         "dev.edfloreshz.CosmicTweaks",
     ]
 )
@@ -381,4 +381,6 @@ conf.services = Services(
 
 
 if __name__ == "__main__":
-    conf.run()
+    from pykod.cli import run
+
+    run(conf)
