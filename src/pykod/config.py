@@ -1,6 +1,5 @@
 import json
 import subprocess
-from asyncio.unix_events import SelectorEventLoop
 from pathlib import Path
 from typing import Callable
 
@@ -493,8 +492,10 @@ class Configuration:
         if requires_reboot:
             print("Reboot is required to switch to the new generation.")
         if reboot:
-            print("Reboot requested after rebuild")
+            from time import sleep
 
+            print("Reboot requested after rebuild")
+            sleep(5)
             execute_command("reboot")
 
 

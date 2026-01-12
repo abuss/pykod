@@ -15,6 +15,7 @@ archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org
 aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git")
 flatpakpkgs = Flatpak(hub_url="flathub")
 
+import cli
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 conf = Configuration(base=archpkgs, verbose=True)
