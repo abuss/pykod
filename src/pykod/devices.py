@@ -3,9 +3,11 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from pykod.common import exec, open_with_dry_run
+from pykod.common import execute_command as exec
+from pykod.common import open_with_dry_run
 from pykod.core import setup_bootloader
 
+# Module-level constants
 _filesystem_cmd: dict[str, str | None] = {
     "esp": "mkfs.vfat -F32",
     "fat32": "mkfs.vfat -F32",
@@ -34,6 +36,7 @@ _filesystem_type: dict[str, str | None] = {
 }
 
 
+# Dataclass definitions
 @dataclass
 class Partition:
     name: str
@@ -59,9 +62,6 @@ class Disk:
         )
         return boot_part, root_part, part_list
 
-    def rebuild(self):
-        print("[rebuild] Using disk:", self.device)
-
     def _create_disk_partitions(self, device: str, partitions: list[Any]):
         """Create partitions on a single disk device.
 
@@ -79,9 +79,9 @@ class Disk:
             and partitions_list contains FsEntry objects for created partitions.
         """
         if "nvme" in device or "mmcblk" in device:
-            device_sufix = "p"
+            device_suffix = "p"
         else:
-            device_sufix = ""
+            device_suffix = ""
 
         # Delete partition table
         exec(f"wipefs -a {device}", f"Failed to wipe partition table on {device}")
@@ -100,7 +100,7 @@ class Disk:
             size = part.size
             filesystem_type = part.type
             mountpoint = part.mountpoint
-            blockdevice = f"{device}{device_sufix}{pid}"
+            blockdevice = f"{device}{device_suffix}{pid}"
 
             if name.lower() in ["boot", "efi"]:
                 boot_partition = blockdevice
@@ -156,7 +156,7 @@ class Disk:
 
         return boot_partition, root_partition, partitions_list
 
-    def info_partitions(self):
+    def get_partition_info(self):
         """Get information about boot and root partitions from the disk configuration.
 
         Returns:
@@ -182,134 +182,6 @@ class Disk:
             elif name.lower() == "root":
                 root_partition = blockdevice
         return boot_partition, root_partition
-
-
-# class Devices(NestedDict, Install, Rebuild):
-class Devices(dict):
-    def __init__(self, *args, **kwargs):
-        """Initialize devices configuration."""
-        super().__init__(*args, **kwargs)
-        self.boot_partition = None
-        self.root_partition = None
-        self.partition_list = []
-
-    def install(self, config, mount_point: str) -> list:
-        print(f"[install] in {mount_point} create partitions:")
-        print(self)
-        print("=" * 50)
-        disks = [disk for disk in self.values() if isinstance(disk, Disk)]
-        print(f"Disks to process: {disks}")
-        for disk in disks:
-            boot_part, root_part, part_list = disk.install()
-            print(f"Disk {disk.device} created partitions:")
-            print(f"  Boot partition: {boot_part}")
-            print(f"  Root partition: {root_part}")
-            print(f"  Other partitions: {part_list}")
-            self.partition_list += part_list
-            if boot_part:
-                if self.boot_partition is None and boot_part:
-                    self.boot_partition = boot_part
-                else:
-                    raise Exception(f"Multiple boot partitions detected! {boot_part}")
-            if root_part:
-                if self.root_partition is None and root_part:
-                    self.root_partition = root_part
-                else:
-                    raise Exception("Multiple root partitions detected!")
-
-        # Create filesystem hierarchy if we have both boot and root partitions
-        if self.boot_partition and self.root_partition:
-            partition_list = self._create_filesystem_hierarchy(mount_point)
-        else:
-            partition_list = []
-
-        # Add any additional partitions that weren't handled by the hierarchy
-        # (like scratch, additional data partitions, etc.)
-        for p in self.partition_list:
-            # Check if this partition is already in the final list
-            if not any(
-                existing.source == p.source and existing.destination == p.destination
-                for existing in partition_list
-            ):
-                partition_list.append(p)
-                print(f"Adding additional partition: {p.source} -> {p.destination}")
-
-        return partition_list
-
-    # Core
-    def _create_filesystem_hierarchy(self, mount_point: str) -> list:
-        # Initial generation
-        generation = 0
-        for dir in ["store", "generations", "current"]:
-            exec(f"mkdir -p {mount_point}/{dir}")
-
-        subdirs = ["root", "var/log", "var/tmp", "var/cache", "var/kod"]
-        for dir in subdirs:
-            exec(f"mkdir -p {mount_point}/store/{dir}")
-
-        # Create home as subvolume if no /home is specified in the config
-        # (TODO: Add support for custom home)
-        exec(f"sudo btrfs subvolume create {mount_point}/store/home")
-
-        # First generation
-        exec(f"mkdir -p {mount_point}/generations/{generation}")
-        exec(f"btrfs subvolume create {mount_point}/generations/{generation}/rootfs")
-
-        # Mounting first generation
-        exec(f"umount -R {mount_point}")
-        exec(
-            f"mount -o subvol=generations/{generation}/rootfs {self.root_partition} {mount_point}"
-        )
-        partition_list = [
-            FsEntry(
-                self.root_partition,
-                "/",
-                "btrfs",
-                f"rw,relatime,ssd,space_cache=v2,subvol=generations/{generation}/rootfs",
-            )
-        ]
-
-        for dir in subdirs + ["boot", "home", "kod"]:
-            exec(f"mkdir -p {mount_point}/{dir}")
-
-        exec(f"mount {self.boot_partition} {mount_point}/boot")
-        boot_options = "rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro"
-        partition_list.append(
-            FsEntry(self.boot_partition, "/boot", "vfat", boot_options)
-        )
-
-        exec(f"mount {self.root_partition} {mount_point}/kod")
-        partition_list.append(
-            FsEntry(
-                self.root_partition, "/kod", "btrfs", "rw,relatime,ssd,space_cache=v2"
-            )
-        )
-
-        btrfs_options = "rw,relatime,ssd,space_cache=v2"
-
-        exec(f"mount -o subvol=store/home {self.root_partition} {mount_point}/home")
-        partition_list.append(
-            FsEntry(
-                self.root_partition,
-                "/home",
-                "btrfs",
-                btrfs_options + ",subvol=store/home",
-            )
-        )
-
-        for dir in subdirs:
-            exec(f"mount --bind {mount_point}/kod/store/{dir} {mount_point}/{dir}")
-            partition_list.append(
-                FsEntry(f"/kod/store/{dir}", f"/{dir}", "none", "rw,bind")
-            )
-
-        # Write generation number
-        with open_with_dry_run(f"{mount_point}/.generation", "w") as f:
-            f.write(str(generation))
-
-        print("===================================")
-
-        return partition_list
 
 
 @dataclass
@@ -387,6 +259,133 @@ class Boot:
         setup_bootloader(self, config._partition_list, config._base)
 
 
+class Devices(dict):
+    def __init__(self, *args, **kwargs):
+        """Initialize devices configuration."""
+        super().__init__(*args, **kwargs)
+        self.boot_partition = None
+        self.root_partition = None
+        self.partition_list = []
+
+    def install(self, config, mount_point: str) -> list:
+        print(f"[install] in {mount_point} create partitions:")
+        print(self)
+        print("=" * 50)
+        disks = [disk for disk in self.values() if isinstance(disk, Disk)]
+        print(f"Disks to process: {disks}")
+        for disk in disks:
+            boot_part, root_part, part_list = disk.install()
+            print(f"Disk {disk.device} created partitions:")
+            print(f"  Boot partition: {boot_part}")
+            print(f"  Root partition: {root_part}")
+            print(f"  Other partitions: {part_list}")
+            self.partition_list += part_list
+            if boot_part:
+                if self.boot_partition is None and boot_part:
+                    self.boot_partition = boot_part
+                else:
+                    raise Exception(f"Multiple boot partitions detected! {boot_part}")
+            if root_part:
+                if self.root_partition is None and root_part:
+                    self.root_partition = root_part
+                else:
+                    raise Exception("Multiple root partitions detected!")
+
+        # Create filesystem hierarchy if we have both boot and root partitions
+        if self.boot_partition and self.root_partition:
+            partition_list = self._create_filesystem_hierarchy(mount_point)
+        else:
+            partition_list = []
+
+        # Add any additional partitions that weren't handled by the hierarchy
+        # (like scratch, additional data partitions, etc.)
+        for p in self.partition_list:
+            # Check if this partition is already in the final list
+            if not any(
+                existing.source == p.source and existing.destination == p.destination
+                for existing in partition_list
+            ):
+                partition_list.append(p)
+                print(f"Adding additional partition: {p.source} -> {p.destination}")
+
+        return partition_list
+
+    def _create_filesystem_hierarchy(self, mount_point: str) -> list:
+        # Initial generation
+        generation = 0
+        for dir in ["store", "generations", "current"]:
+            exec(f"mkdir -p {mount_point}/{dir}")
+
+        subdirs = ["root", "var/log", "var/tmp", "var/cache", "var/kod"]
+        for dir in subdirs:
+            exec(f"mkdir -p {mount_point}/store/{dir}")
+
+        # Create home as subvolume if no /home is specified in the config
+        # (TODO: Add support for custom home)
+        exec(f"btrfs subvolume create {mount_point}/store/home")
+
+        # First generation
+        exec(f"mkdir -p {mount_point}/generations/{generation}")
+        exec(f"btrfs subvolume create {mount_point}/generations/{generation}/rootfs")
+
+        # Mounting first generation
+        exec(f"umount -R {mount_point}")
+        exec(
+            f"mount -o subvol=generations/{generation}/rootfs {self.root_partition} {mount_point}"
+        )
+        partition_list = [
+            FsEntry(
+                self.root_partition,
+                "/",
+                "btrfs",
+                f"rw,relatime,ssd,space_cache=v2,subvol=generations/{generation}/rootfs",
+            )
+        ]
+
+        for dir in subdirs + ["boot", "home", "kod"]:
+            exec(f"mkdir -p {mount_point}/{dir}")
+
+        exec(f"mount {self.boot_partition} {mount_point}/boot")
+        boot_options = "rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro"
+        partition_list.append(
+            FsEntry(self.boot_partition, "/boot", "vfat", boot_options)
+        )
+
+        exec(f"mount {self.root_partition} {mount_point}/kod")
+        partition_list.append(
+            FsEntry(
+                self.root_partition, "/kod", "btrfs", "rw,relatime,ssd,space_cache=v2"
+            )
+        )
+
+        btrfs_options = "rw,relatime,ssd,space_cache=v2"
+
+        exec(f"mount -o subvol=store/home {self.root_partition} {mount_point}/home")
+        partition_list.append(
+            FsEntry(
+                self.root_partition,
+                "/home",
+                "btrfs",
+                btrfs_options + ",subvol=store/home",
+            )
+        )
+
+        for dir in subdirs:
+            exec(f"mount --bind {mount_point}/kod/store/{dir} {mount_point}/{dir}")
+            partition_list.append(
+                FsEntry(f"/kod/store/{dir}", f"/{dir}", "none", "rw,bind")
+            )
+
+        # Write generation number
+        with open_with_dry_run(f"{mount_point}/.generation", "w") as f:
+            f.write(str(generation))
+
+        print("===================================")
+
+        return partition_list
+
+
+# Module-level functions
 def load_fstab(root_path: str = "") -> list[str]:
     """Load a list of Partition objects from the specified fstab file."""
     partition_list = []

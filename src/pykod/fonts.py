@@ -2,7 +2,7 @@
 
 from typing import Any, override
 
-from pykod.base import NestedDict
+from pykod.core import NestedDict
 
 
 class Fonts(NestedDict):
@@ -11,11 +11,3 @@ class Fonts(NestedDict):
     def __init__(self, **kwargs):
         """Initialize fonts."""
         super().__init__(**kwargs)
-
-    def install(self, _config):
-        """Creates fonts and settings."""
-        print("\n\n[install] font_dir:", self.font_dir)
-        print(f"Font packages: {self.packages}")
-
-    def rebuild(self):
-        print("[rebuild] Updating fonts:", self.packages)

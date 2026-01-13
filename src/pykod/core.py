@@ -3,7 +3,9 @@
 from pathlib import Path
 from typing import Any
 
-from pykod.common import exec, exec_chroot, get_dry_run, open_with_dry_run
+from pykod.common import execute_command as exec
+from pykod.common import execute_chroot as exec_chroot
+from pykod.common import get_dry_run, open_with_dry_run
 from pykod.repositories.base import Repository
 
 os_release = """NAME="KodOS Linux"
@@ -15,22 +17,23 @@ HOME_URL="https://github.com/kodos-prj/kodos/"
 DOCUMENTATION_URL="https://github.com/kodos-prj/kodos/"
 SUPPORT_URL="https://github.com/kodos-prj/kodos/"
 BUG_REPORT_URL="https://github.com/kodos-prj/kodos/issues"
-RELEASE_TYPE="expeirimental"
+RELEASE_TYPE="experimental"
 """
 
 
-def generate_fstab(config, partiton_list: list, mount_point: str) -> None:
+# Filesystem and system configuration functions
+def generate_fstab(config, partition_list: list, mount_point: str) -> None:
     """
     Generate a fstab file at the specified mount point based on a list of Partitions.
 
     Args:
-        partiton_list (List): A list of Partition objects to be written to the fstab file.
+        partition_list (List): A list of Partition objects to be written to the fstab file.
         mount_point (str): The mount point where the fstab file will be written.
     """
     print("Generating fstab")
 
     with open_with_dry_run(f"{mount_point}/etc/fstab", "w") as f:
-        for part in partiton_list:
+        for part in partition_list:
             if part.source[:5] == "/dev/":
                 uuid = exec(f"lsblk -o UUID {part.source} | tail -n 1", get_output=True)
                 if uuid:
@@ -46,28 +49,28 @@ def configure_system(mount_point: str) -> None:
 
     # Configure schroot
     system_schroot = """[system]
-type=directory
-description=KodOS
-directory=/
-groups=users,root
-root-groups=root,wheel
-profile=kodos
-personality=linux
-"""
+ type=directory
+ description=KodOS
+ directory=/
+ groups=users,root
+ root-groups=root,wheel
+ profile=kodos
+ personality=linux
+ """
     with open_with_dry_run(f"{mount_point}/etc/schroot/chroot.d/system.conf", "w") as f:
         f.write(system_schroot)
 
     venv_schroot = """[virtual_env]
-type=directory
-description=KodOS
-directory=/
-union-type=overlay
-groups=users,root
-root-groups=root,wheel
-profile=kodos
-personality=linux
-aliases=user_env
-"""
+ type=directory
+ description=KodOS
+ directory=/
+ union-type=overlay
+ groups=users,root
+ root-groups=root,wheel
+ profile=kodos
+ personality=linux
+ aliases=user_env
+ """
     with open_with_dry_run(
         f"{mount_point}/etc/schroot/chroot.d/virtual_env.conf", "w"
     ) as f:
@@ -107,6 +110,7 @@ aliases=user_env
         f.write(venv_fstab)
 
 
+# Boot-related functions
 def get_kernel_version(mount_point: str) -> str:
     """Retrieve the kernel version from the specified mount point."""
     kernel_version = exec_chroot(
@@ -226,7 +230,7 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
         # # pkgs_installed += ["efibootmgr"]
 
 
-# Core
+# User-related functions
 def create_kod_user(mount_point: str) -> None:
     """
     Create the 'kod' user and give it NOPASSWD access in the sudoers file.
@@ -242,3 +246,114 @@ def create_kod_user(mount_point: str) -> None:
     exec_chroot("useradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod")
     with open_with_dry_run(f"{mount_point}/etc/sudoers.d/kod", "w") as f:
         f.write("kod ALL=(ALL) NOPASSWD: ALL")
+
+
+# Configuration utilities
+class NestedDict:
+    def __init__(self, *args, **kwargs):
+        self.__dict__["_data"] = {}
+        # self._data = {}
+        for k in args:
+            self._data[k] = NestedDict()
+        for k, v in kwargs.items():
+            self._data[k] = v
+
+    def __getattr__(self, name) -> "NestedDict":
+        if "_data" not in self.__dict__:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+        if name in self._data:
+            return self._data[name]
+        else:
+            self._data[name] = NestedDict()
+            return self._data[name]
+
+    def __setattr__(self, name, value):
+        if name == "_data":
+            super().__setattr__(name, value)
+        else:
+            if isinstance(value, dict):
+                value = NestedDict(**value)
+            self._data[name] = value
+
+    def __getstate__(self):
+        return {"_data": self._data}
+
+    def __setstate__(self, state):
+        self.__dict__["_data"] = state["_data"]
+
+    def __repr__(self) -> str:
+        # return pprint.pformat(self._data, indent=2, width=10)
+        return str(self._data)
+
+
+def save_configuration(
+    config: "Configuration",
+    include_pkgs,
+    generation_path: Path,
+) -> None:
+    import json
+
+    # Store configuration instance and repositories as JSON
+    config_dict = {}
+
+    # Extract basic configuration attributes
+    for attr_name, attr_value in vars(config).items():
+        if not attr_name.startswith("_") and attr_name not in ["packages"]:
+            try:
+                # Try to serialize the attribute
+                json.dumps(attr_value)
+                config_dict[attr_name] = attr_value
+            except (TypeError, ValueError):
+                # Skip non-serializable attributes
+                config_dict[attr_name] = str(attr_value)
+
+    # Store repositories information with their definitions
+    repositories = {}
+
+    # Store base repository definition
+    base_repo_attrs = {}
+    for attr_name, attr_value in vars(config._base).items():
+        if not attr_name.startswith("_"):
+            try:
+                json.dumps(attr_value)
+                base_repo_attrs[attr_name] = attr_value
+            except (TypeError, ValueError):
+                base_repo_attrs[attr_name] = str(attr_value)
+
+    repositories["base"] = {
+        "class_name": config._base.__class__.__name__,
+        "type": "base_repository",
+        "attributes": base_repo_attrs,
+    }
+
+    # Collect all repositories from packages with their definitions
+    for repo, packages in include_pkgs.items():
+        repo_name = repo.__class__.__name__
+
+        # Extract repository attributes
+        repo_attrs = {}
+        for attr_name, attr_value in vars(repo).items():
+            if not attr_name.startswith("_"):
+                try:
+                    json.dumps(attr_value)
+                    repo_attrs[attr_name] = attr_value
+                except (TypeError, ValueError):
+                    repo_attrs[attr_name] = str(attr_value)
+
+        repositories[repo_name] = {
+            "class_name": repo_name,
+            "type": "package_repository",
+            "packages": list(packages),
+            "attributes": repo_attrs,
+        }
+
+    config_dict["repositories"] = repositories
+
+    # Write configuration to JSON file
+    config_json_path = generation_path / "configuration.json"
+    with open(str(config_json_path), "w") as f:
+        json.dump(config_dict, f, indent=2, default=str)
+
+    print(f"Configuration and repositories stored to: {config_json_path}")

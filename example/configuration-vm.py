@@ -1,35 +1,24 @@
 # VM Configuration
 
-from pykod import Configuration
-from pykod.desktop import DesktopEnvironment, DesktopManager
-from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
-from pykod.fonts import Fonts
-from pykod.locale import Locale
-from pykod.network import Network
-from pykod.packages import Packages
-
-# from pykod.disk import Partition
+from pykod import *
 from pykod.repositories import AUR, Arch, Flatpak
-from pykod.service import Service, Services
 from pykod.user import (
     GitConfig,
     OpenSSH,
     Program,
     Stow,
     SyncthingConfig,
-    User,
 )
-
-# from pykod.repositories import Repository
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
 aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git")
 flatpakpkgs = Flatpak(hub_url="flathub")
 
+import cli
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs)
+conf = Configuration(base=archpkgs, verbose=True)
 # use_virtualization = False
 
 # use_gnome = True
@@ -37,8 +26,6 @@ conf = Configuration(base=archpkgs)
 # use_cosmic = True
 
 # with conf as c:
-import cli
-import development
 
 conf.devices = Devices(
     disk0=Disk(
@@ -317,7 +304,7 @@ conf.packages = Packages(
     # + development.packages(archpkgs)
     # Flatpak packages
     + flatpakpkgs[
-        "com.mattjakeman.ExtensionManager",
+        # "com.mattjakeman.ExtensionManager",
         # "freecad",
         # "openscad",
         # "prusa-slicer",
@@ -395,21 +382,6 @@ conf.services = Services(
 
 
 if __name__ == "__main__":
-    import sys
+    from pykod.cli import run
 
-    if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
-        print("Usage: python script.py [install|rebuild]")
-        sys.exit(1)
-
-    command = sys.argv[1]
-
-    print("-" * 100)
-    print(f"Running {command} command...")
-    print("Configuration attributes:")
-
-    print("\n", "-" * 80)
-
-    if command == "install":
-        conf.install()
-    elif command == "rebuild":
-        conf.rebuild(new_generation=True, update=True)
+    run(conf)

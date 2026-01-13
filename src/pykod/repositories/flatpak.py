@@ -10,7 +10,7 @@ class Flatpak(Repository):
         )
         self.flatpak_installed = False
 
-    def install_package(self, package_name) -> str:
+    def install_packages(self, package_name) -> str:
         cmds = []
 
         if not self.flatpak_installed:
@@ -26,14 +26,16 @@ class Flatpak(Repository):
 
         return cmds_str
 
-    def remove_package(self, package_name) -> str:
+    def remove_packages(self, package_name) -> str:
         if package_name is None or len(package_name) == 0:
             return ""
         pkgs = " ".join(package_name)
         cmd = f"flatpak uninstall -y flathub {pkgs}"
         return cmd
 
-    def update_installed_packages(self, package_name) -> str:
-        pkgs = " ".join(package_name)
+    def update_installed_packages(self, packages: tuple) -> str:
+        if len(packages) == 0:
+            return ""
+        pkgs = " ".join(packages)
         cmd = f"flatpak update -y {pkgs}"
         return cmd

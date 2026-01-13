@@ -1,21 +1,30 @@
-from pykod import Configuration
-from pykod.desktop import DesktopEnvironment, DesktopManager
-from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
-from pykod.fonts import Fonts
-from pykod.locale import Locale
-from pykod.network import Network
-from pykod.packages import Packages
+# !/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Pykod configuration for Arch Linux system with GNOME and Cosmic desktop environments
+# ------------------------------------------------------------
+# Description: Pykod configuration for an Arch Linux system with GNOME and Cosmic desktop environments.
+# Author: Antal Buss (antalbuss@fastmail.ca)
+# Date: 2024-06-19
+# License: MIT
+# Notes: This configuration sets up an Arch Linux system with GNOME and Cosmic desktop environments,
+#      along with various user programs and system services. It includes partitioning, locale settings,
+#     and package installations.
+#      Modify as needed for your specific requirements.
+# Ensure you have pykod installed and properly set up to use this configuration.
+# Usage: Run this script with pykod to apply the configuration.
+# Example: uv run this_script.py
+# ------------------------------------------------------------
 
-# from pykod.disk import Partition
+
+# Import necessary modules from pykod
+from pykod import *
 from pykod.repositories import AUR, Arch, Flatpak
-from pykod.service import Service, Services
 from pykod.user import (
     GitConfig,
     OpenSSH,
     Program,
     Stow,
     SyncthingConfig,
-    User,
 )
 
 archpkgs = Arch(mirror_url="https://mirror.rackspace.com/archlinux")
@@ -329,7 +338,7 @@ conf.services = Services(
             extra_packages=archpkgs["sane-airscan"],
         ),
         "pipewire": Service(
-            enable=True,
+            # enable=True,
             package=archpkgs["pipewire"],
             extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
         ),
@@ -390,21 +399,6 @@ conf.services["avahi"].enable = False
 
 
 if __name__ == "__main__":
-    import sys
+    from pykod.cli import run
 
-    if len(sys.argv) != 2 or sys.argv[1] not in ["install", "rebuild"]:
-        print("Usage: python script.py [install|rebuild]")
-        sys.exit(1)
-
-    command = sys.argv[1]
-
-    print("-" * 100)
-    print(f"Running {command} command...")
-    print("Configuration attributes:")
-
-    print("\n", "-" * 80)
-
-    if command == "install":
-        conf.install()
-    elif command == "rebuild":
-        conf.rebuild(new_generation=True, update=True)
+    run(conf)
