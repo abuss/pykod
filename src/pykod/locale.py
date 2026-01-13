@@ -1,9 +1,7 @@
 """Locale configuration."""
 
-from typing import Any
-
-from pykod.base import NestedDict
-from pykod.common import exec_chroot, open_with_dry_run
+from pykod.common import execute_chroot as exec_chroot, open_with_dry_run
+from pykod.core import NestedDict
 
 
 class Locale(NestedDict):
@@ -48,6 +46,3 @@ class Locale(NestedDict):
                 locale_extra += f"{k}={v}\n"
         with open_with_dry_run(f"{mount_point}/etc/locale.conf", "w") as locale_file:
             locale_file.write(f"LANG={locale_extra}\n")
-
-    def rebuild(self):
-        print("[rebuild] Using default:", self.default)

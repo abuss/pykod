@@ -1,6 +1,6 @@
 """AUR (Arch User Repository) configuration."""
 
-from pykod.common import exec_chroot
+from pykod.common import execute_chroot as exec_chroot
 
 from .base import Repository
 
@@ -16,28 +16,70 @@ class AUR(Repository):
         url = self.helper_url
         build_cmd = "makepkg -si --noconfirm"
 
-        # TODO: Generalize this code to support other distros
-        # exec_chroot("pacman -S --needed --noconfirm git base-devel")
-        exec_chroot(
-            f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
+        # Check if helper is already installed
+        helper_check_result = exec_chroot(
+            f"runuser -u kod -- /bin/bash -c 'command -v {name}'",
             mount_point=mount_point,
         )
 
-    def install_package(self, package_name):
+        helper_exists = (
+            helper_check_result.returncode == 0
+            if hasattr(helper_check_result, "returncode")
+            else False
+        )
+
+        if helper_exists:
+            # Check if helper requires update by checking for newer commits
+            update_check_result = exec_chroot(
+                f"runuser -u kod -- /bin/bash -c 'cd ~/{name} && git fetch && [ $(git rev-parse HEAD) != $(git rev-parse @{{u}}) ]'",
+                mount_point=mount_point,
+            )
+            needs_update = (
+                update_check_result.returncode == 0
+                if hasattr(update_check_result, "returncode")
+                else True
+            )
+
+            if not needs_update:
+                return  # Helper is installed and up to date
+
+            # Update existing helper
+            exec_chroot(
+                f"runuser -u kod -- /bin/bash -c 'cd ~/{name} && git pull && {build_cmd}'",
+                mount_point=mount_point,
+            )
+        else:
+            # Install helper for the first time
+            # TODO: Check if git and base-devel are installed before installing them
+            exec_chroot(
+                "pacman -S --needed --noconfirm git base-devel", mount_point=mount_point
+            )
+            exec_chroot(
+                f"runuser -u kod -- /bin/bash -c 'cd && git clone {url} {name} && cd {name} && {build_cmd}'",
+                mount_point=mount_point,
+            )
+
+    def prepare(self, mount_point: str) -> None:
+        """Prepare the AUR helper inside the given chroot mount point."""
         if not self.helper_installed:
-            self.build(mount_point="/mnt")
+            self.build(mount_point=mount_point)
             self.helper_installed = True
+
+    def install_packages(self, package_name):
         pkgs = " ".join(package_name)
         cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {pkgs}"
         return cmd
 
-    def remove_package(self, package_name):
+    def remove_packages(self, package_name):
         pkgs = " ".join(package_name)
         cmd = f"runuser -u kod -- {self.helper} -R --noconfirm {pkgs}"
         return cmd
 
-    def update_installed_packages(self) -> str:
-        cmd = f"runuser -u kod -- {self.helper} -Syu --noconfirm"
+    def update_installed_packages(self, packages: tuple) -> str:
+        if len(packages) == 0:
+            return ""
+        pkgs = " ".join(packages)
+        cmd = f"runuser -u kod -- {self.helper} -Syu --noconfirm {pkgs}"
         return cmd
 
     def update_database(self) -> str:
