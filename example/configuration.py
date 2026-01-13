@@ -338,7 +338,7 @@ conf.services = Services(
             extra_packages=archpkgs["sane-airscan"],
         ),
         "pipewire": Service(
-            enable=True,
+            # enable=True,
             package=archpkgs["pipewire"],
             extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
         ),
