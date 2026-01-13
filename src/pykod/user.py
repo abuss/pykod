@@ -72,7 +72,7 @@ class Stow(ConfigManagerBase):
 
     def deploy(self, program_name) -> list[str]:
         print(f"[deploy] Deploying configuration for program: {program_name}")
-        cmd = f"stow -d {self.source} -t {self.target_dir} {program_name}"
+        cmd = f"cd {self.source} && stow {program_name}"
         print(f"Executing: {cmd}")
         return [cmd]
 

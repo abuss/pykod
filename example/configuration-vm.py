@@ -29,14 +29,8 @@ flatpakpkgs = Flatpak(hub_url="flathub")
 
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs)
-# use_virtualization = False
+conf = Configuration(base=archpkgs, verbose=True)
 
-# use_gnome = True
-# use_plasma = False
-# use_cosmic = True
-
-# with conf as c:
 import cli
 import development
 
@@ -235,7 +229,7 @@ conf.abuss = User(
         ),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
-        #         "neovim": c.Program(enable=True, deploy_config=True),
+        "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
         #         "helix": c.Program(enable=True, deploy_config=True),
         "emacs": Program(
             enable=False,

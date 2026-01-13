@@ -23,6 +23,7 @@ def packages(archpkgs=None, aurpkgs=None, flatpakpkgs=None):
             # yq-go # Terminal `jq` for YAML
             # yadm # dotfile config manager
             "fzf",
+            "bat",
             "broot",
             "lsd",
             "btop",
