@@ -24,7 +24,9 @@ class AUR(Repository):
         )
 
         # If command -v succeeds, it returns the path, so non-empty means it exists
-        helper_exists = bool(helper_check_result.strip())
+        helper_exists = helper_check_result is not None and bool(
+            helper_check_result.strip()
+        )
 
         if helper_exists:
             # Check if helper requires update by checking for newer commits
