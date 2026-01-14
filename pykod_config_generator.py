@@ -375,7 +375,7 @@ from pykod.user import (
 )
 
 archpkgs = Arch(mirror_url="{arch_mirror}")
-aurpkgs = AUR(helper="{aur_helper}", helper_url="{aur_helper_url}")
+aurpkgs = AUR(helper="{aur_helper}", helper_url="{aur_helper_url}", skip_debug=True)
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
@@ -487,6 +487,175 @@ conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
         config += "conf.network = Network(\n"
         config += f'    hostname="{self.inspector.hostname}",\n'
         config += '    settings={"ipv6": True},\n'
+        config += ")\n\n"
+        return config
+
+    def generate_hardware_config(self) -> str:
+        """Generate hardware configuration."""
+        packages = self.inspector.get_installed_packages()
+        arch_packages = packages.get("arch", [])
+
+        config = "# Hardware configuration\n"
+        config += "conf.hardware = Hardware(\n"
+
+        # Audio configuration
+        audio_packages = []
+        for pkg in [
+            "pipewire",
+            "pipewire-alsa",
+            "pipewire-pulse",
+            "pipewire-jack",
+            "pulseaudio",
+            "alsa-utils",
+            "alsa-plugins",
+            "sof-firmware",
+            "alsa-firmware",
+        ]:
+            if pkg in arch_packages:
+                audio_packages.append(pkg)
+
+        if audio_packages:
+            config += f"    audio=archpkgs{audio_packages},\n"
+
+        # SANE scanner support
+        sane_packages = []
+        for pkg in ["sane", "sane-airscan"]:
+            if pkg in arch_packages:
+                sane_packages.append(pkg)
+
+        if sane_packages:
+            config += f"    sane=archpkgs{sane_packages},\n"
+
+        # Printer support
+        printer_packages = []
+        for pkg in ["gutenprint", "hplip", "cups-filters", "cups-pdf"]:
+            if pkg in arch_packages:
+                printer_packages.append(pkg)
+
+        if printer_packages:
+            config += f"    printer=archpkgs{printer_packages},\n"
+
+        # Wireless networking
+        wireless_packages = []
+        for pkg in ["iw", "wireless-tools", "wpa_supplicant", "iwd"]:
+            if pkg in arch_packages:
+                wireless_packages.append(pkg)
+
+        if wireless_packages:
+            config += f"    wireless=archpkgs{wireless_packages},\n"
+
+        # Power management
+        power_packages = []
+        for pkg in ["power-profiles-daemon", "tlp", "powertop"]:
+            if pkg in arch_packages:
+                power_packages.append(pkg)
+
+        if power_packages:
+            config += f"    power=archpkgs{power_packages},\n"
+
+        # Input devices
+        input_packages = []
+        for pkg in ["libinput", "xf86-input-libinput", "xf86-input-evdev"]:
+            if pkg in arch_packages:
+                input_packages.append(pkg)
+
+        if input_packages:
+            config += f"    input=archpkgs{input_packages},\n"
+
+        # Camera/webcam support
+        camera_packages = []
+        for pkg in ["v4l-utils", "v4l2loopback-dkms"]:
+            if pkg in arch_packages:
+                camera_packages.append(pkg)
+
+        if camera_packages:
+            config += f"    camera=archpkgs{camera_packages},\n"
+
+        # Smart card readers
+        smartcard_packages = []
+        for pkg in ["pcsc-tools", "ccid", "opensc"]:
+            if pkg in arch_packages:
+                smartcard_packages.append(pkg)
+
+        if smartcard_packages:
+            config += f"    smartcard=archpkgs{smartcard_packages},\n"
+
+        # TPM support
+        tpm_packages = []
+        for pkg in ["tpm2-tools", "tpm2-tss"]:
+            if pkg in arch_packages:
+                tpm_packages.append(pkg)
+
+        if tpm_packages:
+            config += f"    tpm=archpkgs{tpm_packages},\n"
+
+        # Fingerprint readers
+        fingerprint_packages = []
+        for pkg in ["fprintd", "libfprint"]:
+            if pkg in arch_packages:
+                fingerprint_packages.append(pkg)
+
+        if fingerprint_packages:
+            config += f"    fingerprint=archpkgs{fingerprint_packages},\n"
+
+        # Graphics tablets
+        tablet_packages = []
+        for pkg in ["xf86-input-wacom", "libwacom"]:
+            if pkg in arch_packages:
+                tablet_packages.append(pkg)
+
+        if tablet_packages:
+            config += f"    tablet=archpkgs{tablet_packages},\n"
+
+        # Joysticks and gamepads
+        joystick_packages = []
+        for pkg in ["xf86-input-joystick", "linuxconsole"]:
+            if pkg in arch_packages:
+                joystick_packages.append(pkg)
+
+        if joystick_packages:
+            config += f"    joystick=archpkgs{joystick_packages},\n"
+
+        # Modem support
+        modem_packages = []
+        for pkg in ["modemmanager", "usb_modeswitch"]:
+            if pkg in arch_packages:
+                modem_packages.append(pkg)
+
+        if modem_packages:
+            config += f"    modem=archpkgs{modem_packages},\n"
+
+        # UPS (Uninterruptible Power Supply)
+        ups_packages = []
+        for pkg in ["nut", "nut-client"]:
+            if pkg in arch_packages:
+                ups_packages.append(pkg)
+
+        if ups_packages:
+            config += f"    ups=archpkgs{ups_packages},\n"
+
+        # Storage monitoring
+        storage_packages = []
+        for pkg in ["smartmontools", "hdparm"]:
+            if pkg in arch_packages:
+                storage_packages.append(pkg)
+
+        if storage_packages:
+            config += f"    storage=archpkgs{storage_packages},\n"
+
+        # CPU microcode
+        for pkg in ["intel-ucode", "amd-ucode"]:
+            if pkg in arch_packages:
+                config += f'    # cpu_microcode=archpkgs["{pkg}"],\n'
+                break
+
+        # Graphics drivers
+        graphics_drivers = ["xf86-video-intel", "xf86-video-amdgpu", "nvidia", "mesa"]
+        for pkg in graphics_drivers:
+            if pkg in arch_packages:
+                config += f'    # graphics=archpkgs["{pkg}"],\n'
+                break
+
         config += ")\n\n"
         return config
 
@@ -789,6 +958,77 @@ conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 
         # Boot kernel package
         declared_packages["arch"].add("linux")
+
+        # Hardware packages
+        hardware_packages = [
+            # Audio
+            "pipewire",
+            "pipewire-alsa",
+            "pipewire-pulse",
+            "pipewire-jack",
+            "pulseaudio",
+            "alsa-utils",
+            "alsa-plugins",
+            "sof-firmware",
+            "alsa-firmware",
+            # Scanner
+            "sane",
+            "sane-airscan",
+            # Printer
+            "gutenprint",
+            "hplip",
+            "cups-filters",
+            "cups-pdf",
+            # Wireless
+            "iw",
+            "wireless-tools",
+            "wpa_supplicant",
+            "iwd",
+            # Power management
+            "power-profiles-daemon",
+            "tlp",
+            "powertop",
+            # Input devices
+            "libinput",
+            "xf86-input-libinput",
+            "xf86-input-evdev",
+            # Camera
+            "v4l-utils",
+            "v4l2loopback-dkms",
+            # Smart card
+            "pcsc-tools",
+            "ccid",
+            "opensc",
+            # TPM
+            "tpm2-tools",
+            "tpm2-tss",
+            # Fingerprint
+            "fprintd",
+            "libfprint",
+            # Graphics tablets
+            "xf86-input-wacom",
+            "libwacom",
+            # Joysticks
+            "xf86-input-joystick",
+            "linuxconsole",
+            # Modems
+            "modemmanager",
+            "usb_modeswitch",
+            # UPS
+            "nut",
+            "nut-client",
+            # Storage monitoring
+            "smartmontools",
+            "hdparm",
+            # CPU microcode and graphics
+            "intel-ucode",
+            "amd-ucode",
+            "xf86-video-intel",
+            "xf86-video-amdgpu",
+            "nvidia",
+            "mesa",
+        ]
+        declared_packages["arch"].update(hardware_packages)
 
         # Desktop environment packages
         for de in desktop_envs:
@@ -1675,6 +1915,7 @@ conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
             self.generate_boot_config(),
             self.generate_locale_config(),
             self.generate_network_config(),
+            self.generate_hardware_config(),
             self.generate_desktop_config(),
             self.generate_fonts_config(),
             self.generate_user_config(),

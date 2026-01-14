@@ -12,7 +12,9 @@ from pykod.user import (
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git")
+aurpkgs = AUR(
+    helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True
+)
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 import cli
@@ -28,8 +30,8 @@ conf.devices = Devices(
         device="/dev/vda",
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
-            Partition(name="root", size="20G", type="btrfs", mountpoint="/"),
             Partition(name="swap", size="2G", type="linux-swap"),
+            Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
             # Partition(name="home", size="100%", type="btrfs"),
         ],
     ),
@@ -88,6 +90,13 @@ conf.locale = Locale(
 conf.network = Network(
     hostname="eszkoz",
     settings={"ipv6": True},
+)
+
+conf.hardware = Hardware(
+    # cpu_microcode=archpkgs["intel-ucode"],
+    # graphics=archpkgs["xf86-video-intel"],
+    audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
+    sane=archpkgs["sane", "sane-airscan"],
 )
 
 # Desktop environment configuration - using DesktopManager directly
@@ -312,16 +321,6 @@ conf.packages = Packages(
 # System services configuration
 conf.services = Services(
     {
-        "sane": Service(
-            enable=False,
-            package=archpkgs["sane"],
-            extra_packages=archpkgs["sane-airscan"],
-        ),
-        "pipewire": Service(
-            enable=True,
-            package=archpkgs["pipewire"],
-            extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
-        ),
         "fwupd": Service(enable=False, package=archpkgs["fwupd"]),
         "tailscale": Service(enable=False, package=archpkgs["tailscale"]),
         "networkmanager": Service(

@@ -1,6 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
+from turtle import Pen
 from typing import Callable
 
 from pykod.common import execute_chroot as exec_chroot
@@ -530,7 +531,6 @@ def _find_package_list(
                         attr_value, include_pkgs, exclude_pkgs, visited, new_path
                     )
                     if res is not None:
-                        # print(f"{attr_name} -> {res}")
                         if attr_name == "exclude_packages":
                             exclude_pkgs += res
                         else:
@@ -544,7 +544,6 @@ def _find_package_list(
                         attr_value, include_pkgs, exclude_pkgs, visited, new_path
                     )
                     if res is not None:
-                        # print(f"{path}: {attr_name} -> {res}")
                         if attr_name == "exclude_packages":
                             exclude_pkgs += res
                         else:
@@ -560,7 +559,15 @@ def _find_package_list(
     if isinstance(obj, dict):
         for key, value in obj.items():
             new_path = f"{path}[{key}]" if path else f"[{key}]"
-            _find_package_list(value, include_pkgs, exclude_pkgs, visited, new_path)
+            res = _find_package_list(
+                value, include_pkgs, exclude_pkgs, visited, new_path
+            )
+            if res is None:
+                continue
+            if key == "exclude_packages":
+                exclude_pkgs += res
+            else:
+                include_pkgs += res
 
 
 def repo_packages_list(kernel, packages) -> dict:

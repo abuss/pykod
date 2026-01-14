@@ -401,3 +401,9 @@ def load_fstab(root_path: str = "") -> list[str]:
         )
     print(f"{partition_list = }")
     return partition_list
+
+
+class Hardware(dict):
+    def __init__(self, *args, **kwargs):
+        """Initialize hardware configuration."""
+        super().__init__(*args, **kwargs)

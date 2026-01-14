@@ -10,6 +10,7 @@ class AUR(Repository):
         self.helper = kwargs.get("helper", "yay")
         self.helper_url = kwargs.get("helper_url", "https://aur.archlinux.org/yay.git")
         self.helper_installed = False
+        self.skip_debug = kwargs.get("skip_debug", True)
 
     def build(self, mount_point):
         name = self.helper
@@ -22,23 +23,17 @@ class AUR(Repository):
             mount_point=mount_point,
         )
 
-        helper_exists = (
-            helper_check_result.returncode == 0
-            if hasattr(helper_check_result, "returncode")
-            else False
-        )
+        # If command -v succeeds, it returns the path, so non-empty means it exists
+        helper_exists = bool(helper_check_result.strip())
 
         if helper_exists:
             # Check if helper requires update by checking for newer commits
             update_check_result = exec_chroot(
-                f"runuser -u kod -- /bin/bash -c 'cd ~/{name} && git fetch && [ $(git rev-parse HEAD) != $(git rev-parse @{{u}}) ]'",
+                f"runuser -u kod -- /bin/bash -c 'cd ~/{name} && git fetch && [ $(git rev-parse HEAD) != $(git rev-parse @{{u}}) ] 2>/dev/null && echo needs_update || echo up_to_date'",
                 mount_point=mount_point,
             )
-            needs_update = (
-                update_check_result.returncode == 0
-                if hasattr(update_check_result, "returncode")
-                else True
-            )
+            # If the command outputs "needs_update", then an update is needed
+            needs_update = "needs_update" in update_check_result
 
             if not needs_update:
                 return  # Helper is installed and up to date
@@ -67,7 +62,13 @@ class AUR(Repository):
 
     def install_packages(self, package_name):
         pkgs = " ".join(package_name)
-        cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {pkgs}"
+        debug_flag = ""
+        if self.skip_debug:
+            if self.helper in ["paru", "yay"]:
+                debug_flag = "--nodebug"
+            # For other helpers, we could add more logic here
+
+        cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {debug_flag} {pkgs}".strip()
         return cmd
 
     def remove_packages(self, package_name):
@@ -75,11 +76,25 @@ class AUR(Repository):
         cmd = f"runuser -u kod -- {self.helper} -R --noconfirm {pkgs}"
         return cmd
 
+    def cleanup_debug_packages(self, mount_point: str) -> None:
+        """Remove any installed debug packages to free up space."""
+        if self.skip_debug:
+            # Find and remove debug packages
+            exec_chroot(
+                'runuser -u kod -- /bin/bash -c \'pacman -Q | grep -E "-debug$" | cut -d" " -f1 | xargs -r pacman -R --noconfirm\'',
+                mount_point=mount_point,
+            )
+
     def update_installed_packages(self, packages: tuple) -> str:
         if len(packages) == 0:
             return ""
         pkgs = " ".join(packages)
-        cmd = f"runuser -u kod -- {self.helper} -Syu --noconfirm {pkgs}"
+        debug_flag = ""
+        if self.skip_debug:
+            if self.helper in ["paru", "yay"]:
+                debug_flag = "--nodebug"
+
+        cmd = f"runuser -u kod -- {self.helper} -Syu --noconfirm {debug_flag} {pkgs}".strip()
         return cmd
 
     def update_database(self) -> str:

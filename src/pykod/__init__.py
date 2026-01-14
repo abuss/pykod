@@ -1,6 +1,6 @@
 from pykod.config import Configuration
 from pykod.desktop import DesktopEnvironment, DesktopManager
-from pykod.devices import Boot, Devices, Disk, Kernel, Loader, Partition
+from pykod.devices import Boot, Devices, Disk, Hardware, Kernel, Loader, Partition
 from pykod.fonts import Fonts
 from pykod.locale import Locale
 from pykod.network import Network
@@ -17,6 +17,7 @@ __all__ = [
     "Disk",
     "Kernel",
     "Loader",
+    "Hardware",
     "Partition",
     "Fonts",
     "Locale",

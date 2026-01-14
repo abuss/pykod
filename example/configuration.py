@@ -17,6 +17,7 @@
 
 
 # Import necessary modules from pykod
+
 from pykod import *
 from pykod.repositories import AUR, Arch, Flatpak
 from pykod.user import (
@@ -29,7 +30,9 @@ from pykod.user import (
 
 archpkgs = Arch(mirror_url="https://mirror.rackspace.com/archlinux")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru.git")
+aurpkgs = AUR(
+    helper="paru", helper_url="https://aur.archlinux.org/paru.git", skip_debug=True
+)
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 
@@ -109,6 +112,13 @@ conf.locale = Locale(
 conf.network = Network(
     hostname="eszkoz",
     settings={"ipv6": True},
+)
+
+conf.hardware = Hardware(
+    # cpu_microcode=archpkgs["intel-ucode"],
+    # graphics=archpkgs["xf86-video-intel"],
+    audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
+    sane=archpkgs["sane", "sane-airscan"],
 )
 
 # Desktop environment configuration - using DesktopManager directly
@@ -332,16 +342,6 @@ conf.packages = Packages(
 # System services configuration
 conf.services = Services(
     {
-        "sane": Service(
-            enable=True,
-            package=archpkgs["sane"],
-            extra_packages=archpkgs["sane-airscan"],
-        ),
-        "pipewire": Service(
-            # enable=True,
-            package=archpkgs["pipewire"],
-            extra_packages=archpkgs["pipewire-alsa", "pipewire-pulse"],
-        ),
         "fwupd": Service(enable=True, package=archpkgs["fwupd"]),
         "tailscale": Service(enable=False, package=archpkgs["tailscale"]),
         "networkmanager": Service(
