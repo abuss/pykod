@@ -1,7 +1,6 @@
 import json
 import subprocess
 from pathlib import Path
-from turtle import Pen
 from typing import Callable
 
 from pykod.common import execute_chroot as exec_chroot
