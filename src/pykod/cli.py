@@ -59,8 +59,8 @@ def run(config: Any) -> None:
         "generation_id", type=int, help="Generation ID to remove"
     )
 
-    # List generations command
-    subparsers.add_parser("list_generation", help="List all generations")
+    # Rebuild user command
+    subparsers.add_parser("rebuild-user", help="Rebuild user configuration")
 
     args = parser.parse_args()
 
@@ -84,6 +84,12 @@ def run(config: Any) -> None:
         remove_generation(config, args.generation_id)
     elif args.command == "list_generation":
         list_generations(config)
+    elif args.command == "rebuild-user":
+        import os
+
+        user = os.environ.get("USER")
+        print(f"USER: {user}")
+        config.rebuild_user(user)
 
 
 def remove_generation(config: Any, generation_id: int) -> None:

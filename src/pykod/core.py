@@ -1,10 +1,11 @@
 """Core functions for configuring the system."""
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pykod.common import execute_command as exec
 from pykod.common import execute_chroot as exec_chroot
+from pykod.common import execute_command as exec
 from pykod.common import get_dry_run, open_with_dry_run
 from pykod.repositories.base import Repository
 
@@ -357,3 +358,39 @@ def save_configuration(
         json.dump(config_dict, f, indent=2, default=str)
 
     print(f"Configuration and repositories stored to: {config_json_path}")
+
+
+def Source(path: str) -> str:
+    return path
+
+
+class File(dict):
+    """File representation for configuration files."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize File object."""
+        if len(args) > 0:
+            data = args[0]
+        else:
+            data = kwargs
+
+        super().__init__(data)
+
+    def _execute(self, mount_point: str) -> list[str]:
+        """Return shell commands to copy files into the specified mount point (no execution)."""
+        from shlex import quote
+
+        commands = []
+        for target_path, source_path in self.items():
+            full_path = Path(mount_point) / str(target_path).lstrip("/")
+            parent_dir = quote(str(full_path.parent))
+            src = quote(str(source_path))
+            dst = quote(str(full_path))
+            commands.append(f"mkdir -p {parent_dir}")
+            commands.append(f"cp -f {src} {dst}")
+        return commands
+
+    def install(self, config) -> None:
+        """Install files to the specified mount point."""
+        print("\n[INSTALL] Files:")
+        print(self._execute(config._mount_point))
