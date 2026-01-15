@@ -18,8 +18,6 @@ aurpkgs = AUR(
 )
 flatpakpkgs = Flatpak(hub_url="flathub")
 
-import cli
-
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 conf = Configuration(base=archpkgs, verbose=True)
 
@@ -257,7 +255,7 @@ conf.abuss = User(
     ),
     services={
         "syncthing": Service(
-            enable=True,
+            enable=False,
             package=archpkgs["syncthing"],
             config=SyncthingConfig(
                 {
@@ -318,7 +316,7 @@ conf.packages = Packages(
         # "zen-browser-bin",
     ]
     # CLI tools
-    # + cli.packages(archpkgs, aurpkgs)
+    + cli.packages(archpkgs, aurpkgs)
     # Development tools
     # + development.packages(archpkgs)
     # Flatpak packages
