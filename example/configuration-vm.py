@@ -202,7 +202,7 @@ conf.abuss = User(
     ),
     extra_shell_init="""
         alias ls=lsd
-        export EDITOR=helix
+        export EDITOR=nvim
     """,
     environment_vars={
         "PATH": "$HOME/.local/bin:$PATH",
@@ -234,7 +234,7 @@ conf.abuss = User(
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
-        #         "helix": c.Program(enable=True, deploy_config=True),
+        "helix": Program(enable=True, package=archpkgs["helix"], deploy_config=True),
         "emacs": Program(
             enable=False,
             package=archpkgs["emacs-wayland"],
