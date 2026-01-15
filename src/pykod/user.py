@@ -410,8 +410,9 @@ class User:
         # Remove existing block if present
         cmds.append(f"sed -i '/^{marker_start}$/,/^{marker_end}$/d' {rc_path}")
         # Append the new block
+        processed_payload = "\n".join(line.lstrip() for line in payload.split("\n"))
         cmds.append(
-            f"cat >> {rc_path} << 'EOF'\n{marker_start}\n{payload}\n{marker_end}\nEOF"
+            f"cat >> {rc_path} << 'EOF'\n{marker_start}\n{processed_payload}\n{marker_end}\nEOF"
         )
         return cmds
 
