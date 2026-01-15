@@ -202,7 +202,6 @@ conf.abuss = User(
     ),
     extra_shell_init="""
         alias ls=lsd
-        # alias ll='lsd -la --group-dirs first'
         export EDITOR=helix
     """,
     environment_vars={
@@ -249,8 +248,8 @@ conf.abuss = User(
     },
     file=File(
         {
-            ".face": Source("example/assets/face"),
-            ".config/backgound.png": Source("example/assets/background.png"),
+            "~/.face": Source("example/assets/face"),
+            "~/.config/backgound.png": Source("example/assets/background.png"),
         },
     ),
     services={

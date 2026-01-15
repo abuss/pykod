@@ -376,21 +376,22 @@ class File(dict):
 
         super().__init__(data)
 
-    def _execute(self, mount_point: str) -> list[str]:
+    def build_command(self, mount_point: str | None = None) -> list[str]:
         """Return shell commands to copy files into the specified mount point (no execution)."""
         from shlex import quote
 
         commands = []
         for target_path, source_path in self.items():
-            full_path = Path(mount_point) / str(target_path).lstrip("/")
-            parent_dir = quote(str(full_path.parent))
-            src = quote(str(source_path))
-            dst = quote(str(full_path))
+            full_target_path = Path(target_path).expanduser()
+            if mount_point is not None:
+                full_target_path = Path(mount_point) / full_target_path.relative_to("/")
+            parent_dir = full_target_path.parent
+            full_source_path = Path(source_path).expanduser()
             commands.append(f"mkdir -p {parent_dir}")
-            commands.append(f"cp -f {src} {dst}")
+            commands.append(f"cp -f {full_source_path} {full_target_path}")
         return commands
 
-    def install(self, config) -> None:
+    def install(self, mount_point) -> None:
         """Install files to the specified mount point."""
         print("\n[INSTALL] Files:")
-        print(self._execute(config._mount_point))
+        print(self.build_command(mount_point))

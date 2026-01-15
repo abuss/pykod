@@ -202,7 +202,7 @@ class User:
             if self.file:
                 print(f"\n[install] User Files for: {self.username}")
                 # cmds = self.file.install(config)
-                if cmds := self.file.install(config):
+                if cmds := self.file.build_command():
                     for cmd in cmds:
                         cmd = f"runuser -u {self.username} -- " + cmd
                         execute_chroot(cmd, mount_point=config._mount_point)
@@ -293,12 +293,13 @@ class User:
                 print(f"Executing rebuild program command: {cmd}")
                 execute_command(cmd)
 
-        # # Re-apply file configurations
-        # if self.file:
-        #     print(f"[rebuild] User Files for: {self.username}")
-        #     if cmds := self.file.install(None):
-        #         for cmd in cmds:
-        #             print(f"Executing rebuild file command: {cmd}")
+        # Re-apply file configurations
+        if self.file:
+            print(f"[rebuild] User Files for: {self.username}")
+            if cmds := self.file.build_command():
+                for cmd in cmds:
+                    print(f"Executing rebuild file command: {cmd}")
+                    execute_command(cmd)
 
         # Re-apply user services
         print(f"[rebuild] User Services for: {self.username}")
