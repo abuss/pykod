@@ -272,7 +272,7 @@ conf.abuss = User(
     },
     deploy_configs=[
         "home",  # General config for home directory
-        "gtk",  # GTK themes
+        # "gtk",  # GTK themes
     ],
 )
 
