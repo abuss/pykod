@@ -407,14 +407,12 @@ class User:
         cmds.append(f"mkdir -p $(dirname {rc_path})")
         cmds.append(f"touch {rc_path}")
 
-        append_cmd = (
-            "awk 'BEGIN{found=0} "
-            f"/^{marker_start}$/{{found=1}} "
-            "END{exit found}' "
-            f"{rc_path} >/dev/null || "
-            f"printf '\\n{marker_start}\\n{payload}\\n{marker_end}\\n' >> {rc_path}"
+        # Remove existing block if present
+        cmds.append(f"sed -i '/^{marker_start}$/,/^{marker_end}$/d' {rc_path}")
+        # Append the new block
+        cmds.append(
+            f"cat >> {rc_path} << 'EOF'\n{marker_start}\n{payload}\n{marker_end}\nEOF"
         )
-        cmds.append(append_cmd)
         return cmds
 
     def _apply_environment_vars(self) -> list[str]:
