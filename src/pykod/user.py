@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from pykod.common import execute_chroot as exec_chroot
+from pykod.common import execute_chroot, execute_command
 from pykod.core import File
 from pykod.repositories.base import PackageList
 from pykod.service import Service
@@ -165,7 +165,7 @@ class User:
         """Creating a user."""
         cmds = self._create()
         for cmd in cmds:
-            exec_chroot(cmd, mount_point=config._mount_point)
+            execute_chroot(cmd, mount_point=config._mount_point)
 
         print(
             f"\n[install] User: {self.username} {self.dotfile_manager} {type(self.dotfile_manager)}"
@@ -175,12 +175,12 @@ class User:
         env_cmds = self._apply_environment_vars()
         for cmd in env_cmds:
             cmd = f"runuser -u {self.username} -- " + cmd
-            exec_chroot(cmd, mount_point=config._mount_point)
+            execute_chroot(cmd, mount_point=config._mount_point)
 
         shell_cmds = self._apply_extra_shell_init()
         for cmd in shell_cmds:
             cmd = f"runuser -u {self.username} -- " + cmd
-            exec_chroot(cmd, mount_point=config._mount_point)
+            execute_chroot(cmd, mount_point=config._mount_point)
 
         if self.dotfile_manager:
             print(
@@ -190,14 +190,14 @@ class User:
             for cmd in cmds:
                 cmd = cmd.replace("~", f"/home/{self.username}")
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config._mount_point)
+                execute_chroot(cmd, mount_point=config._mount_point)
 
             # Process user programs
             print(f"\n[install] User Programs for: {self.username}")
             cmds = self._programs()
             for cmd in cmds:
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config._mount_point)
+                execute_chroot(cmd, mount_point=config._mount_point)
 
             if self.file:
                 print(f"\n[install] User Files for: {self.username}")
@@ -205,7 +205,7 @@ class User:
                 if cmds := self.file.install(config):
                     for cmd in cmds:
                         cmd = f"runuser -u {self.username} -- " + cmd
-                        exec_chroot(cmd, mount_point=config._mount_point)
+                        execute_chroot(cmd, mount_point=config._mount_point)
 
             # enable user services
             # TODO: Fix service enabling for users
@@ -213,7 +213,7 @@ class User:
             cmds = self._services()
             for cmd in cmds:
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config._mount_point)
+                execute_chroot(cmd, mount_point=config._mount_point)
 
     def rebuild(self):
         print("[rebuild] Updating user:")
@@ -225,8 +225,10 @@ class User:
         # Re-apply env and shell init (idempotent blocks)
         for cmd in self._apply_environment_vars():
             print(f"Executing rebuild env command: {cmd}")
+            execute_chroot(cmd)
         for cmd in self._apply_extra_shell_init():
             print(f"Executing rebuild shell-init command: {cmd}")
+            execute_chroot(cmd)
 
         if self.dotfile_manager:
             print(
@@ -236,12 +238,13 @@ class User:
             for cmd in cmds:
                 cmd = cmd.replace("~", f"/home/{self.username}")
                 print(f"Executing rebuild dotfile command: {cmd}")
+                execute_chroot(cmd)
 
         # Check and update user configuration differences
         print(f"[rebuild] Checking user configuration differences for: {self.username}")
 
         # Check shell differences
-        from pykod.common import execute_command
+        # from pykod.common import execute_command
 
         try:
             current_shell = (
@@ -252,7 +255,9 @@ class User:
                 print(
                     f"Shell mismatch: current={current_shell}, expected={expected_shell}"
                 )
-                print(f"Executing: usermod -s {expected_shell} {self.username}")
+                cmd = f"usermod -s {expected_shell} {self.username}"
+                # print(f"Executing: usermod -s {expected_shell} {self.username}")
+                execute_command(cmd)
         except Exception:
             print(f"Could not get current shell for user {self.username}")
 
@@ -273,7 +278,9 @@ class User:
                 missing_groups = expected_groups - current_groups_set
                 for group in missing_groups:
                     print(f"Adding user {self.username} to missing group: {group}")
-                    print(f"Executing: usermod -aG {group} {self.username}")
+                    cmd = f"usermod -aG {group} {self.username}"
+                    execute_command(cmd)
+                    # print(f"Executing: usermod -aG {group} {self.username}")
 
             except Exception:
                 print(f"Could not get current groups for user {self.username}")
@@ -284,6 +291,7 @@ class User:
             cmds = self._programs()
             for cmd in cmds:
                 print(f"Executing rebuild program command: {cmd}")
+                execute_command(cmd)
 
         # # Re-apply file configurations
         # if self.file:
@@ -308,6 +316,7 @@ class User:
                             print(f"Stopping disabled service: {service_name}")
                             stop_cmd = f"systemctl --user stop {service_name}"
                             print(f"Executing rebuild service command: {stop_cmd}")
+                            execute_command(stop_cmd)
 
                         # Check if service is enabled and disable it
                         result = execute_command(
@@ -317,6 +326,7 @@ class User:
                             print(f"Disabling service: {service_name}")
                             disable_cmd = f"systemctl --user disable {service_name}"
                             print(f"Executing rebuild service command: {disable_cmd}")
+                            execute_command(disable_cmd)
 
                     except Exception:
                         print(f"Could not check status of service {service_name}")
@@ -324,6 +334,7 @@ class User:
         cmds = self._services()
         for cmd in cmds:
             print(f"Executing rebuild service command: {cmd}")
+            execute_chroot(cmd)
 
     def _create(self) -> list[str]:
         """Create the user in the system."""
