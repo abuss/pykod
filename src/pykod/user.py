@@ -225,10 +225,10 @@ class User:
         # Re-apply env and shell init (idempotent blocks)
         for cmd in self._apply_environment_vars():
             print(f"Executing rebuild env command: {cmd}")
-            execute_chroot(cmd)
+            execute_command(cmd)
         for cmd in self._apply_extra_shell_init():
             print(f"Executing rebuild shell-init command: {cmd}")
-            execute_chroot(cmd)
+            execute_command(cmd)
 
         if self.dotfile_manager:
             print(
@@ -238,7 +238,7 @@ class User:
             for cmd in cmds:
                 cmd = cmd.replace("~", f"/home/{self.username}")
                 print(f"Executing rebuild dotfile command: {cmd}")
-                execute_chroot(cmd)
+                execute_command(cmd)
 
         # Check and update user configuration differences
         print(f"[rebuild] Checking user configuration differences for: {self.username}")
@@ -334,7 +334,7 @@ class User:
         cmds = self._services()
         for cmd in cmds:
             print(f"Executing rebuild service command: {cmd}")
-            execute_chroot(cmd)
+            execute_command(cmd)
 
     def _create(self) -> list[str]:
         """Create the user in the system."""
