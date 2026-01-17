@@ -1,6 +1,10 @@
 """Devices configuration."""
 
+import shutil
 from dataclasses import dataclass, field
+from pathlib import Path
+from pprint import PrettyPrinter
+from turtle import Pen
 from typing import Any
 
 from pykod.common import execute_command as exec
@@ -112,15 +116,17 @@ class Disk:
             end = 0 if size == "100%" else f"+{size}"
             partition_type = _filesystem_type[filesystem_type]
 
-            exec(
-                f"sgdisk -n 0:0:{end} -t 0:{partition_type} -c 0:{name} {device}",
-                f"Failed to create partition {name} on {device}",
-            )
+            if self.initialize:
+                # Create partition
+                exec(
+                    f"sgdisk -n 0:0:{end} -t 0:{partition_type} -c 0:{name} {device}",
+                    f"Failed to create partition {name} on {device}",
+                )
 
             # Format filesystem
             if filesystem_type in _filesystem_cmd.keys():
                 cmd = _filesystem_cmd[filesystem_type]
-                if cmd:
+                if part.format and cmd:
                     exec(
                         f"{cmd} {blockdevice}",
                         f"Failed to format {blockdevice} as {filesystem_type}",
@@ -316,18 +322,28 @@ class Devices(dict):
         # Initial generation
         generation = 0
         for dir in ["store", "generations", "current"]:
-            exec(f"mkdir -p {mount_point}/{dir}")
+            Path(f"{mount_point}/{dir}").mkdir(parents=True, exist_ok=True)
+            # exec(f"mkdir -p {mount_point}/{dir}")
 
         subdirs = ["root", "var/log", "var/tmp", "var/cache", "var/kod"]
         for dir in subdirs:
-            exec(f"mkdir -p {mount_point}/store/{dir}")
+            subdir_path = Path(f"{mount_point}/store/{dir}")
+            if Path(subdir_path).exists():
+                shutil.rmtree(subdir_path)
+                subdir_path.mkdir(parents=True)
+                # exec(f"mkdir -p {subdir_path}")
 
         # Create home as subvolume if no /home is specified in the config
         # (TODO: Add support for custom home)
-        exec(f"btrfs subvolume create {mount_point}/store/home")
+        if not Path(f"{mount_point}/store/home").exists():
+            exec(f"btrfs subvolume create {mount_point}/store/home")
 
         # First generation
-        exec(f"mkdir -p {mount_point}/generations/{generation}")
+        generation_path = Path(f"{mount_point}/generations/{generation}")
+        if generation_path.exists():
+            shutil.rmtree(generation_path)
+            generation_path.mkdir(parents=True)
+        # exec(f"mkdir -p {mount_point}/generations/{generation}")
         exec(f"btrfs subvolume create {mount_point}/generations/{generation}/rootfs")
 
         # Mounting first generation
@@ -345,7 +361,8 @@ class Devices(dict):
         ]
 
         for dir in subdirs + ["boot", "home", "kod"]:
-            exec(f"mkdir -p {mount_point}/{dir}")
+            Path(f"{mount_point}/{dir}").mkdir(parents=True, exist_ok=True)
+            # exec(f"mkdir -p {mount_point}/{dir}")
 
         exec(f"mount {self.boot_partition} {mount_point}/boot")
         boot_options = "rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro"

@@ -33,10 +33,12 @@ conf.devices = Devices(
                 size="512M",
                 type="esp",
                 mountpoint="/boot",
-                format=True,
+                # format=True,
             ),
             Partition(name="swap", size="2G", type="linux-swap"),
-            Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
+            Partition(
+                name="root", size="100%", type="btrfs", mountpoint="/", format=False
+            ),
             # Partition(name="home", size="100%", type="btrfs"),
         ],
     ),
