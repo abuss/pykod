@@ -1,15 +1,18 @@
 """Locale configuration."""
 
+from dataclasses import dataclass, field
+
 from pykod.common import open_with_dry_run
-from pykod.core import NestedDict
 
 
-class Network(NestedDict):
+@dataclass
+class Network:
     """Represents a disk device with partitions."""
 
-    def __init__(self, **kwargs):
-        """Initialize Network."""
-        super().__init__(**kwargs)
+    hostname: str
+    settings: dict[str, str] = field(default_factory=dict)
+    ipv4: bool = True
+    ipv6: bool = True
 
     def install(self, config):
         """Configure and install network related."""
