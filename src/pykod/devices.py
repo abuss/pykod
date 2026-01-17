@@ -52,6 +52,7 @@ class Disk:
 
     device: str
     partitions: list[Partition] = field(default_factory=list)
+    initialize: bool = False
 
     def install(self):
         """Install disk partitions as per configuration."""
@@ -84,8 +85,9 @@ class Disk:
             device_suffix = ""
 
         # Delete partition table
-        exec(f"wipefs -a {device}", f"Failed to wipe partition table on {device}")
-        exec("sync", "Failed to sync after wiping partition table")
+        if self.initialize:
+            exec(f"wipefs -a {device}", f"Failed to wipe partition table on {device}")
+            exec("sync", "Failed to sync after wiping partition table")
 
         print(f"{partitions=}")
         if not partitions:
