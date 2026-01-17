@@ -1,8 +1,5 @@
 # VM Basic Configuration
 
-from mimetypes import inited
-from turtle import fd
-
 from pykod import *
 from pykod.core import File, Source
 from pykod.repositories import AUR, Arch, Flatpak
