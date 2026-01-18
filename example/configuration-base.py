@@ -26,7 +26,7 @@ conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 conf.devices = Devices(
     disk0=Disk(
         device="/dev/vda",
-        # initialize=True,
+        initialize=True,
         partitions=[
             Partition(
                 name="efi",

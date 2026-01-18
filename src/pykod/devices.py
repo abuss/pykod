@@ -9,7 +9,7 @@ from typing import Any
 
 from pykod.common import execute_command as exec
 from pykod.common import open_with_dry_run
-from pykod.core import setup_bootloader
+from pykod.core import Component, setup_bootloader
 
 # Module-level constants
 _filesystem_cmd: dict[str, str | None] = {
@@ -422,7 +422,9 @@ def load_fstab(root_path: str = "") -> list[str]:
     return partition_list
 
 
-class Hardware(dict):
-    def __init__(self, *args, **kwargs):
-        """Initialize hardware configuration."""
-        super().__init__(*args, **kwargs)
+Hardware = Component("Hardware")
+
+# class Hardware(dict):
+#     def __init__(self, *args, **kwargs):
+#         """Initialize hardware configuration."""
+#         super().__init__(*args, **kwargs)

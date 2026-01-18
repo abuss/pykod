@@ -1,6 +1,5 @@
 """Core functions for configuring the system."""
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -338,7 +337,6 @@ class File(dict):
 
     def build_command(self, mount_point: str | None = None) -> list[str]:
         """Return shell commands to copy files into the specified mount point (no execution)."""
-        from shlex import quote
 
         commands = []
         for target_path, source_path in self.items():

@@ -46,6 +46,6 @@ Name=*
         with open_with_dry_run(f"{mount_point}/etc/hosts", "w") as f:
             f.write("127.0.0.1 localhost\n::1 localhost\n")
 
-    def rebuild(self):
-        print("\n\n[rebuild] Hostname:", self.hostname)
-        print("[rebuild] updating network settings:", self.settings)
+    # def rebuild(self):
+    #     print("\n\n[rebuild] Hostname:", self.hostname)
+    #     print("[rebuild] updating network settings:", self.settings)

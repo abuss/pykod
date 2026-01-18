@@ -1,4 +1,4 @@
-"""Locale configuration."""
+"""Package configuration."""
 
 
 def Packages(pkgs):
