@@ -3,8 +3,6 @@
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from pprint import PrettyPrinter
-from turtle import Pen
 from typing import Any
 
 from pykod.common import execute_command as exec
