@@ -328,8 +328,8 @@ class Devices(dict):
             subdir_path = Path(f"{mount_point}/store/{dir}")
             if Path(subdir_path).exists():
                 shutil.rmtree(subdir_path)
-                subdir_path.mkdir(parents=True)
-                # exec(f"mkdir -p {subdir_path}")
+            subdir_path.mkdir(parents=True)
+            # exec(f"mkdir -p {subdir_path}")
 
         # Create home as subvolume if no /home is specified in the config
         # (TODO: Add support for custom home)
@@ -340,7 +340,7 @@ class Devices(dict):
         generation_path = Path(f"{mount_point}/generations/{generation}")
         if generation_path.exists():
             shutil.rmtree(generation_path)
-            generation_path.mkdir(parents=True)
+        generation_path.mkdir(parents=True)
         # exec(f"mkdir -p {mount_point}/generations/{generation}")
         exec(f"btrfs subvolume create {mount_point}/generations/{generation}/rootfs")
 
