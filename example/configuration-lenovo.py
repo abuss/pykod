@@ -120,6 +120,7 @@ conf.hardware = Hardware(
     # graphics=archpkgs["xf86-video-intel"],
     audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
     sane=archpkgs["sane", "sane-airscan"],
+    test=archpkgs["memtest86-test"],
 )
 
 # Desktop environment configuration - using DesktopManager directly
@@ -129,7 +130,7 @@ conf.desktop = DesktopManager(
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
-            enable=False,
+            enable=True,
             # display_manager="gdm",
             package=archpkgs["gnome"],
             exclude_packages=archpkgs["gnome-tour", "yelp"],

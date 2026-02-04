@@ -102,3 +102,11 @@ class AUR(Repository):
     def update_database(self) -> str:
         cmd = f"{self.helper} -Sy"
         return cmd
+
+    def is_valid_packages(self, pkgs):
+        """Check if the given package is valid."""
+        cmds = []
+        for pkg in pkgs:
+            cmd_check = f"{self.helper} -Ss {pkg}"
+            cmds.append(cmd_check)
+        return cmds

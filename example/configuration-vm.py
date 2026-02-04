@@ -13,9 +13,7 @@ from pykod.user import (
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
 # aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-aurpkgs = AUR(
-    helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True
-)
+aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True)
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
@@ -26,7 +24,7 @@ import development
 
 conf.devices = Devices(
     disk0=Disk(
-        device="/dev/vda",
+        device="/dev/sda",
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
             Partition(name="swap", size="2G", type="linux-swap"),
@@ -225,12 +223,8 @@ conf.abuss = User(
                 }
             ),
         ),
-        "starship": Program(
-            enable=True, package=archpkgs["starship"], deploy_config=True
-        ),
-        "ghostty": Program(
-            enable=True, package=archpkgs["ghostty"], deploy_config=True
-        ),
+        "starship": Program(enable=True, package=archpkgs["starship"], deploy_config=True),
+        "ghostty": Program(enable=True, package=archpkgs["ghostty"], deploy_config=True),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
@@ -351,9 +345,7 @@ conf.services = Services(
             package=archpkgs["cups"],
             extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
         ),
-        "bluetooth": Service(
-            enable=False, package=archpkgs["bluez"], service_name="bluetooth"
-        ),
+        "bluetooth": Service(enable=False, package=archpkgs["bluez"], service_name="bluetooth"),
     }
 )
 # conf.services["avahi"].enable = False
