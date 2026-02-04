@@ -12,8 +12,8 @@ from pykod.user import (
 )
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
-# aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True)
+aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+# aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True)
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
