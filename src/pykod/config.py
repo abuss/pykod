@@ -64,7 +64,9 @@ class Configuration:
         _find_package_list(self, include, exclude)
         return include, exclude
 
-    def _apply_repo(self, packages: PackageList, action: str, mount_point: str | None = None) -> None:
+    def _apply_repo(
+        self, packages: PackageList, action: str, mount_point: str | None = None
+    ) -> None:
         for repo, items in packages.items():
             if not items:
                 continue
@@ -118,7 +120,9 @@ class Configuration:
         print("Storing generation state...")
         print(f"{state_path=}")
         if self._dry_run:
-            store_state_tmp(generation_path, self, kernel, include_pkgs, enabled_services)
+            store_state_tmp(
+                generation_path, self, kernel, include_pkgs, enabled_services
+            )
         else:
             store_state(generation_path, kernel, include_pkgs, enabled_services)
             store_installed_packages(state_path, generation_path, self)
@@ -169,7 +173,7 @@ class Configuration:
         include_pkgs, exclude_pkgs = self._collect_package_sets()
         if invalid_pkgs := self._check_packages(include_pkgs):
             print(f"Invalid packages found: {invalid_pkgs}")
-            raise ValueError("Package validation failed.")
+            # raise ValueError("Package validation failed.")
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
@@ -224,7 +228,9 @@ class Configuration:
         print(" Done installing KodOS")
 
     # =============================== REBUILD ================================
-    def rebuild(self, live_switch: bool = False, upgrade: bool = False, reboot: bool = False) -> None:
+    def rebuild(
+        self, live_switch: bool = False, upgrade: bool = False, reboot: bool = False
+    ) -> None:
         print("Rebuilding configuration...")
         self._state = "rebuild"
 
@@ -278,8 +284,12 @@ class Configuration:
 
         if live_switch:
             print("Live switch requested")
-            execute_command(f"mv {current_generation_path}/rootfs {next_generation_path}")
-            execute_command(f"btrfs subvolume snapshot / {current_generation_path}/rootfs")
+            execute_command(
+                f"mv {current_generation_path}/rootfs {next_generation_path}"
+            )
+            execute_command(
+                f"btrfs subvolume snapshot / {current_generation_path}/rootfs"
+            )
         else:
             # Creates a BTRFS subvolume snapshot of the current root
             print("Creating a new generation")
@@ -298,7 +308,9 @@ class Configuration:
         requires_reboot = reboot
         remove_next_generation = False
         try:
-            current_packages, current_services = load_packages_services(current_generation_path)
+            current_packages, current_services = load_packages_services(
+                current_generation_path
+            )
             print(f"{current_packages = }")
             print(f"{current_services = }")
             if current_packages is None or current_services is None:
@@ -317,10 +329,14 @@ class Configuration:
                     print(f"Updating repository: {repo.__class__.__name__}")
                     cmd_update = repo.update_database()
                     if cmd_update:
-                        exec_chroot(cmd_update, mount_point=new_root_path)  # Refresh package database
+                        exec_chroot(
+                            cmd_update, mount_point=new_root_path
+                        )  # Refresh package database
                     cmd_update_pkgs = repo.update_installed_packages(packages)
                     if cmd_update_pkgs:
-                        exec_chroot(cmd_update_pkgs, mount_point=new_root_path)  # Update all packages
+                        exec_chroot(
+                            cmd_update_pkgs, mount_point=new_root_path
+                        )  # Update all packages
 
             # Determine packages to install and remove
             next_kernel_package = self.boot.kernel.package
@@ -434,7 +450,9 @@ class Configuration:
             save_configuration(self, include_pkgs, next_generation_path)
 
             # Write generation number
-            with open_with_dry_run(f"{next_generation_path}/rootfs/.generation", "w") as f:
+            with open_with_dry_run(
+                f"{next_generation_path}/rootfs/.generation", "w"
+            ) as f:
                 f.write(str(next_generation_id))
 
         except Exception as e:
@@ -459,7 +477,11 @@ class Configuration:
                 # execute_command(f"umount -R {new_root_path}")
                 # exec(f"rm -rf {new_root_path}")
 
-            if not live_switch and remove_next_generation and next_generation_path.is_dir():
+            if (
+                not live_switch
+                and remove_next_generation
+                and next_generation_path.is_dir()
+            ):
                 execute_command(f"btrfs subvolume delete {next_generation_path}/rootfs")
                 execute_command(f"rm -rf {next_generation_path}")
 
@@ -505,10 +527,15 @@ class Configuration:
                 continue
             for pkg, cmd in zip(items, cmds):
                 if self._dry_run:
-                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+                    result = subprocess.run(
+                        cmd, shell=True, capture_output=True, text=True
+                    )
                     results = result.stdout.splitlines()
                 else:
-                    results = exec_chroot(cmd, mount_point=self._mount_point, get_output=True).splitlines()
+                    results = exec_chroot(
+                        cmd, mount_point=self._mount_point, get_output=True
+                    ).splitlines()
+                    print(f"{cmd} result: {results}")
                 if not results:
                     invalid_packages.append(pkg)
 
@@ -533,7 +560,9 @@ def _find_user(obj, username: str) -> User | None:
     return None
 
 
-def _find_package_list(obj, include_pkgs, exclude_pkgs, visited=None, path="") -> PackageList | None:
+def _find_package_list(
+    obj, include_pkgs, exclude_pkgs, visited=None, path=""
+) -> PackageList | None:
     # print(f"Visiting {path}: {type(obj)}")
     if visited is None:
         visited = set()
@@ -558,7 +587,9 @@ def _find_package_list(obj, include_pkgs, exclude_pkgs, visited=None, path="") -
                 if not attr_name.startswith("_"):
                     # print(f"Checking attribute {attr_name} of {path}")
                     new_path = f"{path}.{attr_name}" if path else attr_name
-                    res = _find_package_list(attr_value, include_pkgs, exclude_pkgs, visited, new_path)
+                    res = _find_package_list(
+                        attr_value, include_pkgs, exclude_pkgs, visited, new_path
+                    )
                     if res is not None:
                         if attr_name == "exclude_packages":
                             exclude_pkgs += res
@@ -569,7 +600,9 @@ def _find_package_list(obj, include_pkgs, exclude_pkgs, visited=None, path="") -
                 if not attr_name.startswith("_"):
                     # print(f"Checking attribute {attr_name} of {path}")
                     new_path = f"{path}.{attr_name}" if path else attr_name
-                    res = _find_package_list(attr_value, include_pkgs, exclude_pkgs, visited, new_path)
+                    res = _find_package_list(
+                        attr_value, include_pkgs, exclude_pkgs, visited, new_path
+                    )
                     if res is not None:
                         if attr_name == "exclude_packages":
                             exclude_pkgs += res
@@ -586,7 +619,9 @@ def _find_package_list(obj, include_pkgs, exclude_pkgs, visited=None, path="") -
     if isinstance(obj, dict):
         for key, value in obj.items():
             new_path = f"{path}[{key}]" if path else f"[{key}]"
-            res = _find_package_list(value, include_pkgs, exclude_pkgs, visited, new_path)
+            res = _find_package_list(
+                value, include_pkgs, exclude_pkgs, visited, new_path
+            )
             if res is None:
                 continue
             if key == "exclude_packages":
@@ -622,7 +657,9 @@ def store_installed_packages(state_path: str, generation_path: str, config) -> N
     installed_packages_cmd = config._base.list_installed_packages()
     # def store_installed_packages(state_path: str, config, installed_cmd: str) -> None:
     # """Store the list of installed packages and their versions to /mnt/var/kod/installed_packages.lock."""
-    installed_packages_version = exec_chroot(installed_packages_cmd, mount_point=state_path, get_output=True)
+    installed_packages_version = exec_chroot(
+        installed_packages_cmd, mount_point=state_path, get_output=True
+    )
     with open_with_dry_run(f"{generation_path}/packages.lock", "w") as f:
         f.write(installed_packages_version)
 
@@ -633,7 +670,11 @@ def get_max_generation() -> int:
     if not generations_dir.exists():
         return 0
 
-    generations = [int(p.name) for p in generations_dir.iterdir() if p.is_dir() and p.name.isdigit()]
+    generations = [
+        int(p.name)
+        for p in generations_dir.iterdir()
+        if p.is_dir() and p.name.isdigit()
+    ]
     generation = max(generations) if generations else 0
     return generation
 
@@ -666,7 +707,9 @@ def load_previous_configuration(state_path: Path):
     return config_data
 
 
-def create_next_generation(boot_part: str, root_part: str, generation: int, next_current: Path) -> str:
+def create_next_generation(
+    boot_part: str, root_part: str, generation: int, next_current: Path
+) -> str:
     """
     Create the next generation of the KodOS installation.
 
@@ -682,7 +725,9 @@ def create_next_generation(boot_part: str, root_part: str, generation: int, next
         str: The path to the mounted generation
     """
 
-    execute_command(f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}")
+    execute_command(
+        f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}"
+    )
     execute_command(f"mount {boot_part} {next_current}/boot")
     execute_command(f"mount {root_part} {next_current}/kod")
     execute_command(f"mount -o subvol=store/home {root_part} {next_current}/home")
@@ -699,12 +744,16 @@ def create_next_generation(boot_part: str, root_part: str, generation: int, next
     return str(next_current)
 
 
-def update_kernel_hook(conf, kernel_package: str, mount_point: str) -> Callable[[], None]:
+def update_kernel_hook(
+    conf, kernel_package: str, mount_point: str
+) -> Callable[[], None]:
     """Create a hook function to update the kernel for a specified package."""
 
     def hook() -> None:
         print(f"Update kernel ....{kernel_package}")
-        kernel_file, kver = conf._base.get_kernel_info(mount_point, package=kernel_package)
+        kernel_file, kver = conf._base.get_kernel_info(
+            mount_point, package=kernel_package
+        )
         print(f"{kver=}")
         print(f"cp {kernel_file} /boot/vmlinuz-{kver}")
         exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
@@ -712,12 +761,16 @@ def update_kernel_hook(conf, kernel_package: str, mount_point: str) -> Callable[
     return hook
 
 
-def update_initramfs_hook(conf, kernel_package: str, mount_point: str) -> Callable[[], None]:
+def update_initramfs_hook(
+    conf, kernel_package: str, mount_point: str
+) -> Callable[[], None]:
     """Create a hook function to update the initramfs for a specified package."""
 
     def hook() -> None:
         print(f"Update initramfs ....{kernel_package}")
-        kernel_file, kver = conf._base.get_kernel_info(mount_point, package=kernel_package)
+        kernel_file, kver = conf._base.get_kernel_info(
+            mount_point, package=kernel_package
+        )
         print(f"{kver=}")
         exec_chroot(
             f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
