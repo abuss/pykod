@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from pykod.common import execute_command as exec
 from pykod.common import execute_chroot as exec_chroot
+from pykod.common import execute_command as exec
 from pykod.common import get_dry_run, open_with_dry_run
 from pykod.repositories.base import Repository
 
@@ -248,46 +248,6 @@ def create_kod_user(mount_point: str) -> None:
         f.write("kod ALL=(ALL) NOPASSWD: ALL")
 
 
-# Configuration utilities
-class NestedDict:
-    def __init__(self, *args, **kwargs):
-        self.__dict__["_data"] = {}
-        # self._data = {}
-        for k in args:
-            self._data[k] = NestedDict()
-        for k, v in kwargs.items():
-            self._data[k] = v
-
-    def __getattr__(self, name) -> "NestedDict":
-        if "_data" not in self.__dict__:
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}'"
-            )
-        if name in self._data:
-            return self._data[name]
-        else:
-            self._data[name] = NestedDict()
-            return self._data[name]
-
-    def __setattr__(self, name, value):
-        if name == "_data":
-            super().__setattr__(name, value)
-        else:
-            if isinstance(value, dict):
-                value = NestedDict(**value)
-            self._data[name] = value
-
-    def __getstate__(self):
-        return {"_data": self._data}
-
-    def __setstate__(self, state):
-        self.__dict__["_data"] = state["_data"]
-
-    def __repr__(self) -> str:
-        # return pprint.pformat(self._data, indent=2, width=10)
-        return str(self._data)
-
-
 def save_configuration(
     config: "Configuration",
     include_pkgs,
@@ -357,3 +317,56 @@ def save_configuration(
         json.dump(config_dict, f, indent=2, default=str)
 
     print(f"Configuration and repositories stored to: {config_json_path}")
+
+
+def Source(path: str) -> str:
+    return path
+
+
+class File(dict):
+    """File representation for configuration files."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize File object."""
+        if len(args) > 0:
+            data = args[0]
+        else:
+            data = kwargs
+
+        super().__init__(data)
+
+    def build_command(self, mount_point: str | None = None) -> list[str]:
+        """Return shell commands to copy files into the specified mount point (no execution)."""
+
+        commands = []
+        for target_path, source_path in self.items():
+            full_target_path = Path(target_path).expanduser()
+            if mount_point is not None:
+                full_target_path = Path(mount_point) / full_target_path.relative_to("/")
+            parent_dir = full_target_path.parent
+            full_source_path = Path(source_path).expanduser()
+            commands.append(f"mkdir -p {parent_dir}")
+            commands.append(f"cp -f {full_source_path} {full_target_path}")
+        return commands
+
+    def install(self, mount_point) -> None:
+        """Install files to the specified mount point."""
+        print("\n[INSTALL] Files:")
+        print(self.build_command(mount_point))
+
+
+def Component(name: str):
+    def __init__(self, **kwargs):
+        super(self.__class__, self).__init__(**kwargs)
+
+    def __getattr__(self, item):
+        return self.get(item, None)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    return type(
+        name,
+        (dict,),
+        {"__init__": __init__, "__getattr__": __getattr__, "__setattr__": __setattr__},
+    )

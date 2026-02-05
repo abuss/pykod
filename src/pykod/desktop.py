@@ -60,14 +60,3 @@ class DesktopManager:
 
     display_manager: Service
     environments: dict[str, DesktopEnvironment] = field(default_factory=dict)
-
-    # def install(self, _config):
-    #     """Creating a Desktop manager."""
-    #     print("\n[install] Environments:")
-    #     for key, extra in self.environments.items():
-    #         print(f" - {key}: {extra}")
-
-    # def rebuild(self):
-    #     print("[rebuild] Updating environments:")
-    #     for key, extra in self.environments.items():
-    #         print(f" - {key}: {extra}")

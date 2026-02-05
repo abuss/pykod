@@ -39,3 +39,8 @@ class Flatpak(Repository):
         pkgs = " ".join(packages)
         cmd = f"flatpak update -y {pkgs}"
         return cmd
+
+    def is_valid_packages(self, pkgs):
+        """Check if the given package is valid."""
+        # TODO: Implement package validation for Flatpak
+        return None

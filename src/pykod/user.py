@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass, field
 
-from pykod.common import execute_chroot as exec_chroot
+from pykod.common import execute_chroot, execute_command
+from pykod.core import File
 from pykod.repositories.base import PackageList
 from pykod.service import Service
 
@@ -72,7 +73,7 @@ class Stow(ConfigManagerBase):
 
     def deploy(self, program_name) -> list[str]:
         print(f"[deploy] Deploying configuration for program: {program_name}")
-        cmd = f"cd {self.source} && stow {program_name}"
+        cmd = f"cd {self.source} && stow {program_name} || echo 'Stow failed for {program_name}'"
         print(f"Executing: {cmd}")
         return [cmd]
 
@@ -156,16 +157,31 @@ class User:
     deploy_configs: list[str] | None = None
     services: dict[str, Service] | None = None
     home_config: dict | None = None
+    extra_shell_init: str | None = None
+    environment_vars: dict | None = None
+    file: File | None = None
 
     def install(self, config):
         """Creating a user."""
         cmds = self._create()
         for cmd in cmds:
-            exec_chroot(cmd, mount_point=config._mount_point)
+            execute_chroot(cmd, mount_point=config._mount_point)
 
         print(
             f"\n[install] User: {self.username} {self.dotfile_manager} {type(self.dotfile_manager)}"
         )
+
+        # Apply environment variables and shell init before dotfiles/programs
+        env_cmds = self._apply_environment_vars()
+        for cmd in env_cmds:
+            cmd = f"runuser -u {self.username} -- " + cmd
+            execute_chroot(cmd, mount_point=config._mount_point)
+
+        shell_cmds = self._apply_extra_shell_init()
+        for cmd in shell_cmds:
+            cmd = f"runuser -u {self.username} -- " + cmd
+            execute_chroot(cmd, mount_point=config._mount_point)
+
         if self.dotfile_manager:
             print(
                 f"[install] dotfile manager for user {self.username}: {self.dotfile_manager}",
@@ -174,14 +190,22 @@ class User:
             for cmd in cmds:
                 cmd = cmd.replace("~", f"/home/{self.username}")
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config._mount_point)
+                execute_chroot(cmd, mount_point=config._mount_point)
 
             # Process user programs
             print(f"\n[install] User Programs for: {self.username}")
             cmds = self._programs()
             for cmd in cmds:
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config._mount_point)
+                execute_chroot(cmd, mount_point=config._mount_point)
+
+            if self.file:
+                print(f"\n[install] User Files for: {self.username}")
+                # cmds = self.file.install(config)
+                if cmds := self.file.build_command():
+                    for cmd in cmds:
+                        cmd = f"runuser -u {self.username} -- " + cmd
+                        execute_chroot(cmd, mount_point=config._mount_point)
 
             # enable user services
             # TODO: Fix service enabling for users
@@ -189,7 +213,7 @@ class User:
             cmds = self._services()
             for cmd in cmds:
                 cmd = f"runuser -u {self.username} -- " + cmd
-                exec_chroot(cmd, mount_point=config._mount_point)
+                execute_chroot(cmd, mount_point=config._mount_point)
 
     def rebuild(self):
         print("[rebuild] Updating user:")
@@ -197,6 +221,121 @@ class User:
         print(f" name: {self.name}")
         print(f" shell: {self.shell}")
         print(f" groups: {self.groups}")
+
+        # Re-apply env and shell init (idempotent blocks)
+        for cmd in self._apply_environment_vars():
+            print(f"Executing rebuild env command: {cmd}")
+            execute_command(cmd)
+        for cmd in self._apply_extra_shell_init():
+            print(f"Executing rebuild shell-init command: {cmd}")
+            execute_command(cmd)
+
+        if self.dotfile_manager:
+            print(
+                f"[rebuild] dotfile manager for user {self.username}: {self.dotfile_manager}"
+            )
+            cmds = self.dotfile_manager.rebuild(None)
+            for cmd in cmds:
+                cmd = cmd.replace("~", f"/home/{self.username}")
+                print(f"Executing rebuild dotfile command: {cmd}")
+                execute_command(cmd)
+
+        # Check and update user configuration differences
+        print(f"[rebuild] Checking user configuration differences for: {self.username}")
+
+        # Check shell differences
+        # from pykod.common import execute_command
+
+        try:
+            current_shell = (
+                execute_command(f"getent passwd {self.username}").strip().split(":")[-1]
+            )
+            expected_shell = self.shell or "/bin/bash"
+            if current_shell != expected_shell:
+                print(
+                    f"Shell mismatch: current={current_shell}, expected={expected_shell}"
+                )
+                cmd = f"usermod -s {expected_shell} {self.username}"
+                # print(f"Executing: usermod -s {expected_shell} {self.username}")
+                execute_command(cmd)
+        except Exception:
+            print(f"Could not get current shell for user {self.username}")
+
+        # Check group membership differences
+        if self.groups:
+            try:
+                current_groups = (
+                    execute_command(f"groups {self.username}")
+                    .strip()
+                    .split(":")[-1]
+                    .split()
+                )
+                expected_groups = set(self.groups)
+                if self.allow_sudo:
+                    expected_groups.add("wheel")
+                current_groups_set = set(current_groups)
+
+                missing_groups = expected_groups - current_groups_set
+                for group in missing_groups:
+                    print(f"Adding user {self.username} to missing group: {group}")
+                    cmd = f"usermod -aG {group} {self.username}"
+                    execute_command(cmd)
+                    # print(f"Executing: usermod -aG {group} {self.username}")
+
+            except Exception:
+                print(f"Could not get current groups for user {self.username}")
+
+        # Re-apply programs configuration
+        if self.programs:
+            print(f"[rebuild] User Programs for: {self.username}")
+            cmds = self._programs()
+            for cmd in cmds:
+                print(f"Executing rebuild program command: {cmd}")
+                execute_command(cmd)
+
+        # Re-apply file configurations
+        if self.file:
+            print(f"[rebuild] User Files for: {self.username}")
+            if cmds := self.file.build_command():
+                for cmd in cmds:
+                    print(f"Executing rebuild file command: {cmd}")
+                    execute_command(cmd)
+
+        # Re-apply user services
+        print(f"[rebuild] User Services for: {self.username}")
+
+        # Check for services that need to be stopped because they are disabled
+        if self.services:
+            for service_name, serv in self.services.items():
+                if not serv.enable:
+                    try:
+                        # Check if service is currently active
+                        result = execute_command(
+                            f"systemctl --user is-active {service_name}"
+                        )
+                        if result.strip() == "active":  # Service is active
+                            print(f"Stopping disabled service: {service_name}")
+                            stop_cmd = f"systemctl --user stop {service_name}"
+                            print(f"Executing rebuild service command: {stop_cmd}")
+                            execute_command(stop_cmd)
+
+                        # Check if service is enabled and disable it
+                        result = execute_command(
+                            f"systemctl --user is-enabled {service_name}"
+                        )
+                        if result.strip() == "enabled":  # Service is enabled
+                            print(f"Disabling service: {service_name}")
+                            disable_cmd = f"systemctl --user disable {service_name}"
+                            print(f"Executing rebuild service command: {disable_cmd}")
+                            execute_command(disable_cmd)
+
+                    except Exception:
+                        print(f"Could not check status of service {service_name}")
+
+        cmds = self._services()
+        for cmd in cmds:
+            print(f"Executing rebuild service command: {cmd}")
+            execute_command(cmd)
 
     def _create(self) -> list[str]:
         """Create the user in the system."""
@@ -240,6 +379,60 @@ class User:
                 cmds.append(f"usermod -p `mkpasswd -m sha-512 {self.password}` {user}")
             else:
                 cmds.append(f"passwd {user}")
+
+        return cmds
+
+    def _shell_rc_path(self) -> str:
+        """Determine the user's shell init file path."""
+        shell = (self.shell or "/bin/bash").split("/")[-1]
+        home = f"/home/{self.username}"
+        if shell == "zsh":
+            return f"{home}/.zshrc"
+        elif shell == "fish":
+            return f"{home}/.config/fish/config.fish"
+        else:
+            return f"{home}/.bashrc"
+
+    def _apply_extra_shell_init(self) -> list[str]:
+        """Return commands to idempotently append extra shell initialization."""
+        cmds = []
+        if not self.extra_shell_init or self.username == "root":
+            return cmds
+
+        rc_path = self._shell_rc_path()
+        marker_start = "# === pykod: extra_shell_init start ==="
+        marker_end = "# === pykod: extra_shell_init end ==="
+        payload = self.extra_shell_init.strip()
+
+        cmds.append(f"mkdir -p $(dirname {rc_path})")
+        cmds.append(f"touch {rc_path}")
+
+        # Remove existing block if present
+        cmds.append(f"sed -i '/^{marker_start}$/,/^{marker_end}$/d' {rc_path}")
+        # Append the new block
+        processed_payload = "\n".join(line.lstrip() for line in payload.split("\n"))
+        cmds.append(
+            f"cat >> {rc_path} << 'EOF'\n{marker_start}\n{processed_payload}\n{marker_end}\nEOF"
+        )
+        return cmds
+
+    def _apply_environment_vars(self) -> list[str]:
+        """Return commands to idempotently export environment variables in ~/.profile."""
+        cmds = []
+        if not self.environment_vars or self.username == "root":
+            return cmds
+
+        profile_path = f"/home/{self.username}/.profile"
+        cmds.append(f"touch {profile_path}")
+
+        for key, value in self.environment_vars.items():
+            marker = f"# pykod: env {key}"
+            export_line = f'export {key}="{value}"'
+            cmd = (
+                f"grep -F '{marker}' {profile_path} >/dev/null || "
+                f"printf '\\n{marker}\\n{export_line}\\n' >> {profile_path}"
+            )
+            cmds.append(cmd)
 
         return cmds
 

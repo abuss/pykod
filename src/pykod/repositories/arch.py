@@ -1,7 +1,7 @@
 """Arch Linux repository configuration."""
 
-from pykod.common import execute_command as exec
 from pykod.common import execute_chroot as exec_chroot
+from pykod.common import execute_command as exec
 from pykod.common import get_dry_run
 
 from .base import Repository
@@ -116,3 +116,20 @@ class Arch(Repository):
         """Generate a file containing the list of installed packages and their versions."""
         cmd = "pacman -Q --noconfirm"
         return cmd
+
+    def is_valid_packages(self, pkgs):
+        """Check if the given package is valid."""
+        cmds = []
+        for pkg in pkgs:
+            cmd_check = f"pacman -Ss {pkg}"
+            cmds.append(cmd_check)
+        return cmds
+
+    # def is_valid_packages(self, pkgs):
+    #     """Generate a list of packages that do not exist in the repository."""
+    #     invalid_pkgs = []
+    #     for pkg in pkgs:
+    #         output = exec(f"pacman -Ss {pkg}", get_output=True)
+    #         if not output.strip():
+    #             invalid_pkgs.append(pkg)
+    #     return invalid_pkgs

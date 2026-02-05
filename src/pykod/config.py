@@ -3,6 +3,8 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 
+from chorut import ChrootManager
+
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import (
     execute_command,
@@ -169,6 +171,9 @@ class Configuration:
 
         # Repository and Package installation
         include_pkgs, exclude_pkgs = self._collect_package_sets()
+        if invalid_pkgs := self._check_packages(include_pkgs):
+            print(f"Invalid packages found: {invalid_pkgs}")
+            # raise ValueError("Package validation failed.")
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)
@@ -239,12 +244,8 @@ class Configuration:
         next_generation_id = int(max_generation) + 1
         print(f"Next generation ID: {next_generation_id}")
 
-        if self._dry_run:
-            current_generation_id = 0  # FOR TESTING
-        else:
-            with open_with_dry_run("/.generation") as f:
-                current_generation_id = int(f.readline().strip())
-            print(f"{current_generation_id = }")
+        current_generation_id = self._get_current_generation()
+        print(f"{current_generation_id = }")
 
         current_generation_path = Path(f"/kod/generations/{current_generation_id}")
         next_generation_path = Path(f"/kod/generations/{next_generation_id}")
@@ -498,6 +499,66 @@ class Configuration:
             sleep(5)
             execute_command("reboot")
 
+    def rebuild_user(self, username: str) -> None:
+        """Rebuild the specified user configuration."""
+        print(f"Rebuilding user configuration for {username}...")
+        user = _find_user(self, username)
+        print(f"Found user: {user} {type(user)}")
+        if user is None:
+            print(f"User {username} not found in configuration.")
+            return
+        print(f"User {username} configuration rebuilt.")
+        user.rebuild()
+
+    def _get_current_generation(self) -> int:
+        """Retrieve the current generation number from /.generation."""
+        if self._dry_run:
+            return 0
+        with open_with_dry_run("/.generation") as f:
+            current_generation = int(f.readline().strip())
+        return current_generation
+
+    def _check_packages(self, packages: PackageList) -> list:
+        invalid_packages = []
+        for repo, items in packages.items():
+            cmds = repo.is_valid_packages(items)
+            print(f"\nValidation command for repo {repo}: {cmds}")
+            if cmds is None:
+                continue
+            for pkg, cmd in zip(items, cmds):
+                if self._dry_run:
+                    result = subprocess.run(
+                        cmd, shell=True, capture_output=True, text=True
+                    )
+                    results = result.stdout.splitlines()
+                else:
+                    results = exec_chroot(
+                        cmd, mount_point=self._mount_point, get_output=True
+                    ).splitlines()
+                    print(f"{cmd} result: {results}")
+                if not results:
+                    invalid_packages.append(pkg)
+
+            # print(f"Validation results: {results}")
+            # invalid = set(items) - set(pkg.split(" ")[0] for pkg in results)
+            # print(f"Invalid packages in repo {repo}: {invalid}")
+            # for pkg, line in zip(items, results):
+            #     if "error:" in line:
+            #         invalid_packages.append(pkg)
+
+        print(f"\n\nInvalid packages: {invalid_packages}\n")
+        return invalid_packages
+
+
+def _find_user(obj, username: str) -> User | None:
+    # For each attribute in obj, check if it's a User with the given username
+    for attr in dir(obj):
+        if isinstance(getattr(obj, attr), User):
+            user = getattr(obj, attr)
+            if user.username == username:
+                return user
+    return None
+
 
 def _find_package_list(
     obj, include_pkgs, exclude_pkgs, visited=None, path=""
@@ -628,6 +689,22 @@ def load_packages_services(state_path: Path) -> tuple[dict, list]:
     with open(f"{state_path}/enabled_services", "r") as f:
         services = [pkg.strip() for pkg in f.readlines() if pkg.strip()]
     return (packages, services)
+
+
+def load_previous_configuration(state_path: Path):
+    """Load the previous configuration from the specified state path."""
+    config_path = state_path / "configuration.json"
+    if not config_path.exists():
+        print(f"No configuration file found at {config_path}")
+        return None
+
+    with open(config_path, "r") as f:
+        config_data = json.load(f)
+
+    print(f"Loading configuration from {config_data}")
+    # config = load_configuration(config_data)
+    # return config
+    return config_data
 
 
 def create_next_generation(

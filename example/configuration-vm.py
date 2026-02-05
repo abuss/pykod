@@ -1,6 +1,7 @@
 # VM Configuration
 
 from pykod import *
+from pykod.core import File, Source
 from pykod.repositories import AUR, Arch, Flatpak
 from pykod.user import (
     GitConfig,
@@ -11,13 +12,9 @@ from pykod.user import (
 )
 
 archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
-# aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-aurpkgs = AUR(
-    helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True
-)
+aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+# aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True)
 flatpakpkgs = Flatpak(hub_url="flathub")
-
-import cli
 
 # conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
 conf = Configuration(base=archpkgs, verbose=True)
@@ -27,7 +24,7 @@ import development
 
 conf.devices = Devices(
     disk0=Disk(
-        device="/dev/vda",
+        device="/dev/sda",
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
             Partition(name="swap", size="2G", type="linux-swap"),
@@ -201,6 +198,13 @@ conf.abuss = User(
             "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDOA6V+TZJ+BmBAU4FB0nbhYQ9XOFZwCHdwXTuQkb77sPi6fVcbzso5AofUc+3DhfN56ATNOOslvjutSPE8kIp3Uv91/c7DE0RHoidNl3oLre8bau2FT+9AUTZnNEtWH/qXp5+fzvGk417mSL3M5jdoRwude+AzhPNXmbdAzn08TMGAkjGrMQejXItcG1OhXKUjqeLmB0A0l3Ac8DGQ6EcSRtgPCiej8Boabn21K2OBfq64KwW/MMh/FWTHndyBF/lhfEos7tGPvrDN+5G05oGjf0fnMOxsmAUdTDbtOTTeMTvDwjJdzsGUluEDbWBYPNlg5wacbimkv51/Bm4YwsGOkkUTy6eCCS3d5j8PrMbB2oNZfByga01FohhWSX9bv35KAP4nq7no9M6nXj8rQVsF0gPndPK/pgX46tpJG+pE1Ul6sSLR2jnrN6oBKzhdZJ54a2wwFSd207Zvahdx3m9JEVhccmDxWltxjKHz+zChAHsqWC9Zcqozt0mDRJNalW8fRXKcSWPGVy1rfbwltiQzij+ChCQQlUG78zW8lU7Bz6FuyDsEFpZSat7jtbdDBY0a4F0yb4lkNvu+5heg+dhlKCFj9YeRDrnvcz94OKvAZW1Gsjbs83n6wphBipxUWku7y86iYyAAYQGKs4jihhYWrFtfZhSf1m6EUKXoWX87KQ== antal.buss@gmail.com"
         ]
     ),
+    extra_shell_init="""
+        alias ls=lsd
+        export EDITOR=nvim
+    """,
+    environment_vars={
+        "PATH": "$HOME/.local/bin:$PATH",
+    },
     dotfile_manager=Stow(
         # source_dir="~/.dotfiles",
         # target_dir="~/",
@@ -219,16 +223,12 @@ conf.abuss = User(
                 }
             ),
         ),
-        "starship": Program(
-            enable=True, package=archpkgs["starship"], deploy_config=True
-        ),
-        "ghostty": Program(
-            enable=True, package=archpkgs["ghostty"], deploy_config=True
-        ),
+        "starship": Program(enable=True, package=archpkgs["starship"], deploy_config=True),
+        "ghostty": Program(enable=True, package=archpkgs["ghostty"], deploy_config=True),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
-        #         "helix": c.Program(enable=True, deploy_config=True),
+        "helix": Program(enable=True, package=archpkgs["helix"], deploy_config=True),
         "emacs": Program(
             enable=False,
             package=archpkgs["emacs-wayland"],
@@ -240,10 +240,15 @@ conf.abuss = User(
         #             config="gnome_dconf_settings",  # Reference to gnome config
         #         ),
     },
-    # ),
+    file=File(
+        {
+            "~/.face": Source("example/assets/face"),
+            "~/.config/backgound.png": Source("example/assets/background.png"),
+        },
+    ),
     services={
         "syncthing": Service(
-            enable=True,
+            enable=False,
             package=archpkgs["syncthing"],
             config=SyncthingConfig(
                 {
@@ -258,7 +263,7 @@ conf.abuss = User(
     },
     deploy_configs=[
         "home",  # General config for home directory
-        "gtk",  # GTK themes
+        # "gtk",  # GTK themes
     ],
 )
 
@@ -304,7 +309,7 @@ conf.packages = Packages(
         # "zen-browser-bin",
     ]
     # CLI tools
-    # + cli.packages(archpkgs, aurpkgs)
+    + cli.packages(archpkgs, aurpkgs)
     # Development tools
     # + development.packages(archpkgs)
     # Flatpak packages
@@ -340,9 +345,7 @@ conf.services = Services(
             package=archpkgs["cups"],
             extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
         ),
-        "bluetooth": Service(
-            enable=False, package=archpkgs["bluez"], service_name="bluetooth"
-        ),
+        "bluetooth": Service(enable=False, package=archpkgs["bluez"], service_name="bluetooth"),
     }
 )
 # conf.services["avahi"].enable = False
