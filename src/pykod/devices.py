@@ -254,6 +254,10 @@ class Loader:
     timeout: int = 3
     include: list[str] = field(default_factory=list)
 
+    def __post_init__(self):
+        if self.type == "systemd":
+            self.type = "systemd-boot"
+
 
 @dataclass
 class Boot:
@@ -421,8 +425,3 @@ def load_fstab(root_path: str = "") -> list[str]:
 
 
 Hardware = Component("Hardware")
-
-# class Hardware(dict):
-#     def __init__(self, *args, **kwargs):
-#         """Initialize hardware configuration."""
-#         super().__init__(*args, **kwargs)

@@ -19,6 +19,8 @@ use_verbose: bool = False
 use_dry_run: bool = False
 problems: list[dict] = []
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class CommandExecutionError(Exception):

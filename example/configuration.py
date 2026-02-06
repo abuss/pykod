@@ -21,6 +21,7 @@
 from pykod import *
 from pykod.core import File, Source
 from pykod.repositories import AUR, Arch, Flatpak
+from pykod.repositories.arch import GPU_PACKAGES
 from pykod.user import (
     GitConfig,
     OpenSSH,
@@ -30,8 +31,10 @@ from pykod.user import (
 )
 
 archpkgs = Arch(mirror_url="https://mirror.rackspace.com/archlinux")
-# aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru.git", skip_debug=True)
+aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+# aurpkgs = AUR(
+#     helper="paru", helper_url="https://aur.archlinux.org/paru.git", skip_debug=True
+# )
 flatpakpkgs = Flatpak(hub_url="flathub")
 
 
@@ -59,7 +62,9 @@ conf.devices = Devices(
     disk1=Disk(
         device="/dev/vdb",
         partitions=[
-            Partition(name="scratch", size="remaining", type="btrfs", mountpoint="/scratch"),
+            Partition(
+                name="scratch", size="remaining", type="btrfs", mountpoint="/scratch"
+            ),
         ],
     ),
 )
@@ -79,9 +84,9 @@ conf.boot = Boot(
         ],
     ),
     loader=Loader(
-        type="systemd-boot",
+        type="systemd",
         timeout=10,
-        include=["memtest86+"],
+        include=archpkgs["memtest86+"],
     ),
 )
 
@@ -113,7 +118,7 @@ conf.network = Network(
 
 conf.hardware = Hardware(
     # cpu_microcode=archpkgs["intel-ucode"],
-    # graphics=archpkgs["xf86-video-intel"],
+    gpu=archpkgs[*GPU_PACKAGES["amd"]["base"]],
     audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
     sane=archpkgs["sane", "sane-airscan"],
 )
@@ -245,8 +250,12 @@ conf.abuss = User(
                 }
             ),
         ),
-        "starship": Program(enable=True, package=archpkgs["starship"], deploy_config=True),
-        "ghostty": Program(enable=True, package=archpkgs["ghostty"], deploy_config=True),
+        "starship": Program(
+            enable=True, package=archpkgs["starship"], deploy_config=True
+        ),
+        "ghostty": Program(
+            enable=True, package=archpkgs["ghostty"], deploy_config=True
+        ),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
@@ -359,17 +368,19 @@ conf.services = Services(
         # "nix": Service(enable=True, service_name="nix_daemon"),
         "openssh": Service(
             enable=True,
-            package=archpkgs["openssh-server"],
+            package=archpkgs["openssh"],
             service_name="sshd",
             settings={"PermitRootLogin": False},
         ),
-        "avahi": Service(enable=True, package=archpkgs["avahi-daemon"]),
+        "avahi": Service(enable=True, package=archpkgs["avahi"]),
         "cups": Service(
             enable=True,
             package=archpkgs["cups"],
             extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
         ),
-        "bluetooth": Service(enable=True, package=archpkgs["bluez"], service_name="bluetooth"),
+        "bluetooth": Service(
+            enable=True, package=archpkgs["bluez"], service_name="bluetooth"
+        ),
     }
 )
 conf.services["avahi"].enable = False

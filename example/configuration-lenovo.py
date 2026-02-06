@@ -1,26 +1,12 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Pykod configuration for Arch Linux system with GNOME and Cosmic desktop environments
-# ------------------------------------------------------------
-# Description: Pykod configuration for an Arch Linux system with GNOME and Cosmic desktop environments.
-# Author: Antal Buss (antalbuss@fastmail.ca)
-# Date: 2024-06-19
-# License: MIT
-# Notes: This configuration sets up an Arch Linux system with GNOME and Cosmic desktop environments,
-#      along with various user programs and system services. It includes partitioning, locale settings,
-#     and package installations.
-#      Modify as needed for your specific requirements.
-# Ensure you have pykod installed and properly set up to use this configuration.
-# Usage: Run this script with pykod to apply the configuration.
-# Example: uv run this_script.py
-# ------------------------------------------------------------
-
-
-# Import necessary modules from pykod
+# lenovo machine
 
 from pykod import *
 from pykod.core import File, Source
 from pykod.repositories import AUR, Arch, Flatpak
+from pykod.repositories.arch import GPU_PACKAGES
 from pykod.user import (
     GitConfig,
     OpenSSH,
@@ -118,9 +104,10 @@ conf.network = Network(
 conf.hardware = Hardware(
     # cpu_microcode=archpkgs["intel-ucode"],
     # graphics=archpkgs["xf86-video-intel"],
+    gpu=archpkgs[GPU_PACKAGES["intel"]["base"]],
     audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
     sane=archpkgs["sane", "sane-airscan"],
-    test=archpkgs["memtest86-test"],
+    power=archpkgs["power-profiles-daemon"],
 )
 
 # Desktop environment configuration - using DesktopManager directly

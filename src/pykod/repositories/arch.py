@@ -6,6 +6,25 @@ from pykod.common import get_dry_run
 
 from .base import Repository
 
+GPU_PACKAGES = {
+    "nvidia": {
+        "base": ["nvidia", "nvidia-utils", "nvidia-settings"],
+        "32bit": ["lib32-nvidia-utils"],
+        "extras": ["nvidia-prime"],  # For hybrid graphics
+        "open_source": ["nouveau"],  # Alternative open-source driver
+    },
+    "amd": {
+        "base": ["xf86-video-amdgpu", "mesa", "vulkan-radeon"],
+        "32bit": ["lib32-mesa", "lib32-vulkan-radeon"],
+        "extras": [],
+    },
+    "intel": {
+        "base": ["xf86-video-intel", "mesa", "vulkan-intel"],
+        "32bit": ["lib32-mesa", "lib32-vulkan-intel"],
+        "extras": ["intel-media-driver"],
+    },
+}
+
 
 class Arch(Repository):
     def __init__(self, repos=["base", "contrib"], **kwargs):
