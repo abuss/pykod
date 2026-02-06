@@ -136,7 +136,7 @@ class Configuration:
         # elements = self._collect_elements()
 
         # Device installation
-        devices = self.devices
+        devices = self.devices if hasattr(self, "devices") else None
         if devices is None:
             raise ValueError("No devices configuration found.")
         print("Installing device configuration...")
@@ -173,7 +173,7 @@ class Configuration:
         include_pkgs, exclude_pkgs = self._collect_package_sets()
         if invalid_pkgs := self._check_packages(include_pkgs):
             print(f"Invalid packages found: {invalid_pkgs}")
-            # raise ValueError("Package validation failed.")
+            raise ValueError("Package validation failed.")
         print(f"Included packages: {include_pkgs}")
         print(f"Excluded packages: {exclude_pkgs}")
         print("-+-" * 40)

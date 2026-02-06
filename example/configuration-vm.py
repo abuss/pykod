@@ -3,6 +3,7 @@
 from pykod import *
 from pykod.core import File, Source
 from pykod.repositories import AUR, Arch, Flatpak
+from pykod.repositories.arch import GPU_PACKAGES
 from pykod.user import (
     GitConfig,
     OpenSSH,
@@ -92,6 +93,9 @@ conf.network = Network(
 conf.hardware = Hardware(
     # cpu_microcode=archpkgs["intel-ucode"],
     # graphics=archpkgs["xf86-video-intel"],
+    # gpu="auto",  # Automatically detect GPU vendor
+    # gpu=archpkgs["xf86-video-amdgpu", "mesa", "vulkan-radeon"],
+    gpu=archpkgs[GPU_PACKAGES["amd"]["base"]],
     audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
     sane=archpkgs["sane", "sane-airscan"],
 )
@@ -223,8 +227,12 @@ conf.abuss = User(
                 }
             ),
         ),
-        "starship": Program(enable=True, package=archpkgs["starship"], deploy_config=True),
-        "ghostty": Program(enable=True, package=archpkgs["ghostty"], deploy_config=True),
+        "starship": Program(
+            enable=True, package=archpkgs["starship"], deploy_config=True
+        ),
+        "ghostty": Program(
+            enable=True, package=archpkgs["ghostty"], deploy_config=True
+        ),
         #         "fish": c.Program(enable=True),
         "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
         "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
@@ -345,7 +353,9 @@ conf.services = Services(
             package=archpkgs["cups"],
             extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
         ),
-        "bluetooth": Service(enable=False, package=archpkgs["bluez"], service_name="bluetooth"),
+        "bluetooth": Service(
+            enable=False, package=archpkgs["bluez"], service_name="bluetooth"
+        ),
     }
 )
 # conf.services["avahi"].enable = False
