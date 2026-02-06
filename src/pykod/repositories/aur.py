@@ -1,5 +1,9 @@
 """AUR (Arch User Repository) configuration."""
 
+from tkinter.constants import E
+
+from _typeshed import ExcInfo
+
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command
 
@@ -108,9 +112,12 @@ class AUR(Repository):
         """Check if the given package is valid."""
 
         cmds = []
-        is_installed = execute_command(f"{self.helper} -h", get_output=True)
-        print(is_installed)
-        if not is_installed:
+        # is_installed = False
+        try:
+            output = execute_command(f"{self.helper} -h", get_output=True)
+            print(output)
+            # is_installed = True
+        except Exception:
             print(f"{self.helper} is not installed")
             return cmds
 
