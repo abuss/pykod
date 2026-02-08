@@ -4,7 +4,7 @@ from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command as exec
 from pykod.common import get_dry_run
 
-from .base import Repository
+from .base import BaseSystemRepository
 
 GPU_PACKAGES = {
     "nvidia": {
@@ -26,7 +26,7 @@ GPU_PACKAGES = {
 }
 
 
-class Arch(Repository):
+class Arch(BaseSystemRepository):
     def __init__(self, repos=["base", "contrib"], **kwargs):
         # super().__init__(repos=repos, **kwargs)
         self.repos = repos
@@ -109,6 +109,18 @@ class Arch(Repository):
         )
         exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
         return kver
+
+    def generate_initramfs(self, mount_point: str, kver: str) -> None:
+        """Generate initramfs using dracut (Arch's initramfs generator).
+
+        Args:
+            mount_point: Installation mount point for chroot
+            kver: Kernel version to generate initramfs for
+        """
+        exec_chroot(
+            f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
+            mount_point=mount_point,
+        )
 
     def install_packages(self, package_name) -> str:
         pkgs = " ".join(package_name)

@@ -212,7 +212,7 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
         kver = base.setup_linux("/mnt", kernel_package)
         exec_chroot("bootctl install")
         print("KVER:", kver)
-        exec_chroot(f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img")
+        base.generate_initramfs("/mnt", kver)
         create_boot_entry(0, partition_list, mount_point="/mnt", kver=kver)
 
     # Using Grub as bootloader
