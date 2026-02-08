@@ -772,10 +772,7 @@ def update_initramfs_hook(
             mount_point, package=kernel_package
         )
         print(f"{kver=}")
-        exec_chroot(
-            f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
-            mount_point=mount_point,
-        )
+        conf._base.generate_initramfs(mount_point, kver)
 
     return hook
 
