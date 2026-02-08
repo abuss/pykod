@@ -73,7 +73,7 @@ class Debian(BaseSystemRepository):
         """
         list_pkgs = packages._pkgs[self]
         print(f"{list_pkgs=}")
-        pkgs_str = ",".join(list_pkgs)
+        pkgs_str = " ".join(list_pkgs)
         components_str = ",".join(self.components)
 
         # exec(
