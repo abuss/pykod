@@ -22,6 +22,14 @@ debian = Debian()
 # Or specify exact version:
 # debian = Debian(release="bookworm")  # Debian 12
 # debian = Debian(release="testing")   # Debian testing
+#
+# Repository components:
+# - main:     Official Debian packages (default)
+# - contrib:  Free software that depends on non-free software
+# - non-free: Proprietary or non-DFSG software
+#
+# To enable contrib and non-free:
+# debian = Debian(components=["main", "contrib", "non-free"])
 
 flatpak = Flatpak(hub_url="flathub")
 

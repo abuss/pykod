@@ -20,11 +20,19 @@ ubuntu = Debian(
     release="noble",  # Ubuntu 24.04 LTS
     variant="ubuntu",
     mirror_url="http://archive.ubuntu.com/ubuntu/",
+    # components=["main", "universe"]  # Default - automatically enabled
+    # components=["main", "universe", "multiverse", "restricted"]  # All repos
 )
 
 # Other Ubuntu releases:
 # ubuntu = Debian(release="jammy", variant="ubuntu")  # Ubuntu 22.04 LTS
 # ubuntu = Debian(release="focal", variant="ubuntu")  # Ubuntu 20.04 LTS
+#
+# Repository components:
+# - main:       Canonical-supported free software (default)
+# - universe:   Community-maintained free software (default for Ubuntu)
+# - multiverse: Software with copyright/legal restrictions
+# - restricted: Proprietary drivers
 
 flatpak = Flatpak(hub_url="flathub")
 
@@ -34,7 +42,7 @@ conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
 # Disk configuration - same as Arch/Debian (BTRFS + generations)
 conf.devices = Devices(
     disk0=Disk(
-        device="/dev/vda",
+        device="/dev/sda",
         initialize=True,
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),

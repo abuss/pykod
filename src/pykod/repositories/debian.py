@@ -31,7 +31,7 @@ GPU_PACKAGES = {
 
 
 class Debian(BaseSystemRepository):
-    def __init__(self, release="stable", variant="debian", **kwargs):
+    def __init__(self, release="stable", variant="debian", components=None, **kwargs):
         """Initialize Debian/Ubuntu repository.
 
         Args:
@@ -39,10 +39,22 @@ class Debian(BaseSystemRepository):
                     Debian: "stable", "bookworm", "trixie", "testing"
                     Ubuntu: "noble", "jammy", "focal"
             variant: Distribution variant ("debian" or "ubuntu")
+            components: Repository components to enable
+                       Ubuntu: defaults to ["main", "universe"]
+                       Debian: defaults to ["main"]
+                       Can be overridden, e.g., ["main", "universe", "multiverse", "restricted"]
             **kwargs: Additional options (mirror_url, etc.)
         """
         self.release = release
         self.variant = variant
+
+        # Set sensible defaults for components based on variant
+        if components is None:
+            # Ubuntu: enable main and universe (matches Ubuntu Desktop behavior)
+            # Debian: only main (minimal, users can add contrib/non-free if needed)
+            components = ["main", "universe"] if variant == "ubuntu" else ["main"]
+
+        self.components = components
 
         # Set appropriate default mirror based on variant
         if variant == "ubuntu":
@@ -62,8 +74,10 @@ class Debian(BaseSystemRepository):
         list_pkgs = packages._pkgs[self]
         print(f"{list_pkgs=}")
         pkgs_str = ",".join(list_pkgs)
+        components_str = ",".join(self.components)
+
         exec(
-            f"debootstrap --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
+            f"debootstrap --components={components_str} --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
         )
 
     def install(self, items) -> None:

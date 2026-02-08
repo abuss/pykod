@@ -48,6 +48,14 @@
 - [x] Arch regression tests (existing Arch config still works)
 - [x] Fixed AUR/Flatpak compatibility issue (created BaseSystemRepository)
 
+### Phase 9: Repository Components Feature ✅ COMPLETED
+- [x] Add `components` parameter to Debian.__init__()
+- [x] Implement components in install_base() via debootstrap --components
+- [x] Set sensible defaults (Ubuntu: main+universe, Debian: main)
+- [x] Update documentation in README.md
+- [x] Update example configurations with components documentation
+- [x] Test components functionality
+
 ---
 
 ## Decisions Made
@@ -55,7 +63,10 @@
 ✅ **Question 1:** Single `Debian` class with `variant` parameter for Ubuntu  
 ✅ **Question 2:** Default release = `"stable"` (tracks Debian stable)  
 ✅ **Question 3:** Always use `dracut` for initramfs  
-✅ **Question 4:** Let apt fail at runtime with clear errors (no pre-validation)
+✅ **Question 4:** Let apt fail at runtime with clear errors (no pre-validation)  
+✅ **Question 5:** Repository components via `components` parameter with smart defaults
+- Ubuntu: defaults to `["main", "universe"]` (matches Ubuntu Desktop behavior)
+- Debian: defaults to `["main"]` (minimal, users add contrib/non-free if needed)
 
 ---
 
@@ -231,7 +242,7 @@ If issues occur, revert in reverse order:
 
 ---
 
-**Last Updated:** 2025-02-07 - All phases completed successfully!
+**Last Updated:** 2025-02-08 - All phases completed successfully!
 
 ## Phase 8 Notes - Repository Architecture Fix
 
@@ -245,3 +256,42 @@ During testing, we discovered that making all repository methods abstract broke 
 This allows:
 - Arch & Debian → inherit from `BaseSystemRepository` (full system installation)
 - AUR & Flatpak → inherit from `Repository` (package management only)
+
+## Phase 9 Notes - Repository Components Feature
+
+Added support for configuring repository components (Ubuntu: main/universe/multiverse/restricted, Debian: main/contrib/non-free) via the `components` parameter.
+
+**Implementation:**
+```python
+# Debian class __init__ signature:
+def __init__(self, release="stable", variant="debian", components=None, **kwargs)
+
+# Smart defaults:
+- Ubuntu: ["main", "universe"] (matches Ubuntu Desktop installer)
+- Debian: ["main"] (minimal, users add contrib/non-free as needed)
+
+# Passed to debootstrap:
+debootstrap --components=main,universe --include=... noble /mnt http://...
+```
+
+**Key Features:**
+- ✅ Sensible defaults based on variant
+- ✅ User can override for custom needs
+- ✅ Uses debootstrap's native `--components` flag
+- ✅ Documented in README and example configurations
+
+**Use Cases:**
+```python
+# Default Ubuntu (main + universe)
+ubuntu = Debian(release="noble", variant="ubuntu")
+
+# All Ubuntu repos
+ubuntu = Debian(
+    release="noble", 
+    variant="ubuntu",
+    components=["main", "universe", "multiverse", "restricted"]
+)
+
+# Debian with non-free
+debian = Debian(components=["main", "contrib", "non-free"])
+```

@@ -151,7 +151,7 @@ debian = Debian(release="testing")
 ### Ubuntu Release Options
 
 ```python
-# Ubuntu 24.04 LTS
+# Ubuntu 24.04 LTS (with default repositories: main + universe)
 ubuntu = Debian(release="noble", variant="ubuntu")
 
 # Ubuntu 22.04 LTS
@@ -160,6 +160,54 @@ ubuntu = Debian(release="jammy", variant="ubuntu")
 # Ubuntu 20.04 LTS
 ubuntu = Debian(release="focal", variant="ubuntu")
 ```
+
+### Repository Components
+
+#### Ubuntu Components
+
+Ubuntu repositories are divided into 4 components. By default, `main` and `universe` are enabled:
+
+```python
+# Default (main + universe - recommended)
+ubuntu = Debian(release="noble", variant="ubuntu")
+
+# All repositories (including proprietary)
+ubuntu = Debian(
+    release="noble", 
+    variant="ubuntu",
+    components=["main", "universe", "multiverse", "restricted"]
+)
+
+# Minimal (main only)
+ubuntu = Debian(release="noble", variant="ubuntu", components=["main"])
+```
+
+**Component descriptions:**
+- **main** - Canonical-supported free and open-source software
+- **universe** - Community-maintained free and open-source software (enabled by default)
+- **multiverse** - Software restricted by copyright or legal issues
+- **restricted** - Proprietary drivers for devices
+
+#### Debian Components
+
+Debian repositories have 3 components. By default, only `main` is enabled:
+
+```python
+# Default (main only)
+debian = Debian()
+
+# With contrib and non-free
+debian = Debian(components=["main", "contrib", "non-free"])
+
+# Non-free-firmware (Debian 12+)
+debian = Debian(components=["main", "contrib", "non-free", "non-free-firmware"])
+```
+
+**Component descriptions:**
+- **main** - Free software that meets the Debian Free Software Guidelines
+- **contrib** - Free software that depends on non-free software
+- **non-free** - Software that does not meet DFSG (proprietary licenses)
+- **non-free-firmware** - Non-free firmware files (Debian 12+)
 
 ## Architecture
 
