@@ -100,18 +100,17 @@ class Debian(BaseSystemRepository):
             kernel_package = conf.boot.kernel.package
         else:
             # Default kernel for Debian/Ubuntu
-            kernel_package = self["linux-image-amd64"]
+            kernel_package = self["linux-image-generic"]
 
         packages = {
             "kernel": kernel_package,
             "base": self[
-                "linux-image-amd64",
-                "firmware-linux",
+                "linux-image-generic",
+                "linux-firmware",
                 microcode,
                 "btrfs-progs",
-                "linux-firmware",
                 "bash-completion",
-                "mlocate",
+                "plocate",
                 "sudo",
                 "schroot",
                 "whois",
