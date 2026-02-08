@@ -76,8 +76,15 @@ class Debian(BaseSystemRepository):
         pkgs_str = ",".join(list_pkgs)
         components_str = ",".join(self.components)
 
+        # exec(
+        #     f"debootstrap --components={components_str} --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
+        # )
         exec(
-            f"debootstrap --components={components_str} --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
+            f"debootstrap --components={components_str} {self.release} {mount_point} {self.mirror_url}"
+        )
+        exec_chroot(
+            f"apt install {pkgs_str}",
+            mount_point=mount_point,
         )
 
     def install(self, items) -> None:
@@ -120,11 +127,11 @@ class Debian(BaseSystemRepository):
             "kernel": kernel_package,
             "base": self[
                 # "linux-image-generic",
-                "linux-firmware",
+                # "linux-firmware",
                 microcode,
                 "btrfs-progs",
                 "bash-completion",
-                "plocate",
+                # "plocate",
                 "sudo",
                 # "schroot",
                 "whois",
