@@ -133,7 +133,7 @@ class Debian(BaseSystemRepository):
                 "bash-completion",
                 # "plocate",
                 "sudo",
-                # "schroot",
+                "schroot",  # TODO: need to be removed
                 "whois",
                 "dracut",  # For initramfs generation (consistent with Arch)
                 "git",
