@@ -405,7 +405,7 @@ class Debian(BaseSystemRepository):
             str: Command to execute
         """
         pkgs = " ".join(package_name)
-        cmd = f"DEBIAN_FRONTEND=noninteractive apt-get install -y {pkgs}"
+        cmd = f"apt-get install -y {pkgs}"
         return cmd
 
     def remove_packages(self, packages_name: set | list) -> str:
@@ -418,7 +418,7 @@ class Debian(BaseSystemRepository):
             str: Command to execute
         """
         pkgs = " ".join(packages_name)
-        cmd = f"DEBIAN_FRONTEND=noninteractive apt-get remove -y {pkgs}"
+        cmd = f"apt-get remove -y {pkgs}"
         return cmd
 
     def update_installed_packages(self, packages: tuple) -> str:
@@ -433,7 +433,7 @@ class Debian(BaseSystemRepository):
         if len(packages) == 0:
             return ""
         pkgs = " ".join(packages)
-        cmd = f"DEBIAN_FRONTEND=noninteractive apt-get install --only-upgrade -y {pkgs}"
+        cmd = f"apt-get install --only-upgrade -y {pkgs}"
         return cmd
 
     def update_database(self) -> str:
