@@ -226,6 +226,17 @@ class Configuration:
         logger.info(f"Installing {len(base_packages.to_list())} base packages")
         self._base.install_base(self._mount_point, base_packages)
         exec_chroot(self._base.update_database(), mount_point=self._mount_point)
+
+        # Show installed kernel packages in interactive mode
+        if self._interactive:
+            logger.info("=" * 80)
+            logger.info("Kernel packages installed:")
+            exec_chroot(
+                "dpkg -l | grep '^ii.*linux-image'",
+                mount_point=self._mount_point,
+            )
+            logger.info("=" * 80)
+
         self._pause_if_interactive(
             "Base system packages installation (debootstrap, kernel, essential tools)"
         )

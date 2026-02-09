@@ -280,6 +280,26 @@ def setup_bootloader(
         # Verify GRUB is not installed (Debian/Ubuntu safety check)
         verify_grub_not_installed(mount_point, base)
 
+        # Verify kernel package is installed (Debian/Ubuntu pre-flight check)
+        from pykod.repositories.debian import Debian
+
+        if isinstance(base, Debian):
+            logger.info("Pre-flight check: Verifying kernel package is installed...")
+            kernel_check = exec_chroot(
+                "dpkg -l | grep '^ii.*linux-image' | head -1",
+                mount_point=mount_point,
+                get_output=True,
+            ).strip()
+
+            if not kernel_check:
+                raise RuntimeError(
+                    "Cannot setup bootloader: No kernel package installed. "
+                    "This indicates base package installation failed. "
+                    "Check Step 2 (Base packages) logs for errors."
+                )
+
+            logger.debug(f"Kernel package verified: {kernel_check}")
+
         kver = base.setup_linux(mount_point, kernel_package)
         exec_chroot("bootctl install", mount_point=mount_point)
         logger.debug(f"Kernel version: {kver}")

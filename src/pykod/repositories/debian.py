@@ -254,6 +254,25 @@ class Debian(BaseSystemRepository):
         # Step 5: Verify GRUB was not installed
         verify_grub_not_installed_debian(mount_point)
 
+        # Step 6: Verify kernel package was installed
+        logger.info("Verifying kernel package installation...")
+        kernel_check = exec_chroot(
+            "dpkg -l | grep '^ii.*linux-image' || true",
+            mount_point=mount_point,
+            get_output=True,
+        ).strip()
+
+        if not kernel_check:
+            logger.error("No kernel package found after base installation!")
+            logger.error("This likely means the apt-get install command failed.")
+            logger.error("Check the logs above for apt-get errors.")
+            raise RuntimeError(
+                "Kernel package installation failed. No linux-image package found. "
+                "Review the base package installation logs for errors."
+            )
+
+        logger.info(f"✓ Kernel package(s) installed:\n{kernel_check}")
+
         logger.info("Base system installation completed")
 
     def install(self, items) -> None:
