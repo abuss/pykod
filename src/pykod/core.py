@@ -105,65 +105,66 @@ def configure_system(mount_point: str) -> None:
     with open_with_dry_run(f"{mount_point}/etc/os-release", "w") as f:
         f.write(os_release)
 
-    # Configure schroot
-    system_schroot = """[system]
- type=directory
- description=KodOS
- directory=/
- groups=users,root
- root-groups=root,wheel
- profile=kodos
- personality=linux
- """
-    with open_with_dry_run(f"{mount_point}/etc/schroot/chroot.d/system.conf", "w") as f:
-        f.write(system_schroot)
 
-    venv_schroot = """[virtual_env]
- type=directory
- description=KodOS
- directory=/
- union-type=overlay
- groups=users,root
- root-groups=root,wheel
- profile=kodos
- personality=linux
- aliases=user_env
- """
-    with open_with_dry_run(
-        f"{mount_point}/etc/schroot/chroot.d/virtual_env.conf", "w"
-    ) as f:
-        f.write(venv_schroot)
+#    # Configure schroot
+#    system_schroot = """[system]
+# type=directory
+# description=KodOS
+# directory=/
+# groups=users,root
+# root-groups=root,wheel
+# profile=kodos
+# personality=linux
+# """
+#    with open_with_dry_run(f"{mount_point}/etc/schroot/chroot.d/system.conf", "w") as f:
+#        f.write(system_schroot)
 
-    # Setting profile
-    kodos_dir = Path(mount_point) / "etc" / "schroot" / "kodos"
-    if get_dry_run():
-        logger.debug(f"[dry-run] Creating schroot profile at {kodos_dir}")
-    else:
-        kodos_dir.mkdir(parents=True, exist_ok=True)
-        (kodos_dir / "copyfiles").touch()
-        (kodos_dir / "nssdatabases").touch()
+#    venv_schroot = """[virtual_env]
+# type=directory
+# description=KodOS
+# directory=/
+# union-type=overlay
+# groups=users,root
+# root-groups=root,wheel
+# profile=kodos
+# personality=linux
+# aliases=user_env
+# """
+#    with open_with_dry_run(
+#        f"{mount_point}/etc/schroot/chroot.d/virtual_env.conf", "w"
+#    ) as f:
+#        f.write(venv_schroot)
 
-    venv_fstab = (
-        "# <file system> <mount point>   <type>  <options>       <dump>  <pass>"
-    )
-    for mpoint in [
-        "/proc",
-        "/sys",
-        "/dev",
-        "/dev/pts",
-        "/home",
-        "/root",
-        "/tmp",
-        "/run",
-        "/var/cache",
-        "/var/log",
-        "/var/tmp",
-        "/var/kod",
-    ]:
-        venv_fstab += f"{mpoint}\t{mpoint}\tnone\trw,bind\t0\t0\n"
+#    # Setting profile
+#    kodos_dir = Path(mount_point) / "etc" / "schroot" / "kodos"
+#    if get_dry_run():
+#        logger.debug(f"[dry-run] Creating schroot profile at {kodos_dir}")
+#    else:
+#        kodos_dir.mkdir(parents=True, exist_ok=True)
+#        (kodos_dir / "copyfiles").touch()
+#        (kodos_dir / "nssdatabases").touch()
 
-    with open_with_dry_run(f"{mount_point}/etc/schroot/kodos/fstab", "w") as f:
-        f.write(venv_fstab)
+#    venv_fstab = (
+#        "# <file system> <mount point>   <type>  <options>       <dump>  <pass>"
+#    )
+#    for mpoint in [
+#        "/proc",
+#        "/sys",
+#        "/dev",
+#        "/dev/pts",
+#        "/home",
+#        "/root",
+#        "/tmp",
+#        "/run",
+#        "/var/cache",
+#        "/var/log",
+#        "/var/tmp",
+#        "/var/kod",
+#    ]:
+#        venv_fstab += f"{mpoint}\t{mpoint}\tnone\trw,bind\t0\t0\n"
+
+#    with open_with_dry_run(f"{mount_point}/etc/schroot/kodos/fstab", "w") as f:
+#        f.write(venv_fstab)
 
 
 # Boot-related functions
