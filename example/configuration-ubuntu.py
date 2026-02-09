@@ -19,7 +19,8 @@ from pykod.repositories.debian import GPU_PACKAGES
 ubuntu = Debian(
     release="noble",  # Ubuntu 24.04 LTS
     variant="ubuntu",
-    mirror_url="http://archive.ubuntu.com/ubuntu/",
+    # mirror_url="http://archive.ubuntu.com/ubuntu/",
+    mirror_url="http://mirrors.kernel.org/ubuntu/",
     # components=["main", "universe"]  # Default - automatically enabled
     # components=["main", "universe", "multiverse", "restricted"]  # All repos
 )
