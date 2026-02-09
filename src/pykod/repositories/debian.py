@@ -289,8 +289,15 @@ class Debian(BaseSystemRepository):
         if conf.boot and conf.boot.kernel and conf.boot.kernel.package:
             kernel_package = conf.boot.kernel.package
         else:
-            # Default kernel for Debian/Ubuntu
-            kernel_package = self["linux-image-generic"]
+            # Default kernel varies by distribution variant
+            if self.variant == "debian":
+                kernel_package = self["linux-image-amd64"]  # Debian meta-package
+            else:  # Ubuntu
+                kernel_package = self["linux-image-generic"]  # Ubuntu meta-package
+
+        logger.debug(
+            f"Selected kernel package for {self.variant}: {kernel_package.to_list()}"
+        )
 
         packages = {
             "kernel": kernel_package,
