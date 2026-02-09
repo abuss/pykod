@@ -37,7 +37,8 @@ ubuntu = Debian(
 flatpak = Flatpak(hub_url="flathub")
 
 # Create configuration
-conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+# conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+conf = Configuration(base=ubuntu, interactive==True, verbose=True)
 
 # Disk configuration - same as Arch/Debian (BTRFS + generations)
 conf.devices = Devices(
