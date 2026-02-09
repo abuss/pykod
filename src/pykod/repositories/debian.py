@@ -303,7 +303,7 @@ class Debian(BaseSystemRepository):
                 # "plocate",
                 "sudo",
                 "passwd",  # Provides usermod, useradd, etc. (essential user management)
-                "schroot",  # TODO: need to be removed
+                # "schroot",  # TODO: need to be removed
                 "whois",  # Provides mkpasswd for password hashing
                 "initramfs-tools",  # Debian's native initramfs generator
                 "git",
