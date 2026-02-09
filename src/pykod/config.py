@@ -38,11 +38,13 @@ class Configuration:
         debug: bool = False,
         verbose: bool = False,
         mount_point: str = "/mnt",
+        interactive: bool = False,
     ):
         self._base = base
         self._dry_run = dry_run
         self._debug = debug
         self._verbose = verbose
+        self._interactive = interactive
         if dry_run:
             mount_point = "mnt"
         self._mount_point = mount_point
@@ -55,6 +57,28 @@ class Configuration:
         self._logger_configured = False
 
     # ---- internal helpers (no behavior change) ----
+
+    def _pause_if_interactive(self, step_name: str) -> None:
+        """Pause for user review if interactive mode is enabled.
+
+        Args:
+            step_name: Name of the step that was just completed
+        """
+        if self._interactive:
+            logger.info("=" * 80)
+            logger.info(f"Step completed: {step_name}")
+            logger.info("=" * 80)
+            print(f"\n{'=' * 80}")
+            print(f"STEP COMPLETED: {step_name}")
+            print(f"{'=' * 80}")
+            print(f"Press ENTER to continue to the next step, or Ctrl+C to abort...")
+            try:
+                input()
+            except KeyboardInterrupt:
+                logger.warning("Installation aborted by user")
+                print("\n\nInstallation aborted by user.")
+                raise SystemExit(1)
+            logger.info(f"Resuming installation after '{step_name}'")
 
     def get_users(self) -> dict:
         users: dict[str, User] = {}
@@ -186,6 +210,9 @@ class Configuration:
             raise ValueError("No devices configuration found.")
         self._partition_list = devices.install(self, self._mount_point)
         logger.debug(f"Partition list: {self._partition_list}")
+        self._pause_if_interactive(
+            "Device installation (partitioning, formatting, mounting)"
+        )
 
         # Step 2: Base packages
         current_step += 1
@@ -199,6 +226,9 @@ class Configuration:
         logger.info(f"Installing {len(base_packages.to_list())} base packages")
         self._base.install_base(self._mount_point, base_packages)
         exec_chroot(self._base.update_database(), mount_point=self._mount_point)
+        self._pause_if_interactive(
+            "Base system packages installation (debootstrap, kernel, essential tools)"
+        )
 
         # Step 3: System configuration
         current_step += 1
@@ -207,17 +237,22 @@ class Configuration:
         )
         generate_fstab(self, self._partition_list, self._mount_point)
         configure_system(self._mount_point)
+        self._pause_if_interactive("System configuration (fstab, hostname, timezone)")
 
         # Step 4: Boot configuration
         current_step += 1
         logger.info(f"[{current_step}/{total_steps}] Installing boot configuration...")
         boot = self.boot
         boot.install(self)
+        self._pause_if_interactive(
+            "Boot configuration (systemd-boot, initramfs, boot entries)"
+        )
 
         # Step 5: KodOS user
         current_step += 1
         logger.info(f"[{current_step}/{total_steps}] Creating KodOS user...")
         create_kod_user(self._mount_point)
+        self._pause_if_interactive("KodOS user creation")
 
         # Step 6: Locale configuration
         current_step += 1
@@ -225,6 +260,7 @@ class Configuration:
             f"[{current_step}/{total_steps}] Installing locale configuration..."
         )
         self.locale.install(self)
+        self._pause_if_interactive("Locale configuration")
 
         # Step 7: Network configuration
         current_step += 1
@@ -232,6 +268,7 @@ class Configuration:
             f"[{current_step}/{total_steps}] Installing network configuration..."
         )
         self.network.install(self)
+        self._pause_if_interactive("Network configuration")
 
         # Step 8: Repository and package installation
         current_step += 1
@@ -255,6 +292,9 @@ class Configuration:
         # Install/remove packages
         self._apply_repo(include_pkgs, "install", self._mount_point)
         self._apply_repo(exclude_pkgs, "remove", self._mount_point)
+        self._pause_if_interactive(
+            "Package installation (user packages, desktop environment, etc.)"
+        )
 
         # Step 9: Services
         current_step += 1
@@ -264,6 +304,7 @@ class Configuration:
         list_enabled_services = services.get_enabled_services()
         logger.info(f"Enabled {len(list_enabled_services)} services")
         logger.debug(f"Enabled services: {list_enabled_services}")
+        self._pause_if_interactive("Services enabled")
 
         # Step 10: User installation
         current_step += 1
@@ -273,6 +314,9 @@ class Configuration:
         for username, user in users.items():
             logger.info(f"Configuring user: {username}")
             user.install(self)
+        self._pause_if_interactive(
+            "User configurations (user creation, shell, dotfiles)"
+        )
 
         # Store generation state
         logger.info("Storing generation state...")
@@ -305,6 +349,18 @@ class Configuration:
         logger.info("=" * 80)
         logger.info("KodOS Installation Completed Successfully")
         logger.info("=" * 80)
+
+        # Final pause for review
+        if self._interactive:
+            print(f"\n{'=' * 80}")
+            print("INSTALLATION COMPLETED SUCCESSFULLY!")
+            print(f"{'=' * 80}")
+            print("You can now reboot into your new system.")
+            print("Press ENTER to finish...")
+            try:
+                input()
+            except KeyboardInterrupt:
+                pass
 
     # =============================== REBUILD ================================
     def rebuild(

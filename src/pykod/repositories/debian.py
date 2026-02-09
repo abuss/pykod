@@ -302,8 +302,9 @@ class Debian(BaseSystemRepository):
                 "bash-completion",
                 # "plocate",
                 "sudo",
+                "passwd",  # Provides usermod, useradd, etc. (essential user management)
                 "schroot",  # TODO: need to be removed
-                "whois",
+                "whois",  # Provides mkpasswd for password hashing
                 "initramfs-tools",  # Debian's native initramfs generator
                 "git",
                 "systemd",
