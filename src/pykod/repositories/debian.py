@@ -331,13 +331,16 @@ class Debian(BaseSystemRepository):
 
         Returns:
             tuple: (kernel_file_path, kernel_version)
+
+        Raises:
+            RuntimeError: If kernel cannot be found or version cannot be extracted
         """
-        print(f"[get_kernel_info] mount_point={mount_point}, package={package}")
+        logger.info(f"Detecting installed kernel from package {package}...")
         kernel_pkg = package.to_list()[0]
 
-        # Debian: kernel is in /boot/vmlinuz-<version>
+        # Method 1: Query package files
         kernel_file = exec_chroot(
-            f"dpkg-query -L {kernel_pkg} | grep '/boot/vmlinuz-'",
+            f"dpkg-query -L {kernel_pkg} 2>/dev/null | grep '/boot/vmlinuz-' || true",
             mount_point=mount_point,
             get_output=True,
         )
@@ -346,10 +349,54 @@ class Debian(BaseSystemRepository):
             kernel_file = "/boot/vmlinuz-6.1.0-18-amd64"
 
         kernel_file = kernel_file.strip()
-        print(f"[get_kernel_info] kernel_file={kernel_file}")
+        logger.debug(f"dpkg-query result: '{kernel_file}'")
+
+        # Method 2: Fallback - search filesystem directly
+        if not kernel_file:
+            logger.warning(
+                f"Package query failed for {kernel_pkg}, searching filesystem..."
+            )
+            kernel_file = exec_chroot(
+                "ls -1 /boot/vmlinuz-* 2>/dev/null | head -1 || true",
+                mount_point=mount_point,
+                get_output=True,
+            ).strip()
+            logger.debug(f"Filesystem search result: '{kernel_file}'")
+
+        # Validation: Ensure we found a kernel
+        if not kernel_file:
+            # Check if package is actually installed
+            pkg_check = exec_chroot(
+                f"dpkg -l {kernel_pkg} 2>/dev/null | grep '^ii' || true",
+                mount_point=mount_point,
+                get_output=True,
+            ).strip()
+
+            if not pkg_check:
+                raise RuntimeError(
+                    f"Kernel package '{kernel_pkg}' is not installed. "
+                    f"Base package installation may have failed. "
+                    f"Check logs for apt-get errors during Step 2 (Base packages)."
+                )
+            else:
+                raise RuntimeError(
+                    f"Kernel package '{kernel_pkg}' is installed but no vmlinuz file found. "
+                    f"Package may be corrupted or incomplete. "
+                    f"Found in dpkg: {pkg_check}"
+                )
+
+        logger.info(f"✓ Found kernel: {kernel_file}")
 
         # Extract version: /boot/vmlinuz-6.1.0-18-amd64 → 6.1.0-18-amd64
         kver = kernel_file.replace("/boot/vmlinuz-", "")
+
+        if not kver:
+            raise RuntimeError(
+                f"Failed to extract kernel version from '{kernel_file}'. "
+                f"Expected format: /boot/vmlinuz-<version>"
+            )
+
+        logger.debug(f"Extracted kernel version: {kver}")
         return kernel_file, kver
 
     def setup_linux(self, mount_point, kernel_package):
@@ -381,15 +428,46 @@ class Debian(BaseSystemRepository):
         Args:
             mount_point: Installation mount point (for chroot)
             kver: Kernel version string
+
+        Raises:
+            ValueError: If kver is empty
+            RuntimeError: If update-initramfs command not found or generation fails
         """
+        if not kver:
+            raise ValueError(
+                "Kernel version is empty. Cannot generate initramfs. "
+                "This indicates kernel detection failed."
+            )
+
         logger.info(f"Generating initramfs for kernel {kver} using update-initramfs...")
+
+        # Verify update-initramfs exists
+        check_cmd = exec_chroot(
+            "which update-initramfs || echo 'NOT_FOUND'",
+            mount_point=mount_point,
+            get_output=True,
+        ).strip()
+
+        if check_cmd == "NOT_FOUND":
+            raise RuntimeError(
+                "update-initramfs command not found. "
+                "Ensure 'initramfs-tools' package was installed during base setup."
+            )
 
         # Generate initramfs using Debian's tool
         # -c = create, -k = kernel version
-        exec_chroot(
-            f"update-initramfs -c -k {kver}",
-            mount_point=mount_point,
-        )
+        try:
+            exec_chroot(
+                f"update-initramfs -c -k {kver}",
+                mount_point=mount_point,
+            )
+        except Exception as e:
+            logger.error(f"Failed to generate initramfs for kernel {kver}: {e}")
+            raise RuntimeError(
+                f"update-initramfs failed for kernel {kver}. "
+                f"Check if kernel modules are properly installed. "
+                f"Error: {e}"
+            ) from e
 
         # Debian creates: /boot/initrd.img-{kver}
         # pykod expects: /boot/initramfs-linux-{kver}.img
@@ -400,7 +478,20 @@ class Debian(BaseSystemRepository):
             mount_point=mount_point,
         )
 
-        logger.debug(f"Initramfs generated: /boot/initrd.img-{kver}")
+        # Verify the initramfs was created
+        verify_cmd = exec_chroot(
+            f"test -f /boot/initrd.img-{kver} && echo 'OK' || echo 'MISSING'",
+            mount_point=mount_point,
+            get_output=True,
+        ).strip()
+
+        if verify_cmd == "MISSING":
+            raise RuntimeError(
+                f"Initramfs file /boot/initrd.img-{kver} not found after generation. "
+                f"update-initramfs may have failed silently."
+            )
+
+        logger.info(f"✓ Initramfs generated successfully: /boot/initrd.img-{kver}")
 
     def install_packages(self, package_name) -> str:
         """Generate apt-get install command.
