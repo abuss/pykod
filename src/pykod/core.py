@@ -1,5 +1,6 @@
 """Core functions for configuring the system."""
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,8 @@ from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command as exec
 from pykod.common import get_dry_run, open_with_dry_run
 from pykod.repositories.base import Repository
+
+logger = logging.getLogger("pykod.config")
 
 os_release = """NAME="KodOS Linux"
 VERSION="1.0"
@@ -30,7 +33,7 @@ def generate_fstab(config, partition_list: list, mount_point: str) -> None:
         partition_list (List): A list of Partition objects to be written to the fstab file.
         mount_point (str): The mount point where the fstab file will be written.
     """
-    print("Generating fstab")
+    logger.debug(f"Generating fstab for {len(partition_list)} partitions")
 
     with open_with_dry_run(f"{mount_point}/etc/fstab", "w") as f:
         for part in partition_list:
@@ -40,9 +43,13 @@ def generate_fstab(config, partition_list: list, mount_point: str) -> None:
                     part.source = f"UUID={uuid.strip()}"
             f.write(str(part) + "\n")
 
+    logger.debug("fstab generated successfully")
+
 
 def configure_system(mount_point: str) -> None:
     """Configure a system based on the given configuration."""
+    logger.debug(f"Configuring system at {mount_point}")
+
     # Replace default os-release
     with open_with_dry_run(f"{mount_point}/etc/os-release", "w") as f:
         f.write(os_release)
@@ -79,9 +86,7 @@ def configure_system(mount_point: str) -> None:
     # Setting profile
     kodos_dir = Path(mount_point) / "etc" / "schroot" / "kodos"
     if get_dry_run():
-        print(f"[dry-run] mkdir -p {kodos_dir}")
-        print(f"[dry-run] touch {kodos_dir / 'copyfiles'}")
-        print(f"[dry-run] touch {kodos_dir / 'nssdatabases'}")
+        logger.debug(f"[dry-run] Creating schroot profile at {kodos_dir}")
     else:
         kodos_dir.mkdir(parents=True, exist_ok=True)
         (kodos_dir / "copyfiles").touch()
@@ -162,9 +167,12 @@ options root={root_device} rw {options}
     entries_path_obj = Path(entries_path)
     if not entries_path_obj.is_dir():
         if get_dry_run():
-            print(f"[dry-run] mkdir -p {entries_path}")
+            logger.debug(
+                f"[dry-run] Would create boot entries directory: {entries_path}"
+            )
         else:
             entries_path_obj.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Created boot entries directory: {entries_path}")
     with open_with_dry_run(
         f"{mount_point}/boot/loader/entries/{entry_name}.conf", "w"
     ) as f:
@@ -190,7 +198,7 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
         partition_list (list): A list of Partition objects to use for determining the root device.
     """
 
-    print("\n\n[install] Setting up bootloader")
+    logger.info("Setting up bootloader")
     # boot_conf = conf.boot
     loader_conf = conf.loader
 
@@ -208,10 +216,10 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
 
     # Using systemd-boot as bootloader
     if boot_type == "systemd-boot":
-        print("==== Setting up systemd-boot ====")
+        logger.info("Setting up systemd-boot")
         kver = base.setup_linux("/mnt", kernel_package)
         exec_chroot("bootctl install")
-        print("KVER:", kver)
+        logger.debug(f"Kernel version: {kver}")
         base.generate_initramfs("/mnt", kver)
         create_boot_entry(0, partition_list, mount_point="/mnt", kver=kver)
 
@@ -243,9 +251,11 @@ def create_kod_user(mount_point: str) -> None:
         mount_point (str): The mount point where the installation is being
             performed.
     """
+    logger.debug("Creating KodOS system user")
     exec_chroot("useradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod")
     with open_with_dry_run(f"{mount_point}/etc/sudoers.d/kod", "w") as f:
         f.write("kod ALL=(ALL) NOPASSWD: ALL")
+    logger.debug("KodOS user created successfully")
 
 
 def save_configuration(
@@ -316,7 +326,7 @@ def save_configuration(
     with open(str(config_json_path), "w") as f:
         json.dump(config_dict, f, indent=2, default=str)
 
-    print(f"Configuration and repositories stored to: {config_json_path}")
+    logger.debug(f"Configuration and repositories stored to: {config_json_path}")
 
 
 def Source(path: str) -> str:
@@ -351,8 +361,9 @@ class File(dict):
 
     def install(self, mount_point) -> None:
         """Install files to the specified mount point."""
-        print("\n[INSTALL] Files:")
-        print(self.build_command(mount_point))
+        logger.debug("Installing files")
+        commands = self.build_command(mount_point)
+        logger.debug(f"File installation commands: {commands}")
 
 
 def Component(name: str):
