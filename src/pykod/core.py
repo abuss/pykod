@@ -24,6 +24,57 @@ RELEASE_TYPE="experimental"
 """
 
 
+def verify_grub_not_installed(mount_point: str, base: Repository) -> None:
+    """Verify that GRUB is not installed before systemd-boot installation.
+
+    For Debian/Ubuntu systems, this is a sanity check to ensure our GRUB
+    blocking during base installation was successful.
+
+    Args:
+        mount_point: Installation mount point
+        base: Base repository instance
+
+    Raises:
+        ValueError: If GRUB packages are detected (installation should not proceed)
+    """
+    from pykod.repositories.debian import Debian
+
+    # Only check on Debian/Ubuntu systems
+    if not isinstance(base, Debian):
+        logger.debug("Not a Debian/Ubuntu system, skipping GRUB verification")
+        return
+
+    logger.info("Verifying GRUB is not installed...")
+
+    try:
+        # Check for any installed GRUB packages
+        check_cmd = "dpkg -l | grep '^ii.*grub' || true"
+        result = exec_chroot(check_cmd, mount_point=mount_point, get_output=True)
+
+        if result.strip():
+            # GRUB packages found - this is a critical error
+            grub_packages = result.strip().split("\n")
+            logger.error("GRUB packages detected before systemd-boot installation!")
+            logger.error(f"Found packages: {grub_packages}")
+            raise ValueError(
+                "GRUB packages are installed, cannot proceed with systemd-boot. "
+                "This indicates GRUB blocking during base installation failed. "
+                f"Detected packages: {result.strip()}"
+            )
+        else:
+            logger.info("✓ Verification passed: No GRUB packages detected")
+
+    except ValueError:
+        # Re-raise ValueError from GRUB detection
+        raise
+    except Exception as e:
+        # Warn but continue for other errors (verification failure shouldn't block install)
+        logger.warning(
+            f"Failed to verify GRUB status: {e}. "
+            "Proceeding with systemd-boot installation anyway."
+        )
+
+
 # Filesystem and system configuration functions
 def generate_fstab(config, partition_list: list, mount_point: str) -> None:
     """
@@ -188,14 +239,21 @@ console-mode keep
         f.write(loader_conf_systemd)
 
 
-def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
+def setup_bootloader(
+    conf: Any, partition_list: list, base: Repository, mount_point: str = "/mnt"
+) -> None:
     # bootloader
     """
     Set up the bootloader based on the configuration.
 
+    Note: For Debian/Ubuntu systems, GRUB prevention is handled during
+    base package installation (see repositories/debian.py).
+
     Args:
         conf (dict): The configuration dictionary.
         partition_list (list): A list of Partition objects to use for determining the root device.
+        base: Base repository instance for package management.
+        mount_point: Installation mount point. Defaults to "/mnt".
     """
 
     logger.info("Setting up bootloader")
@@ -217,11 +275,15 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
     # Using systemd-boot as bootloader
     if boot_type == "systemd-boot":
         logger.info("Setting up systemd-boot")
-        kver = base.setup_linux("/mnt", kernel_package)
-        exec_chroot("bootctl install")
+
+        # Verify GRUB is not installed (Debian/Ubuntu safety check)
+        verify_grub_not_installed(mount_point, base)
+
+        kver = base.setup_linux(mount_point, kernel_package)
+        exec_chroot("bootctl install", mount_point=mount_point)
         logger.debug(f"Kernel version: {kver}")
-        base.generate_initramfs("/mnt", kver)
-        create_boot_entry(0, partition_list, mount_point="/mnt", kver=kver)
+        base.generate_initramfs(mount_point, kver)
+        create_boot_entry(0, partition_list, mount_point=mount_point, kver=kver)
 
     # Using Grub as bootloader
     if boot_type == "grub":

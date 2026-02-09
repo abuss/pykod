@@ -266,7 +266,9 @@ class Boot:
 
     def install(self, config):
         print("[install] Boot configuration:", self)
-        setup_bootloader(self, config._partition_list, config._base)
+        setup_bootloader(
+            self, config._partition_list, config._base, config._mount_point
+        )
 
 
 class Devices(dict):

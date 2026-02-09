@@ -1,10 +1,15 @@
 """Debian/Ubuntu repository configuration."""
 
+import logging
+from pathlib import Path
+
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command as exec
 from pykod.common import get_dry_run
 
 from .base import BaseSystemRepository
+
+logger = logging.getLogger("pykod.config")
 
 GPU_PACKAGES = {
     "nvidia": {
@@ -28,6 +33,86 @@ GPU_PACKAGES = {
         "extras": ["intel-gpu-tools"],
     },
 }
+
+
+def block_grub_installation(mount_point: str) -> None:
+    """Prevent GRUB from being installed via APT preferences.
+
+    Creates APT pinning configuration before any package installation
+    to ensure GRUB cannot be pulled in as a dependency or recommendation.
+
+    Args:
+        mount_point: Installation mount point
+    """
+    logger.info("Creating APT preferences to block GRUB installation...")
+
+    # Create preferences directory if it doesn't exist
+    prefs_dir = Path(mount_point) / "etc/apt/preferences.d"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+
+    # APT pinning configuration to block all grub packages
+    grub_block_config = """# pykod: Block GRUB installation for systemd-boot compatibility
+# This prevents GRUB from being installed as a dependency or recommendation
+Package: grub*
+Pin: release *
+Pin-Priority: -1
+
+Package: grub-common
+Pin: release *
+Pin-Priority: -1
+
+Package: grub2-common
+Pin: release *
+Pin-Priority: -1
+
+Package: grub-efi-amd64
+Pin: release *
+Pin-Priority: -1
+
+Package: grub-efi-amd64-bin
+Pin: release *
+Pin-Priority: -1
+"""
+
+    prefs_file = prefs_dir / "99-no-grub"
+    with open(prefs_file, "w") as f:
+        f.write(grub_block_config)
+
+    logger.debug(f"GRUB blocking preferences created at {prefs_file}")
+
+
+def disable_grub_kernel_hooks(mount_point: str) -> None:
+    """Disable kernel hooks that expect GRUB to be present.
+
+    Uses dpkg-divert to prevent kernel post-install/remove scripts
+    from trying to update GRUB configuration.
+
+    Args:
+        mount_point: Installation mount point
+    """
+    logger.info("Disabling GRUB-related kernel hooks...")
+
+    hooks_to_disable = [
+        "/etc/kernel/postinst.d/zz-update-grub",
+        "/etc/kernel/postrm.d/zz-update-grub",
+    ]
+
+    for hook in hooks_to_disable:
+        try:
+            # Check if hook exists
+            hook_path = Path(mount_point) / hook.lstrip("/")
+            if hook_path.exists():
+                # Divert the hook (disable it)
+                exec_chroot(
+                    f"dpkg-divert --add --rename --divert {hook}.dpkg-divert {hook}",
+                    mount_point=mount_point,
+                )
+                logger.debug(f"Diverted hook: {hook}")
+            else:
+                logger.debug(f"Hook not present, skipping: {hook}")
+        except Exception as e:
+            # Warn but continue - not critical
+            logger.warning(f"Failed to divert {hook}: {e}")
 
 
 class Debian(BaseSystemRepository):
@@ -72,20 +157,30 @@ class Debian(BaseSystemRepository):
             packages: PackageList containing packages to install
         """
         list_pkgs = packages._pkgs[self]
-        print(f"{list_pkgs=}")
+        logger.debug(f"Packages to install: {list_pkgs}")
         pkgs_str = " ".join(list_pkgs)
         components_str = ",".join(self.components)
 
-        # exec(
-        #     f"debootstrap --components={components_str} --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
-        # )
+        # Step 1: Run debootstrap (minimal base system)
+        logger.info(f"Running debootstrap for {self.variant} {self.release}...")
         exec(
             f"debootstrap --components={components_str} {self.release} {mount_point} {self.mirror_url}"
         )
+
+        # Step 2: CRITICAL - Block GRUB before installing any packages
+        block_grub_installation(mount_point)
+
+        # Step 3: Disable GRUB kernel hooks
+        disable_grub_kernel_hooks(mount_point)
+
+        # Step 4: Install packages with --no-install-recommends
+        logger.info("Installing base packages (with GRUB blocked)...")
         exec_chroot(
-            f"apt install {pkgs_str}",
+            f"DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends {pkgs_str}",
             mount_point=mount_point,
         )
+
+        logger.info("Base system installation completed")
 
     def install(self, items) -> None:
         print(f"[install] {self.variant.capitalize()} repo:", self)
@@ -135,7 +230,7 @@ class Debian(BaseSystemRepository):
                 "sudo",
                 "schroot",  # TODO: need to be removed
                 "whois",
-                "dracut",  # For initramfs generation (consistent with Arch)
+                "initramfs-tools",  # Debian's native initramfs generator
                 "git",
                 "systemd",
                 "systemd-boot",  # For systemd-boot bootloader support
@@ -196,19 +291,34 @@ class Debian(BaseSystemRepository):
         return kver
 
     def generate_initramfs(self, mount_point: str, kver: str) -> None:
-        """Generate initramfs using dracut.
+        """Generate initramfs using Debian's native update-initramfs tool.
 
-        Using dracut for consistency with Arch and better compatibility
-        with systemd-boot and BTRFS.
+        Uses update-initramfs instead of dracut for better compatibility with
+        Debian/Ubuntu kernel packages and their post-install hooks.
 
         Args:
             mount_point: Installation mount point (for chroot)
             kver: Kernel version string
         """
+        logger.info(f"Generating initramfs for kernel {kver} using update-initramfs...")
+
+        # Generate initramfs using Debian's tool
+        # -c = create, -k = kernel version
         exec_chroot(
-            f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
+            f"update-initramfs -c -k {kver}",
             mount_point=mount_point,
         )
+
+        # Debian creates: /boot/initrd.img-{kver}
+        # pykod expects: /boot/initramfs-linux-{kver}.img
+        # Create symlink for compatibility
+        logger.debug("Creating pykod-compatible initramfs symlink...")
+        exec_chroot(
+            f"ln -sf /boot/initrd.img-{kver} /boot/initramfs-linux-{kver}.img",
+            mount_point=mount_point,
+        )
+
+        logger.debug(f"Initramfs generated: /boot/initrd.img-{kver}")
 
     def install_packages(self, package_name) -> str:
         """Generate apt-get install command.
