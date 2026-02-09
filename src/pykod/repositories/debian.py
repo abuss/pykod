@@ -43,15 +43,19 @@ def block_grub_installation(mount_point: str) -> None:
 
     Args:
         mount_point: Installation mount point
+
+    Raises:
+        OSError: If preferences directory cannot be created or file cannot be written
     """
     logger.info("Creating APT preferences to block GRUB installation...")
 
-    # Create preferences directory if it doesn't exist
-    prefs_dir = Path(mount_point) / "etc/apt/preferences.d"
-    prefs_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        # Create preferences directory if it doesn't exist
+        prefs_dir = Path(mount_point) / "etc/apt/preferences.d"
+        prefs_dir.mkdir(parents=True, exist_ok=True)
 
-    # APT pinning configuration to block all grub packages
-    grub_block_config = """# pykod: Block GRUB installation for systemd-boot compatibility
+        # APT pinning configuration to block all grub packages
+        grub_block_config = """# pykod: Block GRUB installation for systemd-boot compatibility
 # This prevents GRUB from being installed as a dependency or recommendation
 Package: grub*
 Pin: release *
@@ -74,11 +78,20 @@ Pin: release *
 Pin-Priority: -1
 """
 
-    prefs_file = prefs_dir / "99-no-grub"
-    with open(prefs_file, "w") as f:
-        f.write(grub_block_config)
+        prefs_file = prefs_dir / "99-no-grub"
+        with open(prefs_file, "w") as f:
+            f.write(grub_block_config)
 
-    logger.debug(f"GRUB blocking preferences created at {prefs_file}")
+        # Verify the file was created successfully
+        if not prefs_file.exists():
+            raise OSError(f"Failed to create GRUB preferences file at {prefs_file}")
+
+        logger.debug(f"GRUB blocking preferences created at {prefs_file}")
+        logger.info("✓ GRUB installation blocked via APT preferences")
+
+    except Exception as e:
+        logger.error(f"Failed to create GRUB blocking preferences: {e}")
+        raise
 
 
 def disable_grub_kernel_hooks(mount_point: str) -> None:
@@ -89,6 +102,11 @@ def disable_grub_kernel_hooks(mount_point: str) -> None:
 
     Args:
         mount_point: Installation mount point
+
+    Note:
+        This function does not raise exceptions - hook diversion failures
+        are logged as warnings since the APT preferences should prevent
+        GRUB installation regardless.
     """
     logger.info("Disabling GRUB-related kernel hooks...")
 
@@ -97,6 +115,7 @@ def disable_grub_kernel_hooks(mount_point: str) -> None:
         "/etc/kernel/postrm.d/zz-update-grub",
     ]
 
+    diverted_count = 0
     for hook in hooks_to_disable:
         try:
             # Check if hook exists
@@ -108,11 +127,63 @@ def disable_grub_kernel_hooks(mount_point: str) -> None:
                     mount_point=mount_point,
                 )
                 logger.debug(f"Diverted hook: {hook}")
+                diverted_count += 1
             else:
                 logger.debug(f"Hook not present, skipping: {hook}")
         except Exception as e:
-            # Warn but continue - not critical
+            # Warn but continue - not critical if APT preferences work
             logger.warning(f"Failed to divert {hook}: {e}")
+
+    if diverted_count > 0:
+        logger.info(f"✓ Diverted {diverted_count} GRUB kernel hook(s)")
+    else:
+        logger.info(
+            "No GRUB kernel hooks found to divert (this is normal for minimal installs)"
+        )
+
+
+def verify_grub_not_installed_debian(mount_point: str) -> None:
+    """Verify that GRUB was not installed during package installation.
+
+    This is a safety check to ensure the APT preferences worked correctly.
+
+    Args:
+        mount_point: Installation mount point
+
+    Raises:
+        RuntimeError: If GRUB packages are found installed
+    """
+    logger.info("Verifying GRUB was not installed...")
+
+    try:
+        # Check for any installed GRUB packages
+        result = exec_chroot(
+            "dpkg -l 2>/dev/null | grep -i '^ii.*grub' || true",
+            mount_point=mount_point,
+            get_output=True,
+        )
+
+        if result and result.strip():
+            # GRUB packages found - this is a critical error
+            installed_packages = result.strip().split("\n")
+            logger.error("GRUB packages were installed despite APT preferences!")
+            logger.error("Installed GRUB packages:")
+            for pkg in installed_packages:
+                logger.error(f"  {pkg}")
+            raise RuntimeError(
+                "GRUB packages found installed. APT preferences failed to block installation. "
+                "This will cause conflicts with systemd-boot."
+            )
+
+        logger.info("✓ Verified: No GRUB packages installed")
+
+    except RuntimeError:
+        # Re-raise RuntimeError from GRUB detection
+        raise
+    except Exception as e:
+        # Other errors during verification - warn but don't fail
+        logger.warning(f"Could not verify GRUB absence: {e}")
+        logger.warning("Continuing anyway - check manually if issues occur")
 
 
 class Debian(BaseSystemRepository):
@@ -179,6 +250,9 @@ class Debian(BaseSystemRepository):
             f"DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends {pkgs_str}",
             mount_point=mount_point,
         )
+
+        # Step 5: Verify GRUB was not installed
+        verify_grub_not_installed_debian(mount_point)
 
         logger.info("Base system installation completed")
 
