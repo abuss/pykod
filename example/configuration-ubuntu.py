@@ -19,7 +19,8 @@ from pykod.repositories.debian import GPU_PACKAGES
 ubuntu = Debian(
     release="noble",  # Ubuntu 24.04 LTS
     variant="ubuntu",
-    mirror_url="http://archive.ubuntu.com/ubuntu/",
+    # mirror_url="http://archive.ubuntu.com/ubuntu/",
+    mirror_url="http://mirrors.kernel.org/ubuntu/",
     # components=["main", "universe"]  # Default - automatically enabled
     # components=["main", "universe", "multiverse", "restricted"]  # All repos
 )
@@ -37,7 +38,8 @@ ubuntu = Debian(
 flatpak = Flatpak(hub_url="flathub")
 
 # Create configuration
-conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+# conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+conf = Configuration(base=ubuntu, interactive=True, verbose=True)
 
 # Disk configuration - same as Arch/Debian (BTRFS + generations)
 conf.devices = Devices(
@@ -129,7 +131,7 @@ conf.user = User(
     hashed_password="$6$MOkGLOzXlj0lIE2d$5sxAysiDyD/7ZfntgZaN3vJ48t.BMi2qwPxqjgVxGXKXrNlFxRvnO8uCvOlHaGW2pVDrjt0JLNR9GWH.2YT5j.",
 )
 
-# Packages
+# Packages from Ubuntu repositories
 conf.packages = Packages(
     ubuntu[
         "firefox",  # Ubuntu includes Firefox
@@ -142,6 +144,81 @@ conf.packages = Packages(
         "flatpak",
     ]
 )
+
+# -----------------------------------------------------------------------------
+# Optional: PPA (Personal Package Archives) Support
+# -----------------------------------------------------------------------------
+# PPAs provide newer or additional packages not in main Ubuntu repositories.
+# Each PPA instance represents one repository.
+#
+# Example usage:
+#     from pykod.repositories import PPA
+#
+#     # Graphics drivers PPA for latest NVIDIA drivers
+#     ppa_graphics = PPA(repo="ppa:graphics-drivers/ppa")
+#
+#     # Python versions PPA for additional Python releases
+#     ppa_python = PPA(repo="ppa:deadsnakes/ppa")
+#
+#     # Add packages from PPAs
+#     conf.packages += Packages(
+#         ppa_graphics["nvidia-driver-550"],  # Latest NVIDIA driver
+#         ppa_python["python3.12", "python3.13"]  # Additional Python versions
+#     )
+#
+# Common PPAs:
+# - Graphics: ppa:graphics-drivers/ppa
+# - Python: ppa:deadsnakes/ppa
+# - Kernel: ppa:canonical-kernel-team/ppa
+# - LibreOffice: ppa:libreoffice/ppa
+
+# -----------------------------------------------------------------------------
+# Optional: Snap Package Support
+# -----------------------------------------------------------------------------
+# Snap provides universal Linux packages with automatic updates.
+# Different snap instances for different configurations (classic, channels).
+#
+# Example usage:
+#     from pykod.repositories import Snap
+#
+#     # Regular snaps (confined applications)
+#     snap = Snap()
+#
+#     # Classic snaps (full system access - for IDEs, dev tools)
+#     snap_classic = Snap(classic=True)
+#
+#     # Beta channel snaps
+#     snap_beta = Snap(channel="beta")
+#
+#     # Add snap packages
+#     conf.packages += Packages(
+#         snap["spotify", "discord", "chromium"],  # Regular apps
+#         snap_classic["pycharm-professional", "code"]  # IDEs with classic confinement
+#     )
+#
+# Common snaps:
+# - Media: spotify, vlc, obs-studio
+# - Communication: discord, telegram-desktop, slack
+# - Development: code (VS Code), pycharm-community, pycharm-professional
+# - Browsers: chromium, firefox (snap version)
+
+# -----------------------------------------------------------------------------
+# Example: Complete Multi-Repository Setup
+# -----------------------------------------------------------------------------
+# You can mix Ubuntu, PPA, Snap, and Flatpak packages freely:
+#
+#     from pykod.repositories import PPA, Snap, Flatpak
+#
+#     ppa = PPA(repo="ppa:graphics-drivers/ppa")
+#     snap = Snap()
+#     flatpak = Flatpak(hub_url="flathub")
+#
+#     conf.packages = Packages(
+#         ubuntu["git", "build-essential"],  # Ubuntu main repos
+#         ppa["nvidia-driver-550"],          # PPA
+#         snap["spotify", "discord"],        # Snap
+#         flatpak["org.gimp.GIMP"]          # Flatpak
+#     )
 
 # System services
 conf.services = Services(
