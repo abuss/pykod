@@ -72,6 +72,15 @@ This module implements a 4-layer GRUB prevention system for systemd-boot:
 4. Pre-bootloader verification
 
 See block_grub_installation() and related functions for details.
+
+Service Management During Installation:
+---------------------------------------
+Uses policy-rc.d to prevent services from starting during chroot installation:
+- Prevents "invoke-rc.d: initscript" errors during apt operations
+- Services are properly started on first boot by systemd
+- policy-rc.d is removed after package installation completes
+
+See prevent_service_start() and allow_service_start() for details.
 """
 
 import logging
@@ -260,6 +269,71 @@ def verify_grub_not_installed_debian(mount_point: str) -> None:
         logger.warning("Continuing anyway - check manually if issues occur")
 
 
+def prevent_service_start(mount_point: str) -> None:
+    """Prevent services from starting during package installation.
+
+    Creates a policy-rc.d file that blocks all service starts in the chroot.
+    This prevents errors like "invoke-rc.d: initscript dbus" during apt installs.
+
+    Args:
+        mount_point: Installation mount point
+
+    Note:
+        This is standard practice for chroot installations. Services will be
+        properly started on first boot by systemd.
+    """
+    logger.info("Creating policy-rc.d to prevent service starts during installation...")
+
+    try:
+        policy_file = Path(mount_point) / "usr/sbin/policy-rc.d"
+
+        # Create the policy script that denies all service starts
+        policy_content = """#!/bin/sh
+# pykod: Prevent services from starting during installation
+# Services will be started properly on first boot by systemd
+exit 101
+"""
+
+        with open(policy_file, "w") as f:
+            f.write(policy_content)
+
+        # Make it executable
+        policy_file.chmod(0o755)
+
+        logger.info("✓ Service starts blocked via policy-rc.d")
+
+    except Exception as e:
+        # Warn but continue - not critical
+        logger.warning(f"Failed to create policy-rc.d: {e}")
+        logger.warning("Service start warnings may appear during installation")
+
+
+def allow_service_start(mount_point: str) -> None:
+    """Remove policy-rc.d to allow services to start normally.
+
+    Removes the policy-rc.d file created by prevent_service_start().
+    Should be called after all package installations are complete.
+
+    Args:
+        mount_point: Installation mount point
+    """
+    logger.info("Removing policy-rc.d to allow normal service management...")
+
+    try:
+        policy_file = Path(mount_point) / "usr/sbin/policy-rc.d"
+
+        if policy_file.exists():
+            policy_file.unlink()
+            logger.info("✓ Service management restored")
+        else:
+            logger.debug("policy-rc.d not found (already removed or never created)")
+
+    except Exception as e:
+        # Warn but continue
+        logger.warning(f"Failed to remove policy-rc.d: {e}")
+        logger.warning("Services may not start properly on first boot")
+
+
 class Debian(BaseSystemRepository):
     def __init__(self, release="stable", variant="debian", components=None, **kwargs):
         """Initialize Debian/Ubuntu repository.
@@ -347,25 +421,28 @@ class Debian(BaseSystemRepository):
             f"debootstrap --components={components_str} {self.release} {mount_point} {self.mirror_url}"
         )
 
-        # Step 2: CRITICAL - Block GRUB before installing any packages
+        # Step 2: Prevent services from starting during installation
+        prevent_service_start(mount_point)
+
+        # Step 3: CRITICAL - Block GRUB before installing any packages
         block_grub_installation(mount_point)
 
-        # Step 3: Disable GRUB kernel hooks
+        # Step 4: Disable GRUB kernel hooks
         disable_grub_kernel_hooks(mount_point)
 
-        # Step 4: Install base packages
+        # Step 5: Install base packages
         # Note: We allow recommended packages to ensure kernel dependencies (like linux-firmware)
-        # are installed. GRUB is still blocked via APT preferences (Step 2).
+        # are installed. GRUB is still blocked via APT preferences (Step 3).
         logger.info("Installing base packages (with GRUB blocked)...")
         exec_chroot(
             f"apt-get install -y {pkgs_str}",
             mount_point=mount_point,
         )
 
-        # Step 5: Verify GRUB was not installed
+        # Step 6: Verify GRUB was not installed
         verify_grub_not_installed_debian(mount_point)
 
-        # Step 6: Verify kernel package was installed
+        # Step 7: Verify kernel package was installed
         logger.info("Verifying kernel package installation...")
         kernel_check = exec_chroot(
             "dpkg -l | grep '^ii.*linux-image' || true",
@@ -383,6 +460,9 @@ class Debian(BaseSystemRepository):
             )
 
         logger.info(f"✓ Kernel package(s) installed:\n{kernel_check}")
+
+        # Step 8: Allow services to start on first boot
+        allow_service_start(mount_point)
 
         logger.info("Base system installation completed")
 
