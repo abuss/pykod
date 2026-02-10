@@ -384,7 +384,7 @@ def execute_chroot(
     if not use_dry_run:
         with ChrootManager(mount_point) as chroot:
             result = chroot.execute(cmd, capture_output=get_output)
-            return result.stdout if get_output is not None else ""
+            return result.stdout if get_output else ""
     else:
         print(f"{Color.PURPLE}chroot {mount_point} {cmd}{Color.END}")
         return ""

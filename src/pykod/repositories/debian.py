@@ -464,22 +464,62 @@ class Debian(BaseSystemRepository):
 
         # Step 7: Verify kernel package was installed
         logger.info("Verifying kernel package installation...")
+
+        # First, check all installed packages
+        all_packages = exec_chroot(
+            "dpkg -l",
+            mount_point=mount_point,
+            get_output=True,
+        )
+        logger.debug(f"Total dpkg output length: {len(all_packages)} characters")
+
+        # Check for linux-image packages specifically
         kernel_check = exec_chroot(
             "dpkg -l | grep '^ii.*linux-image' || true",
             mount_point=mount_point,
             get_output=True,
         ).strip()
 
-        if not kernel_check:
+        logger.debug(f"Kernel check result: '{kernel_check}'")
+        logger.debug(f"Kernel check result length: {len(kernel_check)}")
+
+        # Alternative check: use dpkg-query directly
+        kernel_check_alt = exec_chroot(
+            "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
+            mount_point=mount_point,
+            get_output=True,
+        ).strip()
+        logger.debug(f"Alternative kernel check: '{kernel_check_alt}'")
+
+        if not kernel_check and not kernel_check_alt:
             logger.error("No kernel package found after base installation!")
-            logger.error("This likely means the apt-get install command failed.")
-            logger.error("Check the logs above for apt-get errors.")
+            logger.error("This likely means the kernel package installation failed.")
+            logger.error("Checking what packages were actually installed...")
+
+            # Show what WAS installed
+            installed = exec_chroot(
+                "dpkg -l | grep '^ii' | wc -l",
+                mount_point=mount_point,
+                get_output=True,
+            ).strip()
+            logger.error(f"Total packages installed: {installed}")
+
+            # Check if linux-image-generic meta-package exists in repos
+            available = exec_chroot(
+                "apt-cache show linux-image-generic 2>&1 | head -5 || true",
+                mount_point=mount_point,
+                get_output=True,
+            ).strip()
+            logger.error(f"linux-image-generic availability:\n{available}")
+
             raise RuntimeError(
                 "Kernel package installation failed. No linux-image package found. "
                 "Review the base package installation logs for errors."
             )
 
-        logger.info(f"✓ Kernel package(s) installed:\n{kernel_check}")
+        logger.info(
+            f"✓ Kernel package(s) installed:\n{kernel_check or kernel_check_alt}"
+        )
 
         # Step 8: Allow services to start on first boot
         allow_service_start(mount_point)
