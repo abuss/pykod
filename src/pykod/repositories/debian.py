@@ -433,9 +433,10 @@ class Debian(BaseSystemRepository):
         # Step 5: Install base packages
         # Note: We allow recommended packages to ensure kernel dependencies (like linux-firmware)
         # are installed. GRUB is still blocked via APT preferences (Step 3).
+        # The 2>&1 | grep -v "policy-rc.d denied" suppresses expected policy-rc.d messages
         logger.info("Installing base packages (with GRUB blocked)...")
         exec_chroot(
-            f"apt-get install -y {pkgs_str}",
+            f"apt-get install -y {pkgs_str} 2>&1 | grep -v 'policy-rc.d denied' || true",
             mount_point=mount_point,
         )
 

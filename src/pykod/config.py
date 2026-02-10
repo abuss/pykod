@@ -2,7 +2,7 @@ import json
 import logging
 import subprocess
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 from chorut import ChrootManager
 
@@ -156,7 +156,9 @@ class Configuration:
             store_state(generation_path, kernel, include_pkgs, enabled_services)
             store_installed_packages(state_path, generation_path, self)
 
-    def _setup_logging(self, generation_path: Path, operation: str = "install") -> None:
+    def _setup_logging(
+        self, generation_path: Optional[Path] = None, operation: str = "install"
+    ) -> None:
         """Setup logging for install/rebuild operations.
 
         Args:
@@ -183,10 +185,8 @@ class Configuration:
     def install(self) -> None:
         """Install the configuration."""
 
-        # Setup logging early
-        generation_path = Path(f"{self._mount_point}/kod/generations/0")
-        generation_path.mkdir(parents=True, exist_ok=True)
-        self._setup_logging(generation_path, operation="install")
+        # Setup console-only logging first (file logging added after mount)
+        self._setup_logging(generation_path=None, operation="install")
 
         logger.info("=" * 80)
         logger.info("Starting KodOS Installation")
@@ -210,6 +210,15 @@ class Configuration:
             raise ValueError("No devices configuration found.")
         self._partition_list = devices.install(self, self._mount_point)
         logger.debug(f"Partition list: {self._partition_list}")
+
+        # Now that mount point exists, add file logging
+        generation_path = Path(f"{self._mount_point}/kod/generations/0")
+        generation_path.mkdir(parents=True, exist_ok=True)
+        # Re-setup logging to add file handlers (console handler already exists)
+        self._logger_configured = False  # Force re-configuration
+        self._setup_logging(generation_path, operation="install")
+        logger.info("✓ File logging enabled")
+
         self._pause_if_interactive(
             "Device installation (partitioning, formatting, mounting)"
         )
