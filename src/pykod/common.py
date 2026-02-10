@@ -22,6 +22,124 @@ problems: list[dict] = []
 logger = logging.getLogger(__name__)
 
 
+def setup_install_logging(
+    generation_path: Optional[Path] = None,
+    log_name: str = "install",
+    level: int = logging.DEBUG,
+) -> logging.Logger:
+    """Configure logging for installation/rebuild operations.
+
+    Sets up dual logging:
+    - Console: Simple INFO level messages for user feedback
+    - Generation file: Full DEBUG level messages at {generation_path}/{log_name}.log
+    - Centralized file: Full DEBUG level messages at /kod/logs/{log_name}-{timestamp}.log
+
+    Centralized logs are rotated (keeps last 50 files).
+
+    Args:
+        generation_path: Path to generation directory (e.g., /kod/generations/0)
+        log_name: Base name for log file (e.g., "install" or "rebuild")
+        level: Minimum logging level (default: DEBUG)
+
+    Returns:
+        Configured logger instance
+    """
+    from datetime import datetime
+
+    # Get or create the logger
+    config_logger = logging.getLogger("pykod.config")
+    config_logger.setLevel(level)
+
+    # Clear existing handlers to avoid duplicates
+    config_logger.handlers.clear()
+
+    # Format for console: simple and clean
+    console_formatter = logging.Formatter("[%(levelname)s] %(message)s")
+
+    # Format for files: detailed with timestamp, module, function
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    # Handler 1: Console (INFO and above, simple format)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(console_formatter)
+    config_logger.addHandler(console_handler)
+
+    # Handler 2 & 3: File handlers (only if not in dry-run mode)
+    if not get_dry_run():
+        try:
+            # Handler 2: Generation-specific log
+            if generation_path:
+                generation_path = Path(generation_path)
+                generation_path.mkdir(parents=True, exist_ok=True)
+                gen_log_file = generation_path / f"{log_name}.log"
+
+                gen_file_handler = logging.FileHandler(gen_log_file, mode="a")
+                gen_file_handler.setLevel(logging.DEBUG)
+                gen_file_handler.setFormatter(file_formatter)
+                config_logger.addHandler(gen_file_handler)
+
+            # Handler 3: Centralized log with timestamp
+            centralized_log_dir = Path("/kod/logs")
+            centralized_log_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            central_log_file = centralized_log_dir / f"{log_name}-{timestamp}.log"
+
+            central_file_handler = logging.FileHandler(central_log_file, mode="a")
+            central_file_handler.setLevel(logging.DEBUG)
+            central_file_handler.setFormatter(file_formatter)
+            config_logger.addHandler(central_file_handler)
+
+            # Rotate centralized logs (keep last 50)
+            _rotate_logs(centralized_log_dir, log_name, keep=50)
+
+        except Exception as e:
+            # Warn but continue - logging failure shouldn't stop installation
+            config_logger.warning(
+                f"Failed to setup file logging: {e}. Continuing with console logging only."
+            )
+    else:
+        config_logger.info("[DRY RUN] File logging disabled in dry-run mode")
+
+    return config_logger
+
+
+def _rotate_logs(log_dir: Path, log_name: str, keep: int = 50) -> None:
+    """Rotate log files, keeping only the most recent ones.
+
+    Args:
+        log_dir: Directory containing log files
+        log_name: Base name pattern to match (e.g., "install" or "rebuild")
+        keep: Number of most recent logs to keep (default: 50)
+    """
+    try:
+        import glob
+        import os
+
+        # Find all matching log files
+        pattern = str(log_dir / f"{log_name}-*.log")
+        log_files = glob.glob(pattern)
+
+        # Sort by modification time (newest first)
+        log_files.sort(key=os.path.getmtime, reverse=True)
+
+        # Remove old logs beyond the keep limit
+        for old_log in log_files[keep:]:
+            try:
+                os.remove(old_log)
+            except Exception:
+                # Silently ignore rotation failures
+                pass
+
+    except Exception:
+        # Don't let rotation failures affect the installation
+        pass
+
+
 @dataclass
 class CommandExecutionError(Exception):
     """Raised when a command execution fails."""

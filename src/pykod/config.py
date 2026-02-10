@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Callable
@@ -25,6 +26,9 @@ from pykod.repositories.base import PackageList, Repository
 from pykod.service import Service, Services
 from pykod.user import User
 
+# Module-level logger for configuration operations
+logger = logging.getLogger("pykod.config")
+
 
 class Configuration:
     def __init__(
@@ -34,11 +38,13 @@ class Configuration:
         debug: bool = False,
         verbose: bool = False,
         mount_point: str = "/mnt",
+        interactive: bool = False,
     ):
         self._base = base
         self._dry_run = dry_run
         self._debug = debug
         self._verbose = verbose
+        self._interactive = interactive
         if dry_run:
             mount_point = "mnt"
         self._mount_point = mount_point
@@ -48,8 +54,31 @@ class Configuration:
         self._partition_list = []
         self._state: str = ""
         self.packages = PackageList()
+        self._logger_configured = False
 
     # ---- internal helpers (no behavior change) ----
+
+    def _pause_if_interactive(self, step_name: str) -> None:
+        """Pause for user review if interactive mode is enabled.
+
+        Args:
+            step_name: Name of the step that was just completed
+        """
+        if self._interactive:
+            logger.info("=" * 80)
+            logger.info(f"Step completed: {step_name}")
+            logger.info("=" * 80)
+            print(f"\n{'=' * 80}")
+            print(f"STEP COMPLETED: {step_name}")
+            print(f"{'=' * 80}")
+            print(f"Press ENTER to continue to the next step, or Ctrl+C to abort...")
+            try:
+                input()
+            except KeyboardInterrupt:
+                logger.warning("Installation aborted by user")
+                print("\n\nInstallation aborted by user.")
+                raise SystemExit(1)
+            logger.info(f"Resuming installation after '{step_name}'")
 
     def get_users(self) -> dict:
         users: dict[str, User] = {}
@@ -95,7 +124,7 @@ class Configuration:
         if hasattr(self, "desktop"):
             display_mgr = self.desktop.display_manager
             services[display_mgr.service_name] = display_mgr
-        print(f"*******> Collected services: {services}")
+        logger.debug(f"Collected services: {services}")
         return services
 
     def _get_boot_and_root_partitions(self, devices) -> tuple[str, str]:
@@ -117,8 +146,8 @@ class Configuration:
         include_pkgs: PackageList,
         enabled_services: list[str],
     ) -> None:
-        print("Storing generation state...")
-        print(f"{state_path=}")
+        logger.debug("Storing generation state...")
+        logger.debug(f"State path: {state_path}")
         if self._dry_run:
             store_state_tmp(
                 generation_path, self, kernel, include_pkgs, enabled_services
@@ -127,84 +156,187 @@ class Configuration:
             store_state(generation_path, kernel, include_pkgs, enabled_services)
             store_installed_packages(state_path, generation_path, self)
 
+    def _setup_logging(self, generation_path: Path, operation: str = "install") -> None:
+        """Setup logging for install/rebuild operations.
+
+        Args:
+            generation_path: Path where generation-specific logs will be stored
+            operation: Type of operation ("install" or "rebuild")
+        """
+        if not self._logger_configured:
+            from pykod.common import setup_install_logging
+
+            try:
+                setup_install_logging(
+                    generation_path=generation_path,
+                    log_name=operation,
+                    level=logging.DEBUG,
+                )
+                self._logger_configured = True
+            except Exception as e:
+                # Fallback to basic logging if setup fails
+                print(f"[WARNING] Failed to configure logging: {e}")
+                logging.basicConfig(level=logging.INFO)
+                self._logger_configured = True
+
     # =============================== INSTALL ================================
     def install(self) -> None:
         """Install the configuration."""
-        print(f"{self._dry_run=}")
-        print(f"{self._debug=}")
-        print(f"{self._verbose=}")
-        # elements = self._collect_elements()
 
-        # Device installation
+        # Setup logging early
+        generation_path = Path(f"{self._mount_point}/kod/generations/0")
+        generation_path.mkdir(parents=True, exist_ok=True)
+        self._setup_logging(generation_path, operation="install")
+
+        logger.info("=" * 80)
+        logger.info("Starting KodOS Installation")
+        logger.info("=" * 80)
+        logger.debug(
+            f"Configuration: dry_run={self._dry_run}, debug={self._debug}, verbose={self._verbose}, mount_point={self._mount_point}"
+        )
+
+        # Progress tracking
+        total_steps = 10
+        current_step = 0
+
+        # Step 1: Device installation
+        current_step += 1
+        logger.info(
+            f"[{current_step}/{total_steps}] Installing device configuration..."
+        )
         devices = self.devices if hasattr(self, "devices") else None
         if devices is None:
+            logger.error("No devices configuration found")
             raise ValueError("No devices configuration found.")
-        print("Installing device configuration...")
         self._partition_list = devices.install(self, self._mount_point)
+        logger.debug(f"Partition list: {self._partition_list}")
+        self._pause_if_interactive(
+            "Device installation (partitioning, formatting, mounting)"
+        )
 
+        # Step 2: Base packages
+        current_step += 1
+        logger.info(
+            f"[{current_step}/{total_steps}] Installing base system packages..."
+        )
         list_base_pkgs = self._base.get_base_packages(self)
-        print(f"Base packages to install: {list_base_pkgs['base']}")
         base_packages = list_base_pkgs["kernel"] + list_base_pkgs["base"]
-        print(f"Base packages to install: {base_packages}")
+        logger.debug(f"Kernel packages: {list_base_pkgs['kernel']}")
+        logger.debug(f"Base packages: {list_base_pkgs['base']}")
+        logger.info(f"Installing {len(base_packages.to_list())} base packages")
         self._base.install_base(self._mount_point, base_packages)
         exec_chroot(self._base.update_database(), mount_point=self._mount_point)
 
+        # Show installed kernel packages in interactive mode
+        if self._interactive:
+            logger.info("=" * 80)
+            logger.info("Kernel packages installed:")
+            exec_chroot(
+                "dpkg -l | grep '^ii.*linux-image'",
+                mount_point=self._mount_point,
+            )
+            logger.info("=" * 80)
+
+        self._pause_if_interactive(
+            "Base system packages installation (debootstrap, kernel, essential tools)"
+        )
+
+        # Step 3: System configuration
+        current_step += 1
+        logger.info(
+            f"[{current_step}/{total_steps}] Configuring system (fstab, hostname, etc.)..."
+        )
         generate_fstab(self, self._partition_list, self._mount_point)
         configure_system(self._mount_point)
+        self._pause_if_interactive("System configuration (fstab, hostname, timezone)")
 
-        # Boot installation
-        print("Installing boot configuration...")
+        # Step 4: Boot configuration
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Installing boot configuration...")
         boot = self.boot
         boot.install(self)
+        self._pause_if_interactive(
+            "Boot configuration (systemd-boot, initramfs, boot entries)"
+        )
 
-        # User Kod installation
-        print("\nCreating KodOS user...")
+        # Step 5: KodOS user
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Creating KodOS user...")
         create_kod_user(self._mount_point)
+        self._pause_if_interactive("KodOS user creation")
 
-        # Locale installation
-        print("Installing locale configuration...")
+        # Step 6: Locale configuration
+        current_step += 1
+        logger.info(
+            f"[{current_step}/{total_steps}] Installing locale configuration..."
+        )
         self.locale.install(self)
+        self._pause_if_interactive("Locale configuration")
 
-        # Network installation
-        print("Installing network configuration...")
+        # Step 7: Network configuration
+        current_step += 1
+        logger.info(
+            f"[{current_step}/{total_steps}] Installing network configuration..."
+        )
         self.network.install(self)
+        self._pause_if_interactive("Network configuration")
 
-        # Repository and Package installation
+        # Step 8: Repository and package installation
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Installing packages...")
         include_pkgs, exclude_pkgs = self._collect_package_sets()
+
+        # Validate packages
         if invalid_pkgs := self._check_packages(include_pkgs):
-            print(f"Invalid packages found: {invalid_pkgs}")
+            logger.error(f"Invalid packages found: {invalid_pkgs}")
             raise ValueError("Package validation failed.")
-        print(f"Included packages: {include_pkgs}")
-        print(f"Excluded packages: {exclude_pkgs}")
-        print("-+-" * 40)
+
+        logger.debug(f"Included packages: {include_pkgs}")
+        logger.debug(f"Excluded packages: {exclude_pkgs}")
+        logger.info(
+            f"Installing {len(include_pkgs)} packages, excluding {len(exclude_pkgs)} packages"
+        )
 
         # Prepare repositories that require bootstrapping (e.g., AUR helper)
         self._prepare_repos(include_pkgs + exclude_pkgs, self._mount_point)
 
-        # packages_to_install = self._base.packages_to_install(include_pkgs, exclude_pkgs)
+        # Install/remove packages
         self._apply_repo(include_pkgs, "install", self._mount_point)
         self._apply_repo(exclude_pkgs, "remove", self._mount_point)
+        self._pause_if_interactive(
+            "Package installation (user packages, desktop environment, etc.)"
+        )
 
+        # Step 9: Services
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Enabling system services...")
         services = self._collect_and_prepare_services()
         services.enable(self, self._mount_point)
         list_enabled_services = services.get_enabled_services()
-        print(f"Enabling services: {list_enabled_services}")
+        logger.info(f"Enabled {len(list_enabled_services)} services")
+        logger.debug(f"Enabled services: {list_enabled_services}")
+        self._pause_if_interactive("Services enabled")
 
-        # User installation
-        print("--" * 40)
+        # Step 10: User installation
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Installing user configurations...")
         users = self.get_users()
-        print(users)
-        # if "User" in elements:
-        for user in users.values():
+        logger.debug(f"Users to configure: {list(users.keys())}")
+        for username, user in users.items():
+            logger.info(f"Configuring user: {username}")
             user.install(self)
+        self._pause_if_interactive(
+            "User configurations (user creation, shell, dotfiles)"
+        )
 
-        generation_path = Path(f"{self._mount_point}/kod/generations/0")
-        generation_path.mkdir(parents=True, exist_ok=True)
-        print(f"Creating generation path at {generation_path}, {self._dry_run=}")
+        # Store generation state
+        logger.info("Storing generation state...")
         if boot is None:
+            logger.error("Boot configuration is required to determine kernel")
             raise ValueError("Boot configuration is required to determine kernel")
         kernel = self.boot.kernel.package.to_list()[0]
-        # installed_packages_cmd = self.base.list_installed_packages()
+        logger.debug(f"Kernel package: {kernel}")
+
         self._store_generation_state(
             self._mount_point,
             generation_path,
@@ -212,29 +344,42 @@ class Configuration:
             include_pkgs,
             list_enabled_services,
         )
-        # Store configuration files
-        # -----------------------------------------------------------------
-        # Store configuration instance and repositories as JSON
-        save_configuration(self, include_pkgs, generation_path)
-        # -----------------------------------------------------------------
 
-        print("\nInstalling KodOS files...")
+        # Store configuration files
+        logger.info("Saving configuration metadata...")
+        save_configuration(self, include_pkgs, generation_path)
+
+        # Final installation steps
+        logger.info("Installing KodOS system files...")
         execute_command(f"umount -R {self._mount_point}")
-        print("Done")
         if devices is not None:
             execute_command(f"mount {devices.root_partition} {self._mount_point}")
         execute_command(f"cp -r /root/pykod {self._mount_point}/store/root/")
         execute_command(f"umount {self._mount_point}")
-        print(" Done installing KodOS")
+
+        logger.info("=" * 80)
+        logger.info("KodOS Installation Completed Successfully")
+        logger.info("=" * 80)
+
+        # Final pause for review
+        if self._interactive:
+            print(f"\n{'=' * 80}")
+            print("INSTALLATION COMPLETED SUCCESSFULLY!")
+            print(f"{'=' * 80}")
+            print("You can now reboot into your new system.")
+            print("Press ENTER to finish...")
+            try:
+                input()
+            except KeyboardInterrupt:
+                pass
 
     # =============================== REBUILD ================================
     def rebuild(
         self, live_switch: bool = False, upgrade: bool = False, reboot: bool = False
     ) -> None:
-        print("Rebuilding configuration...")
-        self._state = "rebuild"
+        """Rebuild the configuration."""
 
-        print(f"{live_switch=}, {upgrade=}, {reboot=}")
+        self._state = "rebuild"
 
         # Get next generation number
         if self._dry_run:
@@ -242,10 +387,8 @@ class Configuration:
         else:
             max_generation = get_max_generation()
         next_generation_id = int(max_generation) + 1
-        print(f"Next generation ID: {next_generation_id}")
 
         current_generation_id = self._get_current_generation()
-        print(f"{current_generation_id = }")
 
         current_generation_path = Path(f"/kod/generations/{current_generation_id}")
         next_generation_path = Path(f"/kod/generations/{next_generation_id}")
@@ -257,33 +400,48 @@ class Configuration:
             next_generation_path = Path(f"{dry_run_path}{next_generation_path}")
             next_current_moun_point = Path(f"{dry_run_path}{next_current_moun_point}")
 
-        print(f"{current_generation_path=}")
-        print(f"{next_generation_path=}")
-        print(f"{next_current_moun_point=}")
+        # Create directories and setup logging
+        next_generation_path.mkdir(parents=True, exist_ok=True)
+        self._setup_logging(next_generation_path, operation="rebuild")
 
-        # -----
-        # TODO: use try-except-finally to clean up on error
+        logger.info("=" * 80)
+        logger.info(f"Starting KodOS Rebuild - Generation {next_generation_id}")
+        logger.info("=" * 80)
+        logger.debug(f"Current generation: {current_generation_id}")
+        logger.debug(f"Next generation: {next_generation_id}")
+        logger.debug(
+            f"Options: live_switch={live_switch}, upgrade={upgrade}, reboot={reboot}"
+        )
+        logger.debug(f"Current generation path: {current_generation_path}")
+        logger.debug(f"Next generation path: {next_generation_path}")
+        logger.debug(f"Next current mount point: {next_current_moun_point}")
+
+        # Progress tracking
+        total_steps = 8
+        current_step = 0
+
+        # Step 1: Validate and prepare
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Validating system state...")
+
         # Get boot and root partitions from partition list
         devices = self.devices
-
         boot_partition, root_partition = self._get_boot_and_root_partitions(devices)
-
-        print(f"{boot_partition=}")
-        print(f"{root_partition=}")
+        logger.debug(f"Boot partition: {boot_partition}")
+        logger.debug(f"Root partition: {root_partition}")
 
         # Load current installed packages and enabled services
         if not (current_generation_path / "installed_packages").is_file():
-            print("Missing installed packages information")
+            logger.warning("Missing installed packages information")
             return
-        # ----
-        # Start creating changes for the next generation
 
-        # New genetation path creation
-        next_generation_path.mkdir(parents=True, exist_ok=True)
+        # Step 2: Create new generation snapshot
+        current_step += 1
+        logger.info(f"[{current_step}/{total_steps}] Creating generation snapshot...")
         next_current_moun_point.mkdir(parents=True, exist_ok=True)
 
         if live_switch:
-            print("Live switch requested")
+            logger.info("Live switch mode: Moving current rootfs to new generation")
             execute_command(
                 f"mv {current_generation_path}/rootfs {next_generation_path}"
             )
@@ -291,8 +449,7 @@ class Configuration:
                 f"btrfs subvolume snapshot / {current_generation_path}/rootfs"
             )
         else:
-            # Creates a BTRFS subvolume snapshot of the current root
-            print("Creating a new generation")
+            logger.info("Creating new BTRFS subvolume snapshot")
             execute_command(f"btrfs subvolume snapshot / {next_generation_path}/rootfs")
 
         new_root_path = create_next_generation(
@@ -301,51 +458,53 @@ class Configuration:
             next_generation_id,
             next_current_moun_point,
         )
-        print(f"{new_root_path=}")
-        # -----
+        logger.debug(f"New root path: {new_root_path}")
 
-        # do_rollback = False
         requires_reboot = reboot
         remove_next_generation = False
         try:
+            # Step 3: Load current state
+            current_step += 1
+            logger.info(
+                f"[{current_step}/{total_steps}] Loading current generation state..."
+            )
             current_packages, current_services = load_packages_services(
                 current_generation_path
             )
-            print(f"{current_packages = }")
-            print(f"{current_services = }")
+            logger.debug(f"Current packages: {current_packages}")
+            logger.debug(f"Current services: {current_services}")
             if current_packages is None or current_services is None:
+                logger.error("Failed to load current generation state")
                 raise Exception("Failed to load current generation state")
 
-            # Gets packages to install/remove from configuration
+            # Step 4: Calculate package changes
+            current_step += 1
+            logger.info(
+                f"[{current_step}/{total_steps}] Calculating package changes..."
+            )
             include_pkgs, exclude_pkgs = self._collect_package_sets()
 
-            print(f"Included packages: {include_pkgs}")
-            print(f"Excluded packages: {exclude_pkgs}")
-            print("-+-" * 40)
+            logger.debug(f"Included packages: {include_pkgs}")
+            logger.debug(f"Excluded packages: {exclude_pkgs}")
 
             if upgrade:
-                print("Updating all packages to the latest version")
+                logger.info("Upgrading all packages to latest version")
                 for repo, packages in include_pkgs.items():
-                    print(f"Updating repository: {repo.__class__.__name__}")
+                    repo_name = repo.__class__.__name__
+                    logger.info(f"Updating repository: {repo_name}")
                     cmd_update = repo.update_database()
                     if cmd_update:
-                        exec_chroot(
-                            cmd_update, mount_point=new_root_path
-                        )  # Refresh package database
+                        exec_chroot(cmd_update, mount_point=new_root_path)
                     cmd_update_pkgs = repo.update_installed_packages(packages)
                     if cmd_update_pkgs:
-                        exec_chroot(
-                            cmd_update_pkgs, mount_point=new_root_path
-                        )  # Update all packages
+                        exec_chroot(cmd_update_pkgs, mount_point=new_root_path)
 
             # Determine packages to install and remove
             next_kernel_package = self.boot.kernel.package
             next_kernel = next_kernel_package.to_list()[0]
             pkgs_to_install = repo_packages_list(next_kernel, include_pkgs)
 
-            print(f"Packages to install: {pkgs_to_install}")
-            print("-+-" * 40)
-            print(f"current_packages: {current_packages}")
+            logger.debug(f"Target packages: {pkgs_to_install}")
             new_to_install = PackageList()
             new_to_remove = PackageList()
             for repo, packages in include_pkgs.items():
@@ -356,75 +515,73 @@ class Configuration:
                 remove_pkgs = list(pkgs_installed_set - pkgs_to_install_set)
                 new_to_install += repo[new_pkgs]
                 new_to_remove += repo[remove_pkgs]
-                print(f"For repo {repo_name}:")
-                print(f"  To install: {new_pkgs}")
-                print(f"  To remove: {remove_pkgs}")
+                if new_pkgs:
+                    logger.debug(f"Repo {repo_name} - To install: {new_pkgs}")
+                if remove_pkgs:
+                    logger.debug(f"Repo {repo_name} - To remove: {remove_pkgs}")
 
-            print(f"\n\nNew packages to install: {new_to_install}\n")
-            print(f"Packages to remove: {new_to_remove}\n")
+            logger.info(f"Packages to install: {len(new_to_install)}")
+            logger.info(f"Packages to remove: {len(new_to_remove)}")
+            logger.debug(f"New packages to install: {new_to_install}")
+            logger.debug(f"Packages to remove: {new_to_remove}")
 
-            # Prepare repositories for install inside the new root if needed
-            # if new_generation:
+            # Step 5: Install new packages
+            current_step += 1
+            logger.info(f"[{current_step}/{total_steps}] Installing new packages...")
             self._prepare_repos(new_to_install, new_root_path)
             self._apply_repo(new_to_install, "install", new_root_path)
-            # else:
-            # self._apply_repo(new_to_install, "install")
 
-            # print(f"Packages to remove: {pkgs_to_remove}")
-            #
-            # Compares current vs. desired package state to determine:
+            # Check for kernel updates
             hooks_to_run = []
             current_kernel = current_packages["kernel"][0]
             if next_kernel != current_kernel:
-                print(f"Kernel update detected: {current_kernel} -> {next_kernel}")
+                logger.warning(
+                    f"Kernel update detected: {current_kernel} -> {next_kernel}"
+                )
+                logger.warning("System reboot will be required")
                 requires_reboot = True
                 hooks_to_run += [
                     update_kernel_hook(self, next_kernel, new_root_path),
                     update_initramfs_hook(self, next_kernel, new_root_path),
                 ]
 
-            print(f"Hooks to run: {hooks_to_run}")
-            print("Running hooks")
-            for hook in hooks_to_run:
-                print(f"Running {hook}")
-                hook()
+            if hooks_to_run:
+                logger.info(f"Running {len(hooks_to_run)} post-installation hooks")
+                for hook in hooks_to_run:
+                    logger.debug(f"Running hook: {hook}")
+                    hook()
 
-            # Service Management
+            # Step 6: Service management
+            current_step += 1
+            logger.info(f"[{current_step}/{total_steps}] Managing system services...")
             services = self._collect_and_prepare_services()
-            print(f"Enabling services {new_root_path = }")
+            logger.debug(f"Enabling services at: {new_root_path}")
             services.enable(self, new_root_path)
 
             new_enabled_services = services.get_enabled_services()
-            print(f"New enabled services: {new_enabled_services}")
-            print(f"Current enabled services: {current_services}")
+            logger.debug(f"New enabled services: {new_enabled_services}")
+            logger.debug(f"Current enabled services: {current_services}")
             services_to_disable = set(current_services) - set(new_enabled_services)
-            print(f"Services to disable: {services_to_disable}")
+
+            if services_to_disable:
+                logger.info(f"Disabling {len(services_to_disable)} services")
+                logger.debug(f"Services to disable: {services_to_disable}")
 
             # Disable removed services
             service = Service()
             for svc_name in services_to_disable:
                 service.service_name = svc_name
-                # if new_generation:
-                print(f"Disabling service: {svc_name}")
+                logger.debug(f"Disabling service: {svc_name}")
                 cmd = service.disable_service(svc_name, is_live=live_switch)
                 exec_chroot(cmd, mount_point=new_root_path)
 
-            print("Removing packages")
-            # if new_generation:
+            # Step 7: Remove old packages
+            current_step += 1
+            logger.info(f"[{current_step}/{total_steps}] Removing obsolete packages...")
             self._apply_repo(new_to_remove, "remove", new_root_path)
-            # else:
-            # self._apply_repo(new_to_remove, "remove")
-
-            # for repo, packages in new_to_remove.items():
-            #     if len(packages) == 0:
-            #         continue
-            #     print(f"Removing from repo {repo}: {packages}")
-            #     cmd = repo.remove_package(set(packages))
-            #     exec_chroot(cmd, mount_point=new_root_path)
 
             # Store new generation state
-            # generation_path = f"{new_root_path}/kod/generations/{next_generation_id}"
-            # generation_path = next_current
+            logger.info("Storing generation state...")
             self._store_generation_state(
                 new_root_path,
                 next_generation_path,
@@ -433,12 +590,12 @@ class Configuration:
                 new_enabled_services,
             )
 
-            # Generation Deployment
-            print("==== Deploying new generation ====")
+            # Step 8: Deploy new generation
+            current_step += 1
+            logger.info(f"[{current_step}/{total_steps}] Deploying new generation...")
             partition_list = load_fstab("/")
-            # if new_generation:
             kver = self._base.setup_linux(new_root_path, next_kernel_package)
-            print("KVER:", kver)
+            logger.debug(f"Kernel version: {kver}")
             create_boot_entry(
                 next_generation_id,
                 partition_list,
@@ -447,6 +604,7 @@ class Configuration:
             )
 
             # Store configuration instance and repositories as JSON
+            logger.info("Saving configuration metadata...")
             save_configuration(self, include_pkgs, next_generation_path)
 
             # Write generation number
@@ -456,9 +614,9 @@ class Configuration:
                 f.write(str(next_generation_id))
 
         except Exception as e:
-            print(f"Error during rebuild: {e}")
+            logger.error(f"Error during rebuild: {e}")
             remove_next_generation = True
-            # return
+            raise
         finally:
             kod_paths = [
                 "/boot",
@@ -469,45 +627,44 @@ class Configuration:
                 "/var/tmp",
                 "/var/cache",
                 "/var/kod",
-                # "/dev",
             ]
             if not live_switch:
+                logger.debug("Unmounting generation paths")
                 for m in kod_paths:
                     execute_command(f"umount {new_root_path}{m}")
-                # execute_command(f"umount -R {new_root_path}")
-                # exec(f"rm -rf {new_root_path}")
 
             if (
                 not live_switch
                 and remove_next_generation
                 and next_generation_path.is_dir()
             ):
+                logger.warning(f"Cleaning up failed generation {next_generation_id}")
                 execute_command(f"btrfs subvolume delete {next_generation_path}/rootfs")
                 execute_command(f"rm -rf {next_generation_path}")
-
-            # else:
-            # exec("mount -o remount,ro /usr")
-
-            print(f"Done. Generation {next_generation_id} created")
+            else:
+                logger.info(f"Generation {next_generation_id} created successfully")
 
         if requires_reboot:
-            print("Reboot is required to switch to the new generation.")
+            logger.warning("=" * 80)
+            logger.warning("REBOOT REQUIRED to switch to the new generation")
+            logger.warning("=" * 80)
+
         if reboot:
             from time import sleep
 
-            print("Reboot requested after rebuild")
+            logger.info("Automatic reboot requested, rebooting in 5 seconds...")
             sleep(5)
             execute_command("reboot")
 
     def rebuild_user(self, username: str) -> None:
         """Rebuild the specified user configuration."""
-        print(f"Rebuilding user configuration for {username}...")
+        logger.info(f"Rebuilding user configuration for {username}...")
         user = _find_user(self, username)
-        print(f"Found user: {user} {type(user)}")
+        logger.debug(f"Found user: {user} {type(user)}")
         if user is None:
-            print(f"User {username} not found in configuration.")
+            logger.warning(f"User {username} not found in configuration.")
             return
-        print(f"User {username} configuration rebuilt.")
+        logger.info(f"User {username} configuration rebuilt.")
         user.rebuild()
 
     def _get_current_generation(self) -> int:
@@ -522,7 +679,7 @@ class Configuration:
         invalid_packages = []
         for repo, items in packages.items():
             cmds = repo.is_valid_packages(items)
-            print(f"\nValidation command for repo {repo}: {cmds}")
+            logger.debug(f"Validation command for repo {repo}: {cmds}")
             if cmds is None:
                 continue
             for pkg, cmd in zip(items, cmds):
@@ -535,18 +692,12 @@ class Configuration:
                     results = exec_chroot(
                         cmd, mount_point=self._mount_point, get_output=True
                     ).splitlines()
-                    print(f"{cmd} result: {results}")
+                    logger.debug(f"{cmd} result: {results}")
                 if not results:
                     invalid_packages.append(pkg)
 
-            # print(f"Validation results: {results}")
-            # invalid = set(items) - set(pkg.split(" ")[0] for pkg in results)
-            # print(f"Invalid packages in repo {repo}: {invalid}")
-            # for pkg, line in zip(items, results):
-            #     if "error:" in line:
-            #         invalid_packages.append(pkg)
-
-        print(f"\n\nInvalid packages: {invalid_packages}\n")
+        if invalid_packages:
+            logger.warning(f"Invalid packages found: {invalid_packages}")
         return invalid_packages
 
 
@@ -646,8 +797,7 @@ def store_state(state_path: str, kernel, packages, services) -> None:
     with open_with_dry_run(f"{state_path}/installed_packages", "w") as f:
         f.write(packages_json)
 
-    print(f"Storing enabled services to {state_path}/enabled_services")
-    # print(f"Services: {services}")
+    logger.debug(f"Storing enabled services to {state_path}/enabled_services")
     list_services = services
     with open_with_dry_run(f"{state_path}/enabled_services", "w") as f:
         f.write("\n".join(list_services))
@@ -695,13 +845,13 @@ def load_previous_configuration(state_path: Path):
     """Load the previous configuration from the specified state path."""
     config_path = state_path / "configuration.json"
     if not config_path.exists():
-        print(f"No configuration file found at {config_path}")
+        logger.warning(f"No configuration file found at {config_path}")
         return None
 
     with open(config_path, "r") as f:
         config_data = json.load(f)
 
-    print(f"Loading configuration from {config_data}")
+    logger.debug(f"Loading configuration from {config_data}")
     # config = load_configuration(config_data)
     # return config
     return config_data
@@ -739,7 +889,7 @@ def create_next_generation(
     # Write generation number
     (next_current / ".generation").write_text(str(generation))
 
-    print("===================================")
+    logger.debug("Next generation mount setup complete")
 
     return str(next_current)
 
@@ -750,12 +900,12 @@ def update_kernel_hook(
     """Create a hook function to update the kernel for a specified package."""
 
     def hook() -> None:
-        print(f"Update kernel ....{kernel_package}")
+        logger.info(f"Updating kernel: {kernel_package}")
         kernel_file, kver = conf._base.get_kernel_info(
             mount_point, package=kernel_package
         )
-        print(f"{kver=}")
-        print(f"cp {kernel_file} /boot/vmlinuz-{kver}")
+        logger.debug(f"Kernel version: {kver}")
+        logger.debug(f"Copying {kernel_file} to /boot/vmlinuz-{kver}")
         exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
 
     return hook
@@ -767,11 +917,11 @@ def update_initramfs_hook(
     """Create a hook function to update the initramfs for a specified package."""
 
     def hook() -> None:
-        print(f"Update initramfs ....{kernel_package}")
+        logger.info(f"Updating initramfs for kernel: {kernel_package}")
         kernel_file, kver = conf._base.get_kernel_info(
             mount_point, package=kernel_package
         )
-        print(f"{kver=}")
+        logger.debug(f"Kernel version: {kver}")
         conf._base.generate_initramfs(mount_point, kver)
 
     return hook
@@ -787,8 +937,7 @@ def store_state_tmp(state_path: str, config, kernel, packages, services) -> None
     with open(f"{state_path}/installed_packages", "w") as f:
         json.dump(list_packages, f, indent=2)
 
-    print(f"Storing enabled services to {state_path}/enabled_services")
-    # print(f"Services: {services}")
+    logger.debug(f"Storing enabled services to {state_path}/enabled_services")
     with open(f"{state_path}/enabled_services", "w") as f:
         f.write("\n".join(services))
 
