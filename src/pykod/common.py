@@ -13,6 +13,33 @@ from typing import Any, Optional
 
 from chorut import ChrootManager
 
+
+class FlushingFileHandler(logging.FileHandler):
+    """FileHandler that flushes after every log message.
+
+    This ensures logs are written to disk immediately, which is critical
+    for debugging installation issues where the system might crash.
+    """
+
+    def emit(self, record):
+        """Emit a record and flush immediately."""
+        super().emit(record)
+        self.flush()
+
+
+class FlushingStreamHandler(logging.StreamHandler):
+    """StreamHandler that flushes after every log message.
+
+    Ensures console output appears immediately, which is important
+    for real-time monitoring during installations.
+    """
+
+    def emit(self, record):
+        """Emit a record and flush immediately."""
+        super().emit(record)
+        self.flush()
+
+
 # Module-level variables
 use_debug: bool = False
 use_verbose: bool = False
@@ -63,7 +90,7 @@ def setup_install_logging(
     )
 
     # Handler 1: Console (INFO and above, simple format)
-    console_handler = logging.StreamHandler()
+    console_handler = FlushingStreamHandler()
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(console_formatter)
     config_logger.addHandler(console_handler)
@@ -77,7 +104,7 @@ def setup_install_logging(
                 generation_path.mkdir(parents=True, exist_ok=True)
                 gen_log_file = generation_path / f"{log_name}.log"
 
-                gen_file_handler = logging.FileHandler(gen_log_file, mode="a")
+                gen_file_handler = FlushingFileHandler(gen_log_file, mode="a")
                 gen_file_handler.setLevel(logging.DEBUG)
                 gen_file_handler.setFormatter(file_formatter)
                 config_logger.addHandler(gen_file_handler)
@@ -89,7 +116,7 @@ def setup_install_logging(
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             central_log_file = centralized_log_dir / f"{log_name}-{timestamp}.log"
 
-            central_file_handler = logging.FileHandler(central_log_file, mode="a")
+            central_file_handler = FlushingFileHandler(central_log_file, mode="a")
             central_file_handler.setLevel(logging.DEBUG)
             central_file_handler.setFormatter(file_formatter)
             config_logger.addHandler(central_file_handler)
