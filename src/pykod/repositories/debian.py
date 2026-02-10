@@ -409,7 +409,19 @@ class Debian(BaseSystemRepository):
             packages: PackageList containing packages to install
         """
         list_pkgs = packages._pkgs[self]
-        logger.debug(f"Packages to install: {list_pkgs}")
+        logger.info(f"=== Base Package Installation ===")
+        logger.info(f"Total packages to install: {len(list_pkgs)}")
+        logger.info(f"Package list: {', '.join(list_pkgs)}")
+
+        # Verify kernel package is in the list
+        kernel_pkgs = [pkg for pkg in list_pkgs if "linux-image" in pkg]
+        if kernel_pkgs:
+            logger.info(f"✓ Kernel packages found in list: {', '.join(kernel_pkgs)}")
+        else:
+            logger.error("✗ NO kernel package found in package list!")
+            logger.error("This is a bug - kernel should be included in base packages")
+            raise RuntimeError("Kernel package missing from installation list")
+
         pkgs_str = " ".join(list_pkgs)
         components_str = ",".join(self.components)
 
@@ -433,12 +445,19 @@ class Debian(BaseSystemRepository):
         # Step 5: Install base packages
         # Note: We allow recommended packages to ensure kernel dependencies (like linux-firmware)
         # are installed. GRUB is still blocked via APT preferences (Step 3).
-        # The 2>&1 | grep -v "policy-rc.d denied" suppresses expected policy-rc.d messages
+        # Note: You may see "invoke-rc.d: policy-rc.d denied execution" messages - these are
+        # expected and indicate that services are correctly blocked during installation.
         logger.info("Installing base packages (with GRUB blocked)...")
-        exec_chroot(
-            f"apt-get install -y {pkgs_str} 2>&1 | grep -v 'policy-rc.d denied' || true",
-            mount_point=mount_point,
-        )
+        try:
+            exec_chroot(
+                f"apt-get install -y {pkgs_str}",
+                mount_point=mount_point,
+            )
+        except Exception as e:
+            logger.error(f"apt-get install failed: {e}")
+            logger.error(f"Failed to install packages: {pkgs_str}")
+            logger.error("Check apt sources and network connectivity")
+            raise RuntimeError(f"Base package installation failed: {e}") from e
 
         # Step 6: Verify GRUB was not installed
         verify_grub_not_installed_debian(mount_point)
