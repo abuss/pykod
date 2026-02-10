@@ -356,7 +356,7 @@ class Debian(BaseSystemRepository):
         # Step 4: Install packages with --no-install-recommends
         logger.info("Installing base packages (with GRUB blocked)...")
         exec_chroot(
-            f"DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends {pkgs_str}",
+            f"apt-get install -y --no-install-recommends {pkgs_str}",
             mount_point=mount_point,
         )
 
