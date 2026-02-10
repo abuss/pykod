@@ -353,10 +353,12 @@ class Debian(BaseSystemRepository):
         # Step 3: Disable GRUB kernel hooks
         disable_grub_kernel_hooks(mount_point)
 
-        # Step 4: Install packages with --no-install-recommends
+        # Step 4: Install base packages
+        # Note: We allow recommended packages to ensure kernel dependencies (like linux-firmware)
+        # are installed. GRUB is still blocked via APT preferences (Step 2).
         logger.info("Installing base packages (with GRUB blocked)...")
         exec_chroot(
-            f"apt-get install -y --no-install-recommends {pkgs_str}",
+            f"apt-get install -y {pkgs_str}",
             mount_point=mount_point,
         )
 
