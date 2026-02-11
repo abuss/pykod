@@ -98,7 +98,7 @@ conf.desktop = DesktopManager(
     display_manager=Service(package=ubuntu["gdm3"]),
     environments={
         "gnome": DesktopEnvironment(
-            enable=True,
+            enable=False,
             package=ubuntu["ubuntu-desktop-minimal"],  # Minimal Ubuntu Desktop
             extra_packages=ubuntu[
                 "gnome-tweaks",
