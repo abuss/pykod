@@ -462,10 +462,11 @@ class Debian(BaseSystemRepository):
         # Step 5.5: Complete package configuration
         # Sometimes packages are left in "half-configured" or "unpacked" state
         # This completes any pending configurations
+        # Set PATH to include /sbin and /usr/sbin for ldconfig, start-stop-daemon, etc.
         logger.info("Completing package configuration...")
         try:
             exec_chroot(
-                "dpkg --configure -a",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a",
                 mount_point=mount_point,
             )
             logger.info("✓ Package configuration completed")
@@ -509,9 +510,12 @@ class Debian(BaseSystemRepository):
         if kernel_check_alt and "half-configured" in kernel_check_alt:
             logger.warning("Kernel packages are in 'half-configured' state!")
             logger.warning("This usually means package configuration failed")
-            logger.warning("Attempting to reconfigure packages...")
+            logger.warning("Attempting to reconfigure packages with full PATH...")
             try:
-                exec_chroot("dpkg --configure -a", mount_point=mount_point)
+                exec_chroot(
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a",
+                    mount_point=mount_point,
+                )
                 # Re-check after reconfiguration
                 kernel_check_alt = exec_chroot(
                     "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",

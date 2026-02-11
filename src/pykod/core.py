@@ -308,10 +308,15 @@ def setup_bootloader(
                     logger.warning(
                         f"Found kernel package in non-installed state: {kernel_any_state}"
                     )
-                    logger.warning("Attempting to complete package configuration...")
+                    logger.warning(
+                        "Attempting to complete package configuration with full PATH..."
+                    )
 
                     try:
-                        exec_chroot("dpkg --configure -a", mount_point=mount_point)
+                        exec_chroot(
+                            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a",
+                            mount_point=mount_point,
+                        )
                         logger.info("✓ Package configuration completed")
 
                         # Re-check after configuration
