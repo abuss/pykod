@@ -742,6 +742,7 @@ class Debian(BaseSystemRepository):
                 # "schroot",  # TODO: need to be removed
                 "whois",  # Provides mkpasswd for password hashing
                 "initramfs-tools",  # Debian's native initramfs generator
+                "locales",  # Provides locale-gen command for locale configuration
                 "git",
                 "systemd",
                 "systemd-boot",  # For systemd-boot bootloader support

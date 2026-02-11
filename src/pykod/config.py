@@ -271,7 +271,7 @@ class Configuration:
         # Step 5: KodOS user
         current_step += 1
         logger.info(f"[{current_step}/{total_steps}] Creating KodOS user...")
-        create_kod_user(self._mount_point)
+        create_kod_user(self._mount_point, base_repo=self._base)
         self._pause_if_interactive("KodOS user creation")
 
         # Step 6: Locale configuration
