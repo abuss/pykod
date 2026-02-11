@@ -248,17 +248,38 @@ class BaseSystemRepository(Repository):
         """
         pass
 
-    @abstractmethod
     def create_system_user(
         self, mount_point: str, username: str, home_dir: str
     ) -> None:
         """Create a system user with sudo privileges.
 
         Creates user with appropriate group membership for the distribution.
+        This default implementation uses get_sudo_group() to determine the
+        correct group, making it work for both Arch (wheel) and Debian (sudo).
+
+        Subclasses can override this method if they need custom behavior.
 
         Args:
             mount_point: Installation mount point
             username: Username to create
             home_dir: Home directory path
         """
-        pass
+        import logging
+        from pykod.common import execute_chroot as exec_chroot
+        from pykod.common import open_with_dry_run
+
+        logger = logging.getLogger("pykod.config")
+
+        sudo_group = self.get_sudo_group()
+        logger.debug(f"Creating {username} system user (group: {sudo_group})")
+
+        # Use full PATH to ensure commands are found in chroot
+        exec_chroot(
+            f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /usr/sbin/useradd -m -r -G {sudo_group} -s /bin/bash -d {home_dir} {username}",
+            mount_point=mount_point,
+        )
+
+        with open_with_dry_run(f"{mount_point}/etc/sudoers.d/{username}", "w") as f:
+            f.write(f"{username} ALL=(ALL) NOPASSWD: ALL\n")
+
+        logger.debug(f"✓ {username} user created successfully")

@@ -364,7 +364,7 @@ class User:
         # Normal users (no root)
         if user != "root":
             # print(f"Creating user {user}")
-            cmds.append(f"useradd -m {user} -c '{name}'")
+            cmds.append(f"/usr/sbin/useradd -m {user} -c '{name}'")
             if groups:
                 # TODO: Implement group creation
                 if self.allow_sudo:
@@ -381,24 +381,26 @@ class User:
 
                 for group in set(groups):
                     try:
-                        cmds.append(f"usermod -aG {group} {user}")
+                        cmds.append(f"/usr/sbin/usermod -aG {group} {user}")
                     except Exception:
                         print(f"Group {group} does not exist")
 
         # Shell
-        cmds.append(f"usermod -s {shell} {user}")
+        cmds.append(f"/usr/sbin/usermod -s {shell} {user}")
 
         # Password
         no_password = self.no_password == True
         if not no_password:
             if isinstance(self.hashed_password, str):
                 # print("Assign the provided password")
-                cmds.append(f"usermod -p '{self.hashed_password}' {user}")
+                cmds.append(f"/usr/sbin/usermod -p '{self.hashed_password}' {user}")
             elif isinstance(self.password, str):
                 # print("Assign the provided password after encryption")
-                cmds.append(f"usermod -p `mkpasswd -m sha-512 {self.password}` {user}")
+                cmds.append(
+                    f"/usr/sbin/usermod -p `mkpasswd -m sha-512 {self.password}` {user}"
+                )
             else:
-                cmds.append(f"passwd {user}")
+                cmds.append(f"/usr/bin/passwd {user}")
 
         return cmds
 

@@ -179,34 +179,8 @@ class Arch(BaseSystemRepository):
             locale_file.write(f"LANG={locale_extra}\n")
         logger.info(f"✓ Default locale set to {locale_name}")
 
-    def create_system_user(
-        self, mount_point: str, username: str, home_dir: str
-    ) -> None:
-        """Create a system user with wheel group for Arch.
-
-        Args:
-            mount_point: Installation mount point
-            username: Username to create
-            home_dir: Home directory path
-        """
-        import logging
-        from pykod.common import execute_chroot as exec_chroot
-        from pykod.common import open_with_dry_run
-
-        logger = logging.getLogger("pykod.config")
-
-        sudo_group = self.get_sudo_group()
-        logger.debug(f"Creating {username} system user (group: {sudo_group})")
-
-        exec_chroot(
-            f"useradd -m -r -G {sudo_group} -s /bin/bash -d {home_dir} {username}",
-            mount_point=mount_point,
-        )
-
-        with open_with_dry_run(f"{mount_point}/etc/sudoers.d/{username}", "w") as f:
-            f.write(f"{username} ALL=(ALL) NOPASSWD: ALL\n")
-
-        logger.debug(f"✓ {username} user created successfully")
+    # create_system_user() is inherited from BaseSystemRepository
+    # It uses get_sudo_group() which returns "wheel" for Arch
 
     def list_installed_packages(self):
         """Generate a file containing the list of installed packages and their versions."""
