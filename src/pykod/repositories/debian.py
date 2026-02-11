@@ -439,6 +439,26 @@ class Debian(BaseSystemRepository):
         # Step 3: CRITICAL - Block GRUB before installing any packages
         block_grub_installation(mount_point)
 
+        # Step 3.5: Disable kernel symlink creation in root directory
+        # Ubuntu kernel postinst tries to create /vmlinuz and /initrd.img symlinks
+        # This fails in chroot/BTRFS environments with "Operation not permitted"
+        # We don't need these symlinks for systemd-boot (it uses /boot/vmlinuz-* directly)
+        logger.info("Disabling kernel symlink creation...")
+        try:
+            kernel_img_conf = Path(mount_point) / "etc/kernel-img.conf"
+            kernel_img_conf.parent.mkdir(parents=True, exist_ok=True)
+            with open(kernel_img_conf, "w") as f:
+                f.write(
+                    "# pykod: Disable symlink creation (not needed for systemd-boot)\n"
+                )
+                f.write("do_symlinks = no\n")
+                f.write("do_bootloader = no\n")
+                f.write("do_initrd = yes\n")
+            logger.info("✓ Kernel symlink creation disabled")
+        except Exception as e:
+            logger.warning(f"Failed to create kernel-img.conf: {e}")
+            logger.warning("Kernel postinst may fail when creating symlinks")
+
         # Step 4: Disable GRUB kernel hooks
         disable_grub_kernel_hooks(mount_point)
 
