@@ -465,13 +465,20 @@ class Debian(BaseSystemRepository):
         # Set PATH to include /sbin and /usr/sbin for ldconfig, start-stop-daemon, etc.
         logger.info("Completing package configuration...")
         try:
+            # First attempt: configure all packages
             result = exec_chroot(
                 "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
                 mount_point=mount_point,
                 get_output=True,
             )
             logger.debug(f"dpkg --configure -a output:\n{result}")
-            logger.info("✓ Package configuration completed")
+
+            # Check if there were any errors in the output
+            if "error" in result.lower() or "failed" in result.lower():
+                logger.warning(f"dpkg --configure -a reported errors:\n{result}")
+            else:
+                logger.info("✓ Package configuration completed")
+
         except Exception as e:
             logger.error(f"dpkg --configure -a failed: {e}")
             # Try to get more diagnostic information
@@ -524,14 +531,50 @@ class Debian(BaseSystemRepository):
             logger.warning("Kernel packages are in 'half-configured' state!")
             logger.warning("This usually means package configuration failed")
             logger.warning("Attempting to reconfigure packages with full PATH...")
+
+            # Try multiple strategies to fix the configuration
             try:
+                # Strategy 1: Run dpkg --configure -a with verbose output
                 result = exec_chroot(
                     "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
                     mount_point=mount_point,
                     get_output=True,
                 )
                 logger.debug(f"Reconfiguration output:\n{result}")
-                # Re-check after reconfiguration
+
+                # Strategy 2: If still failing, try configuring kernel package specifically
+                kernel_check_after = exec_chroot(
+                    "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
+                    mount_point=mount_point,
+                    get_output=True,
+                ).strip()
+
+                if "half-configured" in kernel_check_after:
+                    logger.warning(
+                        "Still half-configured! Trying to configure kernel package specifically..."
+                    )
+
+                    # Get the actual kernel package name (not the meta-package)
+                    actual_kernel = exec_chroot(
+                        "dpkg-query -W -f='${Package}\n' 'linux-image-[0-9]*' 2>/dev/null | head -1",
+                        mount_point=mount_point,
+                        get_output=True,
+                    ).strip()
+
+                    if actual_kernel:
+                        logger.info(
+                            f"Attempting to configure {actual_kernel} specifically..."
+                        )
+                        specific_result = exec_chroot(
+                            f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure {actual_kernel} 2>&1",
+                            mount_point=mount_point,
+                            get_output=True,
+                        )
+                        logger.debug(
+                            f"Specific kernel configuration output:\n{specific_result}"
+                        )
+
+                # Re-check after all attempts
                 kernel_check_alt = exec_chroot(
                     "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
                     mount_point=mount_point,
