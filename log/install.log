@@ -1,392 +1,82 @@
-2026-02-11 16:06:02 - pykod.config - install - INFO - ✓ File logging enabled
-2026-02-11 16:06:02 - pykod.config - _pause_if_interactive - INFO - ================================================================================
-2026-02-11 16:06:02 - pykod.config - _pause_if_interactive - INFO - Step completed: Device installation (partitioning, formatting, mounting)
-2026-02-11 16:06:02 - pykod.config - _pause_if_interactive - INFO - ================================================================================
-2026-02-11 16:06:03 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'Device installation (partitioning, formatting, mounting)'
-2026-02-11 16:06:03 - pykod.config - install - INFO - [2/10] Installing base system packages...
-2026-02-11 16:06:03 - pykod.config - get_base_packages - DEBUG - Selected kernel package for ubuntu: ['linux-image-generic']
-2026-02-11 16:06:03 - pykod.config - install - DEBUG - Kernel packages: PKGS[
+2026-02-11 16:32:06 - pykod.config - install - INFO - ✓ File logging enabled
+2026-02-11 16:32:06 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 16:32:06 - pykod.config - _pause_if_interactive - INFO - Step completed: Device installation (partitioning, formatting, mounting)
+2026-02-11 16:32:06 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 16:32:06 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'Device installation (partitioning, formatting, mounting)'
+2026-02-11 16:32:06 - pykod.config - install - INFO - [2/10] Installing base system packages...
+2026-02-11 16:32:06 - pykod.config - get_base_packages - DEBUG - Selected kernel package for ubuntu: ['linux-image-generic']
+2026-02-11 16:32:06 - pykod.config - install - DEBUG - Kernel packages: PKGS[
    => Debian: ('linux-image-generic',)
 ]
-2026-02-11 16:06:03 - pykod.config - install - DEBUG - Base packages: PKGS[
+2026-02-11 16:32:06 - pykod.config - install - DEBUG - Base packages: PKGS[
    => Debian: ('amd64-microcode', 'btrfs-progs', 'bash-completion', 'sudo', 'passwd', 'whois', 'initramfs-tools', 'git', 'systemd', 'systemd-boot')
 ]
-2026-02-11 16:06:03 - pykod.config - install - INFO - Installing 11 base packages
-2026-02-11 16:06:03 - pykod.config - install_base - INFO - === Base Package Installation ===
-2026-02-11 16:06:03 - pykod.config - install_base - INFO - Total packages to install: 11
-2026-02-11 16:06:03 - pykod.config - install_base - INFO - Package list: linux-image-generic, amd64-microcode, btrfs-progs, bash-completion, sudo, passwd, whois, initramfs-tools, git, systemd, systemd-boot
-2026-02-11 16:06:03 - pykod.config - install_base - INFO - ✓ Kernel packages found in list: linux-image-generic
-2026-02-11 16:06:03 - pykod.config - install_base - INFO - Running debootstrap for ubuntu noble...
-2026-02-11 16:11:58 - pykod.config - prevent_service_start - INFO - Creating policy-rc.d to prevent service starts during installation...
-2026-02-11 16:11:58 - pykod.config - prevent_service_start - INFO - ✓ Service starts blocked via policy-rc.d
-2026-02-11 16:11:58 - pykod.config - block_grub_installation - INFO - Creating APT preferences to block GRUB installation...
-2026-02-11 16:11:58 - pykod.config - block_grub_installation - DEBUG - GRUB blocking preferences created at /mnt/etc/apt/preferences.d/99-no-grub
-2026-02-11 16:11:58 - pykod.config - block_grub_installation - INFO - ✓ GRUB installation blocked via APT preferences
-2026-02-11 16:11:58 - pykod.config - disable_grub_kernel_hooks - INFO - Disabling GRUB-related kernel hooks...
-2026-02-11 16:11:58 - pykod.config - disable_grub_kernel_hooks - DEBUG - Hook not present, skipping: /etc/kernel/postinst.d/zz-update-grub
-2026-02-11 16:11:58 - pykod.config - disable_grub_kernel_hooks - DEBUG - Hook not present, skipping: /etc/kernel/postrm.d/zz-update-grub
-2026-02-11 16:11:58 - pykod.config - disable_grub_kernel_hooks - INFO - No GRUB kernel hooks found to divert (this is normal for minimal installs)
-2026-02-11 16:11:58 - pykod.config - install_base - INFO - Installing base packages (with GRUB blocked)...
-2026-02-11 16:25:23 - pykod.config - install_base - INFO - Completing package configuration...
-2026-02-11 16:25:24 - pykod.config - install_base - DEBUG - dpkg --configure -a output:
-Setting up linux-image-6.8.0-31-generic (6.8.0-31.31) ...
-Failed to create symlink to vmlinuz-6.8.0-31-generic: Operation not permitted at /usr/bin/linux-update-symlinks line 64.
-dpkg: error processing package linux-image-6.8.0-31-generic (--configure):
- installed linux-image-6.8.0-31-generic package post-installation script subprocess returned error exit status 1
-dpkg: dependency problems prevent configuration of linux-image-generic:
- linux-image-generic depends on linux-image-6.8.0-31-generic; however:
-  Package linux-image-6.8.0-31-generic is not configured yet.
+2026-02-11 16:32:06 - pykod.config - install - INFO - Installing 11 base packages
+2026-02-11 16:32:06 - pykod.config - install_base - INFO - === Base Package Installation ===
+2026-02-11 16:32:06 - pykod.config - install_base - INFO - Total packages to install: 11
+2026-02-11 16:32:06 - pykod.config - install_base - INFO - Package list: linux-image-generic, amd64-microcode, btrfs-progs, bash-completion, sudo, passwd, whois, initramfs-tools, git, systemd, systemd-boot
+2026-02-11 16:32:06 - pykod.config - install_base - INFO - ✓ Kernel packages found in list: linux-image-generic
+2026-02-11 16:32:06 - pykod.config - install_base - INFO - Running debootstrap for ubuntu noble...
+2026-02-11 16:41:03 - pykod.config - prevent_service_start - INFO - Creating policy-rc.d to prevent service starts during installation...
+2026-02-11 16:41:03 - pykod.config - prevent_service_start - INFO - ✓ Service starts blocked via policy-rc.d
+2026-02-11 16:41:03 - pykod.config - block_grub_installation - INFO - Creating APT preferences to block GRUB installation...
+2026-02-11 16:41:03 - pykod.config - block_grub_installation - DEBUG - GRUB blocking preferences created at /mnt/etc/apt/preferences.d/99-no-grub
+2026-02-11 16:41:03 - pykod.config - block_grub_installation - INFO - ✓ GRUB installation blocked via APT preferences
+2026-02-11 16:41:03 - pykod.config - install_base - INFO - Disabling kernel symlink creation...
+2026-02-11 16:41:03 - pykod.config - install_base - INFO - ✓ Kernel symlink creation disabled
+2026-02-11 16:41:03 - pykod.config - disable_grub_kernel_hooks - INFO - Disabling GRUB-related kernel hooks...
+2026-02-11 16:41:03 - pykod.config - disable_grub_kernel_hooks - DEBUG - Hook not present, skipping: /etc/kernel/postinst.d/zz-update-grub
+2026-02-11 16:41:03 - pykod.config - disable_grub_kernel_hooks - DEBUG - Hook not present, skipping: /etc/kernel/postrm.d/zz-update-grub
+2026-02-11 16:41:03 - pykod.config - disable_grub_kernel_hooks - INFO - No GRUB kernel hooks found to divert (this is normal for minimal installs)
+2026-02-11 16:41:03 - pykod.config - install_base - INFO - Installing base packages (with GRUB blocked)...
+2026-02-11 17:13:27 - pykod.config - install_base - INFO - Completing package configuration...
+2026-02-11 17:13:27 - pykod.config - install_base - DEBUG - dpkg --configure -a output:
 
-dpkg: error processing package linux-image-generic (--configure):
- dependency problems - leaving unconfigured
-Errors were encountered while processing:
- linux-image-6.8.0-31-generic
- linux-image-generic
-
-2026-02-11 16:25:24 - pykod.config - install_base - WARNING - dpkg --configure -a reported errors:
-Setting up linux-image-6.8.0-31-generic (6.8.0-31.31) ...
-Failed to create symlink to vmlinuz-6.8.0-31-generic: Operation not permitted at /usr/bin/linux-update-symlinks line 64.
-dpkg: error processing package linux-image-6.8.0-31-generic (--configure):
- installed linux-image-6.8.0-31-generic package post-installation script subprocess returned error exit status 1
-dpkg: dependency problems prevent configuration of linux-image-generic:
- linux-image-generic depends on linux-image-6.8.0-31-generic; however:
-  Package linux-image-6.8.0-31-generic is not configured yet.
-
-dpkg: error processing package linux-image-generic (--configure):
- dependency problems - leaving unconfigured
-Errors were encountered while processing:
- linux-image-6.8.0-31-generic
- linux-image-generic
-
-2026-02-11 16:25:24 - pykod.config - verify_grub_not_installed_debian - INFO - Verifying GRUB was not installed...
-2026-02-11 16:25:24 - pykod.config - verify_grub_not_installed_debian - INFO - ✓ Verified: No GRUB packages installed
-2026-02-11 16:25:24 - pykod.config - install_base - INFO - Verifying kernel package installation...
-2026-02-11 16:25:24 - pykod.config - install_base - DEBUG - Total dpkg output length: 39722 characters
-2026-02-11 16:25:24 - pykod.config - install_base - DEBUG - Kernel check result: ''
-2026-02-11 16:25:24 - pykod.config - install_base - DEBUG - Kernel check result length: 0
-2026-02-11 16:25:24 - pykod.config - install_base - DEBUG - Alternative kernel check: 'linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
-linux-image-generic 6.8.0-31.31 install ok unpacked
+2026-02-11 17:13:27 - pykod.config - install_base - INFO - ✓ Package configuration completed
+2026-02-11 17:13:27 - pykod.config - verify_grub_not_installed_debian - INFO - Verifying GRUB was not installed...
+2026-02-11 17:13:27 - pykod.config - verify_grub_not_installed_debian - INFO - ✓ Verified: No GRUB packages installed
+2026-02-11 17:13:27 - pykod.config - install_base - INFO - Verifying kernel package installation...
+2026-02-11 17:13:27 - pykod.config - install_base - DEBUG - Total dpkg output length: 39722 characters
+2026-02-11 17:13:28 - pykod.config - install_base - DEBUG - Kernel check result: 'ii  linux-image-6.8.0-31-generic         6.8.0-31.31                       amd64        Signed kernel image generic
+ii  linux-image-generic                  6.8.0-31.31                       amd64        Generic Linux kernel image'
+2026-02-11 17:13:28 - pykod.config - install_base - DEBUG - Kernel check result length: 230
+2026-02-11 17:13:28 - pykod.config - install_base - DEBUG - Alternative kernel check: 'linux-image-6.8.0-31-generic 6.8.0-31.31 install ok installed
+linux-image-generic 6.8.0-31.31 install ok installed
 linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed'
-2026-02-11 16:25:24 - pykod.config - install_base - WARNING - Kernel packages are in 'half-configured' state!
-2026-02-11 16:25:24 - pykod.config - install_base - WARNING - This usually means package configuration failed
-2026-02-11 16:25:24 - pykod.config - install_base - INFO - Checking for broken dependencies...
-2026-02-11 16:25:25 - pykod.config - install_base - DEBUG - Dependency check output:
-Reading package lists...
-Building dependency tree...
-Reading state information...
-
-2026-02-11 16:25:25 - pykod.config - install_base - INFO - Checking for missing dependencies...
-2026-02-11 16:25:25 - pykod.config - install_base - WARNING - dpkg audit found issues:
-The following packages have been unpacked but not yet configured.
-They must be configured using dpkg --configure or the configure
-menu option in dselect for them to work:
- linux-image-generic  Generic Linux kernel image
-
-The following packages are only half configured, probably due to problems
-configuring them the first time.  The configuration should be retried using
-dpkg --configure <package> or the configure menu option in dselect:
- linux-image-6.8.0-31-generic Signed kernel image generic
-
-
-2026-02-11 16:25:25 - pykod.config - install_base - WARNING - Attempting to reconfigure packages with full PATH...
-2026-02-11 16:25:26 - pykod.config - install_base - DEBUG - Reconfiguration output:
-Setting up linux-image-6.8.0-31-generic (6.8.0-31.31) ...
-Failed to create symlink to vmlinuz-6.8.0-31-generic: Operation not permitted at /usr/bin/linux-update-symlinks line 64.
-dpkg: error processing package linux-image-6.8.0-31-generic (--configure):
- installed linux-image-6.8.0-31-generic package post-installation script subprocess returned error exit status 1
-dpkg: dependency problems prevent configuration of linux-image-generic:
- linux-image-generic depends on linux-image-6.8.0-31-generic; however:
-  Package linux-image-6.8.0-31-generic is not configured yet.
-
-dpkg: error processing package linux-image-generic (--configure):
- dependency problems - leaving unconfigured
-Errors were encountered while processing:
- linux-image-6.8.0-31-generic
- linux-image-generic
-
-2026-02-11 16:25:26 - pykod.config - install_base - WARNING - Still half-configured! Trying to configure kernel package specifically...
-2026-02-11 16:25:26 - pykod.config - install_base - INFO - Attempting to configure linux-image-6.8.0-31-generic specifically...
-2026-02-11 16:25:28 - pykod.config - install_base - DEBUG - Specific kernel configuration output:
-Setting up linux-image-6.8.0-31-generic (6.8.0-31.31) ...
-Failed to create symlink to vmlinuz-6.8.0-31-generic: Operation not permitted at /usr/bin/linux-update-symlinks line 64.
-dpkg: error processing package linux-image-6.8.0-31-generic (--configure):
- installed linux-image-6.8.0-31-generic package post-installation script subprocess returned error exit status 1
-Errors were encountered while processing:
- linux-image-6.8.0-31-generic
-
-2026-02-11 16:25:28 - pykod.config - install_base - INFO - Attempting to configure kernel meta-package...
-2026-02-11 16:25:28 - pykod.config - install_base - DEBUG - Meta-package configuration output:
-dpkg: dependency problems prevent configuration of linux-image-generic:
- linux-image-generic depends on linux-image-6.8.0-31-generic; however:
-  Package linux-image-6.8.0-31-generic is not configured yet.
-
-dpkg: error processing package linux-image-generic (--configure):
- dependency problems - leaving unconfigured
-Errors were encountered while processing:
- linux-image-generic
-
-2026-02-11 16:25:28 - pykod.config - install_base - INFO - After reconfiguration: linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
-linux-image-generic 6.8.0-31.31 install ok unpacked
-linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed
-2026-02-11 16:25:28 - pykod.config - install_base - ERROR - Kernel packages STILL half-configured after reconfiguration!
-2026-02-11 16:25:28 - pykod.config - install_base - ERROR - Checking for package configuration errors...
-2026-02-11 16:25:28 - pykod.config - install_base - ERROR - Recent dpkg log entries:
-2026-02-11 16:25:21 configure initramfs-tools-bin:amd64 0.142ubuntu25 <none>
-2026-02-11 16:25:21 status unpacked initramfs-tools-bin:amd64 0.142ubuntu25
-2026-02-11 16:25:21 status half-configured initramfs-tools-bin:amd64 0.142ubuntu25
-2026-02-11 16:25:21 status installed initramfs-tools-bin:amd64 0.142ubuntu25
-2026-02-11 16:25:21 configure efibootmgr:amd64 18-1build2 <none>
-2026-02-11 16:25:21 status unpacked efibootmgr:amd64 18-1build2
-2026-02-11 16:25:21 status half-configured efibootmgr:amd64 18-1build2
-2026-02-11 16:25:21 status installed efibootmgr:amd64 18-1build2
-2026-02-11 16:25:21 configure openssh-client:amd64 1:9.6p1-3ubuntu13 <none>
-2026-02-11 16:25:21 status unpacked openssh-client:amd64 1:9.6p1-3ubuntu13
-2026-02-11 16:25:21 status half-configured openssh-client:amd64 1:9.6p1-3ubuntu13
-2026-02-11 16:25:21 status installed openssh-client:amd64 1:9.6p1-3ubuntu13
-2026-02-11 16:25:21 configure btrfs-progs:amd64 6.6.3-1.1build2 <none>
-2026-02-11 16:25:21 status unpacked btrfs-progs:amd64 6.6.3-1.1build2
-2026-02-11 16:25:21 status half-configured btrfs-progs:amd64 6.6.3-1.1build2
-2026-02-11 16:25:21 status installed btrfs-progs:amd64 6.6.3-1.1build2
-2026-02-11 16:25:21 configure upower:amd64 1.90.3-1 <none>
-2026-02-11 16:25:21 status unpacked upower:amd64 1.90.3-1
-2026-02-11 16:25:21 status half-configured upower:amd64 1.90.3-1
-2026-02-11 16:25:21 status installed upower:amd64 1.90.3-1
-2026-02-11 16:25:21 configure libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10 <none>
-2026-02-11 16:25:21 status unpacked libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10
-2026-02-11 16:25:21 status half-configured libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10
-2026-02-11 16:25:21 status installed libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10
-2026-02-11 16:25:21 configure libxext6:amd64 2:1.3.4-1build2 <none>
-2026-02-11 16:25:21 status unpacked libxext6:amd64 2:1.3.4-1build2
-2026-02-11 16:25:21 status half-configured libxext6:amd64 2:1.3.4-1build2
-2026-02-11 16:25:21 status installed libxext6:amd64 2:1.3.4-1build2
-2026-02-11 16:25:21 configure perl:amd64 5.38.2-3.2build2 <none>
-2026-02-11 16:25:21 status unpacked perl:amd64 5.38.2-3.2build2
-2026-02-11 16:25:21 status half-configured perl:amd64 5.38.2-3.2build2
-2026-02-11 16:25:21 status installed perl:amd64 5.38.2-3.2build2
-2026-02-11 16:25:21 configure usbmuxd:amd64 1.1.1-5~exp3ubuntu2 <none>
-2026-02-11 16:25:21 status unpacked usbmuxd:amd64 1.1.1-5~exp3ubuntu2
-2026-02-11 16:25:21 status half-configured usbmuxd:amd64 1.1.1-5~exp3ubuntu2
-2026-02-11 16:25:21 status installed usbmuxd:amd64 1.1.1-5~exp3ubuntu2
-2026-02-11 16:25:21 configure xauth:amd64 1:1.1.2-1build1 <none>
-2026-02-11 16:25:21 status unpacked xauth:amd64 1:1.1.2-1build1
-2026-02-11 16:25:21 status half-configured xauth:amd64 1:1.1.2-1build1
-2026-02-11 16:25:21 status installed xauth:amd64 1:1.1.2-1build1
-2026-02-11 16:25:21 configure xml-core:all 0.19 <none>
-2026-02-11 16:25:21 status triggers-pending sgml-base:all 1.31
-2026-02-11 16:25:21 status unpacked xml-core:all 0.19
-2026-02-11 16:25:22 status half-configured xml-core:all 0.19
-2026-02-11 16:25:22 status triggers-awaited xml-core:all 0.19
-2026-02-11 16:25:22 configure libpolkit-agent-1-0:amd64 124-2ubuntu1 <none>
-2026-02-11 16:25:22 status unpacked libpolkit-agent-1-0:amd64 124-2ubuntu1
-2026-02-11 16:25:22 status half-configured libpolkit-agent-1-0:amd64 124-2ubuntu1
-2026-02-11 16:25:22 status installed libpolkit-agent-1-0:amd64 124-2ubuntu1
-2026-02-11 16:25:22 configure initramfs-tools-core:all 0.142ubuntu25 <none>
-2026-02-11 16:25:22 status unpacked initramfs-tools-core:all 0.142ubuntu25
-2026-02-11 16:25:22 status half-configured initramfs-tools-core:all 0.142ubuntu25
-2026-02-11 16:25:22 status installed initramfs-tools-core:all 0.142ubuntu25
-2026-02-11 16:25:22 configure thermald:amd64 2.5.6-2build2 <none>
-2026-02-11 16:25:22 status unpacked thermald:amd64 2.5.6-2build2
-2026-02-11 16:25:22 status half-configured thermald:amd64 2.5.6-2build2
-2026-02-11 16:25:22 status installed thermald:amd64 2.5.6-2build2
-2026-02-11 16:25:22 configure initramfs-tools:all 0.142ubuntu25 <none>
-2026-02-11 16:25:22 status unpacked initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 status half-configured initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 status installed initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 status triggers-pending initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 configure liberror-perl:all 0.17029-2 <none>
-2026-02-11 16:25:22 status unpacked liberror-perl:all 0.17029-2
-2026-02-11 16:25:22 status half-configured liberror-perl:all 0.17029-2
-2026-02-11 16:25:22 status installed liberror-perl:all 0.17029-2
-2026-02-11 16:25:22 configure git:amd64 1:2.43.0-1ubuntu7 <none>
-2026-02-11 16:25:22 status unpacked git:amd64 1:2.43.0-1ubuntu7
-2026-02-11 16:25:22 status half-configured git:amd64 1:2.43.0-1ubuntu7
-2026-02-11 16:25:22 status installed git:amd64 1:2.43.0-1ubuntu7
-2026-02-11 16:25:22 trigproc libc-bin:amd64 2.39-0ubuntu8 <none>
-2026-02-11 16:25:22 status half-configured libc-bin:amd64 2.39-0ubuntu8
-2026-02-11 16:25:22 status installed libc-bin:amd64 2.39-0ubuntu8
-2026-02-11 16:25:22 trigproc dbus:amd64 1.14.10-4ubuntu4 <none>
-2026-02-11 16:25:22 status half-configured dbus:amd64 1.14.10-4ubuntu4
-2026-02-11 16:25:22 status installed dbus:amd64 1.14.10-4ubuntu4
-2026-02-11 16:25:22 trigproc udev:amd64 255.4-1ubuntu8 <none>
-2026-02-11 16:25:22 status half-configured udev:amd64 255.4-1ubuntu8
-2026-02-11 16:25:22 status installed udev:amd64 255.4-1ubuntu8
-2026-02-11 16:25:23 trigproc sgml-base:all 1.31 <none>
-2026-02-11 16:25:23 status half-configured sgml-base:all 1.31
-2026-02-11 16:25:23 status installed xml-core:all 0.19
-2026-02-11 16:25:23 status installed sgml-base:all 1.31
-2026-02-11 16:25:23 configure polkitd:amd64 124-2ubuntu1 <none>
-2026-02-11 16:25:23 status unpacked polkitd:amd64 124-2ubuntu1
-2026-02-11 16:25:23 status half-configured polkitd:amd64 124-2ubuntu1
-2026-02-11 16:25:23 status installed polkitd:amd64 124-2ubuntu1
-2026-02-11 16:25:23 trigproc initramfs-tools:all 0.142ubuntu25 <none>
-2026-02-11 16:25:23 status half-configured initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:23 status installed initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:23 startup packages configure
-2026-02-11 16:25:23 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:25:23 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-2026-02-11 16:25:25 startup packages configure
-2026-02-11 16:25:25 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:25:25 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-2026-02-11 16:25:26 startup packages configure
-2026-02-11 16:25:26 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:25:26 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-2026-02-11 16:25:28 startup packages configure
-
-2026-02-11 16:25:28 - pykod.config - install_base - INFO - ✓ Kernel package(s) installed:
-linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
-linux-image-generic 6.8.0-31.31 install ok unpacked
-linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed
-2026-02-11 16:25:28 - pykod.config - allow_service_start - INFO - Removing policy-rc.d to allow normal service management...
-2026-02-11 16:25:28 - pykod.config - allow_service_start - INFO - ✓ Service management restored
-2026-02-11 16:25:28 - pykod.config - install_base - INFO - Base system installation completed
-2026-02-11 16:25:35 - pykod.config - install - INFO - ================================================================================
-2026-02-11 16:25:35 - pykod.config - install - INFO - Kernel packages installed:
-2026-02-11 16:25:35 - pykod.config - install - INFO - ================================================================================
-2026-02-11 16:25:35 - pykod.config - _pause_if_interactive - INFO - ================================================================================
-2026-02-11 16:25:35 - pykod.config - _pause_if_interactive - INFO - Step completed: Base system packages installation (debootstrap, kernel, essential tools)
-2026-02-11 16:25:35 - pykod.config - _pause_if_interactive - INFO - ================================================================================
-2026-02-11 16:29:37 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'Base system packages installation (debootstrap, kernel, essential tools)'
-2026-02-11 16:29:37 - pykod.config - install - INFO - [3/10] Configuring system (fstab, hostname, etc.)...
-2026-02-11 16:29:37 - pykod.config - generate_fstab - DEBUG - Generating fstab for 9 partitions
-2026-02-11 16:29:37 - pykod.config - generate_fstab - DEBUG - fstab generated successfully
-2026-02-11 16:29:37 - pykod.config - configure_system - DEBUG - Configuring system at /mnt
-2026-02-11 16:29:37 - pykod.config - _pause_if_interactive - INFO - ================================================================================
-2026-02-11 16:29:37 - pykod.config - _pause_if_interactive - INFO - Step completed: System configuration (fstab, hostname, timezone)
-2026-02-11 16:29:37 - pykod.config - _pause_if_interactive - INFO - ================================================================================
-2026-02-11 16:29:40 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'System configuration (fstab, hostname, timezone)'
-2026-02-11 16:29:40 - pykod.config - install - INFO - [4/10] Installing boot configuration...
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - INFO - Setting up bootloader
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - INFO - Setting up systemd-boot
-2026-02-11 16:29:40 - pykod.config - verify_grub_not_installed - INFO - Verifying GRUB is not installed...
-2026-02-11 16:29:40 - pykod.config - verify_grub_not_installed - INFO - ✓ Verification passed: No GRUB packages detected
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - INFO - Pre-flight check: Verifying kernel package is installed...
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - WARNING - No fully installed (ii) kernel packages found
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - INFO - Checking for kernel packages in any state...
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - WARNING - Found kernel package in non-installed state: linux-image-6.8.0-31-generic install ok half-configured
-2026-02-11 16:29:40 - pykod.config - setup_bootloader - WARNING - Attempting to complete package configuration with full PATH...
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - DEBUG - dpkg --configure -a output:
-Setting up linux-image-6.8.0-31-generic (6.8.0-31.31) ...
-Failed to create symlink to vmlinuz-6.8.0-31-generic: Operation not permitted at /usr/bin/linux-update-symlinks line 64.
-dpkg: error processing package linux-image-6.8.0-31-generic (--configure):
- installed linux-image-6.8.0-31-generic package post-installation script subprocess returned error exit status 1
-dpkg: dependency problems prevent configuration of linux-image-generic:
- linux-image-generic depends on linux-image-6.8.0-31-generic; however:
-  Package linux-image-6.8.0-31-generic is not configured yet.
-
-dpkg: error processing package linux-image-generic (--configure):
- dependency problems - leaving unconfigured
-Errors were encountered while processing:
- linux-image-6.8.0-31-generic
- linux-image-generic
-
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - INFO - ✓ Package configuration completed
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - ERROR - Kernel package still not properly installed after dpkg --configure
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - ERROR - Getting detailed package status...
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - ERROR - Detailed kernel package status:
-linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
-linux-image-generic 6.8.0-31.31 install ok unpacked
-linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed
-
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - ERROR - Recent dpkg log:
-2026-02-11 16:25:21 status installed initramfs-tools-bin:amd64 0.142ubuntu25
-2026-02-11 16:25:21 configure efibootmgr:amd64 18-1build2 <none>
-2026-02-11 16:25:21 status unpacked efibootmgr:amd64 18-1build2
-2026-02-11 16:25:21 status half-configured efibootmgr:amd64 18-1build2
-2026-02-11 16:25:21 status installed efibootmgr:amd64 18-1build2
-2026-02-11 16:25:21 configure openssh-client:amd64 1:9.6p1-3ubuntu13 <none>
-2026-02-11 16:25:21 status unpacked openssh-client:amd64 1:9.6p1-3ubuntu13
-2026-02-11 16:25:21 status half-configured openssh-client:amd64 1:9.6p1-3ubuntu13
-2026-02-11 16:25:21 status installed openssh-client:amd64 1:9.6p1-3ubuntu13
-2026-02-11 16:25:21 configure btrfs-progs:amd64 6.6.3-1.1build2 <none>
-2026-02-11 16:25:21 status unpacked btrfs-progs:amd64 6.6.3-1.1build2
-2026-02-11 16:25:21 status half-configured btrfs-progs:amd64 6.6.3-1.1build2
-2026-02-11 16:25:21 status installed btrfs-progs:amd64 6.6.3-1.1build2
-2026-02-11 16:25:21 configure upower:amd64 1.90.3-1 <none>
-2026-02-11 16:25:21 status unpacked upower:amd64 1.90.3-1
-2026-02-11 16:25:21 status half-configured upower:amd64 1.90.3-1
-2026-02-11 16:25:21 status installed upower:amd64 1.90.3-1
-2026-02-11 16:25:21 configure libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10 <none>
-2026-02-11 16:25:21 status unpacked libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10
-2026-02-11 16:25:21 status half-configured libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10
-2026-02-11 16:25:21 status installed libcurl3t64-gnutls:amd64 8.5.0-2ubuntu10
-2026-02-11 16:25:21 configure libxext6:amd64 2:1.3.4-1build2 <none>
-2026-02-11 16:25:21 status unpacked libxext6:amd64 2:1.3.4-1build2
-2026-02-11 16:25:21 status half-configured libxext6:amd64 2:1.3.4-1build2
-2026-02-11 16:25:21 status installed libxext6:amd64 2:1.3.4-1build2
-2026-02-11 16:25:21 configure perl:amd64 5.38.2-3.2build2 <none>
-2026-02-11 16:25:21 status unpacked perl:amd64 5.38.2-3.2build2
-2026-02-11 16:25:21 status half-configured perl:amd64 5.38.2-3.2build2
-2026-02-11 16:25:21 status installed perl:amd64 5.38.2-3.2build2
-2026-02-11 16:25:21 configure usbmuxd:amd64 1.1.1-5~exp3ubuntu2 <none>
-2026-02-11 16:25:21 status unpacked usbmuxd:amd64 1.1.1-5~exp3ubuntu2
-2026-02-11 16:25:21 status half-configured usbmuxd:amd64 1.1.1-5~exp3ubuntu2
-2026-02-11 16:25:21 status installed usbmuxd:amd64 1.1.1-5~exp3ubuntu2
-2026-02-11 16:25:21 configure xauth:amd64 1:1.1.2-1build1 <none>
-2026-02-11 16:25:21 status unpacked xauth:amd64 1:1.1.2-1build1
-2026-02-11 16:25:21 status half-configured xauth:amd64 1:1.1.2-1build1
-2026-02-11 16:25:21 status installed xauth:amd64 1:1.1.2-1build1
-2026-02-11 16:25:21 configure xml-core:all 0.19 <none>
-2026-02-11 16:25:21 status triggers-pending sgml-base:all 1.31
-2026-02-11 16:25:21 status unpacked xml-core:all 0.19
-2026-02-11 16:25:22 status half-configured xml-core:all 0.19
-2026-02-11 16:25:22 status triggers-awaited xml-core:all 0.19
-2026-02-11 16:25:22 configure libpolkit-agent-1-0:amd64 124-2ubuntu1 <none>
-2026-02-11 16:25:22 status unpacked libpolkit-agent-1-0:amd64 124-2ubuntu1
-2026-02-11 16:25:22 status half-configured libpolkit-agent-1-0:amd64 124-2ubuntu1
-2026-02-11 16:25:22 status installed libpolkit-agent-1-0:amd64 124-2ubuntu1
-2026-02-11 16:25:22 configure initramfs-tools-core:all 0.142ubuntu25 <none>
-2026-02-11 16:25:22 status unpacked initramfs-tools-core:all 0.142ubuntu25
-2026-02-11 16:25:22 status half-configured initramfs-tools-core:all 0.142ubuntu25
-2026-02-11 16:25:22 status installed initramfs-tools-core:all 0.142ubuntu25
-2026-02-11 16:25:22 configure thermald:amd64 2.5.6-2build2 <none>
-2026-02-11 16:25:22 status unpacked thermald:amd64 2.5.6-2build2
-2026-02-11 16:25:22 status half-configured thermald:amd64 2.5.6-2build2
-2026-02-11 16:25:22 status installed thermald:amd64 2.5.6-2build2
-2026-02-11 16:25:22 configure initramfs-tools:all 0.142ubuntu25 <none>
-2026-02-11 16:25:22 status unpacked initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 status half-configured initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 status installed initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 status triggers-pending initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:22 configure liberror-perl:all 0.17029-2 <none>
-2026-02-11 16:25:22 status unpacked liberror-perl:all 0.17029-2
-2026-02-11 16:25:22 status half-configured liberror-perl:all 0.17029-2
-2026-02-11 16:25:22 status installed liberror-perl:all 0.17029-2
-2026-02-11 16:25:22 configure git:amd64 1:2.43.0-1ubuntu7 <none>
-2026-02-11 16:25:22 status unpacked git:amd64 1:2.43.0-1ubuntu7
-2026-02-11 16:25:22 status half-configured git:amd64 1:2.43.0-1ubuntu7
-2026-02-11 16:25:22 status installed git:amd64 1:2.43.0-1ubuntu7
-2026-02-11 16:25:22 trigproc libc-bin:amd64 2.39-0ubuntu8 <none>
-2026-02-11 16:25:22 status half-configured libc-bin:amd64 2.39-0ubuntu8
-2026-02-11 16:25:22 status installed libc-bin:amd64 2.39-0ubuntu8
-2026-02-11 16:25:22 trigproc dbus:amd64 1.14.10-4ubuntu4 <none>
-2026-02-11 16:25:22 status half-configured dbus:amd64 1.14.10-4ubuntu4
-2026-02-11 16:25:22 status installed dbus:amd64 1.14.10-4ubuntu4
-2026-02-11 16:25:22 trigproc udev:amd64 255.4-1ubuntu8 <none>
-2026-02-11 16:25:22 status half-configured udev:amd64 255.4-1ubuntu8
-2026-02-11 16:25:22 status installed udev:amd64 255.4-1ubuntu8
-2026-02-11 16:25:23 trigproc sgml-base:all 1.31 <none>
-2026-02-11 16:25:23 status half-configured sgml-base:all 1.31
-2026-02-11 16:25:23 status installed xml-core:all 0.19
-2026-02-11 16:25:23 status installed sgml-base:all 1.31
-2026-02-11 16:25:23 configure polkitd:amd64 124-2ubuntu1 <none>
-2026-02-11 16:25:23 status unpacked polkitd:amd64 124-2ubuntu1
-2026-02-11 16:25:23 status half-configured polkitd:amd64 124-2ubuntu1
-2026-02-11 16:25:23 status installed polkitd:amd64 124-2ubuntu1
-2026-02-11 16:25:23 trigproc initramfs-tools:all 0.142ubuntu25 <none>
-2026-02-11 16:25:23 status half-configured initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:23 status installed initramfs-tools:all 0.142ubuntu25
-2026-02-11 16:25:23 startup packages configure
-2026-02-11 16:25:23 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:25:23 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-2026-02-11 16:25:25 startup packages configure
-2026-02-11 16:25:25 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:25:25 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-2026-02-11 16:25:26 startup packages configure
-2026-02-11 16:25:26 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:25:26 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-2026-02-11 16:25:28 startup packages configure
-2026-02-11 16:29:41 startup packages configure
-2026-02-11 16:29:41 configure linux-image-6.8.0-31-generic:amd64 6.8.0-31.31 <none>
-2026-02-11 16:29:41 status half-configured linux-image-6.8.0-31-generic:amd64 6.8.0-31.31
-
-2026-02-11 16:29:42 - pykod.config - setup_bootloader - ERROR - Failed to configure kernel package: Cannot setup bootloader: Kernel package configuration failed. Package exists but could not be configured properly.
+2026-02-11 17:13:28 - pykod.config - install_base - INFO - ✓ Kernel package(s) installed:
+ii  linux-image-6.8.0-31-generic         6.8.0-31.31                       amd64        Signed kernel image generic
+ii  linux-image-generic                  6.8.0-31.31                       amd64        Generic Linux kernel image
+2026-02-11 17:13:28 - pykod.config - allow_service_start - INFO - Removing policy-rc.d to allow normal service management...
+2026-02-11 17:13:28 - pykod.config - allow_service_start - INFO - ✓ Service management restored
+2026-02-11 17:13:28 - pykod.config - install_base - INFO - Base system installation completed
+2026-02-11 17:13:46 - pykod.config - install - INFO - ================================================================================
+2026-02-11 17:13:46 - pykod.config - install - INFO - Kernel packages installed:
+2026-02-11 17:13:46 - pykod.config - install - INFO - ================================================================================
+2026-02-11 17:13:46 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 17:13:46 - pykod.config - _pause_if_interactive - INFO - Step completed: Base system packages installation (debootstrap, kernel, essential tools)
+2026-02-11 17:13:46 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 17:14:01 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'Base system packages installation (debootstrap, kernel, essential tools)'
+2026-02-11 17:14:01 - pykod.config - install - INFO - [3/10] Configuring system (fstab, hostname, etc.)...
+2026-02-11 17:14:01 - pykod.config - generate_fstab - DEBUG - Generating fstab for 9 partitions
+2026-02-11 17:14:01 - pykod.config - generate_fstab - DEBUG - fstab generated successfully
+2026-02-11 17:14:01 - pykod.config - configure_system - DEBUG - Configuring system at /mnt
+2026-02-11 17:14:01 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 17:14:01 - pykod.config - _pause_if_interactive - INFO - Step completed: System configuration (fstab, hostname, timezone)
+2026-02-11 17:14:01 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 17:14:02 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'System configuration (fstab, hostname, timezone)'
+2026-02-11 17:14:02 - pykod.config - install - INFO - [4/10] Installing boot configuration...
+2026-02-11 17:14:02 - pykod.config - setup_bootloader - INFO - Setting up bootloader
+2026-02-11 17:14:02 - pykod.config - setup_bootloader - INFO - Setting up systemd-boot
+2026-02-11 17:14:02 - pykod.config - verify_grub_not_installed - INFO - Verifying GRUB is not installed...
+2026-02-11 17:14:02 - pykod.config - verify_grub_not_installed - INFO - ✓ Verification passed: No GRUB packages detected
+2026-02-11 17:14:02 - pykod.config - setup_bootloader - INFO - Pre-flight check: Verifying kernel package is installed...
+2026-02-11 17:14:02 - pykod.config - setup_bootloader - DEBUG - Kernel package verified: ii  linux-image-6.8.0-31-generic         6.8.0-31.31                       amd64        Signed kernel image generic
+2026-02-11 17:14:02 - pykod.config - get_kernel_info - INFO - Detecting installed kernel from package PKGS[
+   => Debian: ('linux-image-generic',)
+]...
+2026-02-11 17:14:02 - pykod.config - get_kernel_info - DEBUG - dpkg-query result: ''
+2026-02-11 17:14:02 - pykod.config - get_kernel_info - WARNING - Package query failed for linux-image-generic, searching filesystem...
+2026-02-11 17:14:03 - pykod.config - get_kernel_info - DEBUG - Filesystem search result: '/boot/vmlinuz-6.8.0-31-generic'
+2026-02-11 17:14:03 - pykod.config - get_kernel_info - INFO - ✓ Found kernel: /boot/vmlinuz-6.8.0-31-generic
+2026-02-11 17:14:03 - pykod.config - get_kernel_info - DEBUG - Extracted kernel version: 6.8.0-31-generic
+2026-02-11 17:14:03 - pykod.config - generate_initramfs - INFO - Generating initramfs for kernel 6.8.0-31-generic using update-initramfs...
