@@ -452,3 +452,68 @@ def open_with_dry_run(
 def report_problems():
     for prob in problems:
         print("Problem:", prob)
+
+
+# Locale configuration utilities
+def setup_common_locale_configuration(mount_point: str, locale_config) -> None:
+    """Setup common locale configuration (timezone, locale.gen, locale-gen).
+
+    This handles the parts that are identical across all distributions:
+    - Timezone configuration
+    - Hardware clock setup
+    - /etc/locale.gen generation
+    - Running locale-gen command
+
+    Distribution-specific parts (final locale config file) should be handled
+    by the calling distribution's configure_locale() method.
+
+    Args:
+        mount_point: Installation mount point
+        locale_config: Locale configuration object with:
+            - default: Default locale (e.g., "en_US.UTF-8 UTF-8")
+            - timezone: Timezone (e.g., "America/New_York")
+            - additional_locales: List of additional locales to generate
+
+    Raises:
+        RuntimeError: If locale-gen command fails
+    """
+    logger = logging.getLogger("pykod.config")
+
+    logger.info(f"Configuring locale: {locale_config.default}")
+    logger.info(f"Timezone: {locale_config.timezone}")
+
+    # Set timezone
+    logger.info(f"Setting timezone to {locale_config.timezone}...")
+    try:
+        execute_chroot(
+            f"ln -sf /usr/share/zoneinfo/{locale_config.timezone} /etc/localtime",
+            mount_point=mount_point,
+        )
+        logger.info("✓ Timezone symlink created")
+    except Exception as e:
+        logger.warning(f"Failed to set timezone: {e}")
+
+    # Set hardware clock (may fail in chroot, which is OK)
+    try:
+        execute_chroot("hwclock --systohc 2>/dev/null || true", mount_point=mount_point)
+        logger.debug("Hardware clock set (or skipped in chroot)")
+    except Exception as e:
+        logger.debug(f"hwclock failed (expected in chroot): {e}")
+
+    # Generate locale.gen file
+    locale_to_generate = locale_config.default + "\n"
+    locale_to_generate += "\n".join(list(locale_config.additional_locales))
+
+    logger.info("Creating /etc/locale.gen...")
+    with open_with_dry_run(f"{mount_point}/etc/locale.gen", "w") as locale_file:
+        locale_file.write(locale_to_generate + "\n")
+    logger.info(f"✓ Locale.gen created with: {locale_config.default}")
+
+    # Generate locales
+    logger.info("Generating locales...")
+    try:
+        execute_chroot("locale-gen", mount_point=mount_point)
+        logger.info("✓ Locales generated successfully")
+    except Exception as e:
+        logger.error(f"locale-gen failed: {e}")
+        raise RuntimeError(f"Failed to generate locales: {e}") from e

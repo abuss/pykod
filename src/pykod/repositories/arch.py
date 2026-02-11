@@ -161,52 +161,14 @@ class Arch(BaseSystemRepository):
             locale_config: Locale configuration object
         """
         import logging
-        from pykod.common import execute_chroot as exec_chroot
-        from pykod.common import open_with_dry_run
+        from pykod.common import open_with_dry_run, setup_common_locale_configuration
 
         logger = logging.getLogger("pykod.config")
 
-        logger.info(f"Configuring Arch locale: {locale_config.default}")
+        # Common setup: timezone, locale.gen, locale-gen
+        setup_common_locale_configuration(mount_point, locale_config)
 
-        # Set timezone
-        logger.info(f"Setting timezone to {locale_config.timezone}...")
-        try:
-            exec_chroot(
-                f"ln -sf /usr/share/zoneinfo/{locale_config.timezone} /etc/localtime",
-                mount_point=mount_point,
-            )
-            logger.info("✓ Timezone symlink created")
-        except Exception as e:
-            logger.warning(f"Failed to set timezone: {e}")
-
-        # Set hardware clock
-        try:
-            exec_chroot(
-                "hwclock --systohc 2>/dev/null || true", mount_point=mount_point
-            )
-            logger.debug("Hardware clock set (or skipped in chroot)")
-        except Exception as e:
-            logger.debug(f"hwclock failed (expected in chroot): {e}")
-
-        # Generate locale.gen file
-        locale_to_generate = locale_config.default + "\n"
-        locale_to_generate += "\n".join(list(locale_config.additional_locales))
-
-        logger.info("Creating /etc/locale.gen...")
-        with open_with_dry_run(f"{mount_point}/etc/locale.gen", "w") as locale_file:
-            locale_file.write(locale_to_generate + "\n")
-        logger.info(f"✓ Locale.gen created with: {locale_config.default}")
-
-        # Generate locales
-        logger.info("Generating locales...")
-        try:
-            exec_chroot("locale-gen", mount_point=mount_point)
-            logger.info("✓ Locales generated successfully")
-        except Exception as e:
-            logger.error(f"locale-gen failed: {e}")
-            raise RuntimeError(f"Failed to generate locales: {e}") from e
-
-        # Set default locale in /etc/locale.conf (Arch-specific)
+        # Arch-specific: Set default locale in /etc/locale.conf
         locale_name = locale_config.default.split()[0]
         logger.info("Creating /etc/locale.conf (Arch)...")
         locale_extra = locale_name + "\n"
