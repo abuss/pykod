@@ -1,11 +1,20 @@
 """User account and user service configuration."""
 
+import os
 from dataclasses import dataclass, field
 
 from pykod.common import execute_chroot, execute_command
 from pykod.core import File
 from pykod.repositories.base import PackageList
 from pykod.service import Service
+
+
+def _is_debian_based() -> bool:
+    """Check if the current system is Debian-based.
+
+    Used during rebuild operations to determine the correct sudo group.
+    """
+    return os.path.exists("/etc/debian_version")
 
 
 @dataclass
@@ -163,7 +172,7 @@ class User:
 
     def install(self, config):
         """Creating a user."""
-        cmds = self._create()
+        cmds = self._create(config)
         for cmd in cmds:
             execute_chroot(cmd, mount_point=config._mount_point)
 
@@ -272,7 +281,9 @@ class User:
                 )
                 expected_groups = set(self.groups)
                 if self.allow_sudo:
-                    expected_groups.add("wheel")
+                    # Determine correct sudo group based on distribution
+                    sudo_group = "sudo" if _is_debian_based() else "wheel"
+                    expected_groups.add(sudo_group)
                 current_groups_set = set(current_groups)
 
                 missing_groups = expected_groups - current_groups_set
@@ -337,8 +348,18 @@ class User:
             print(f"Executing rebuild service command: {cmd}")
             execute_command(cmd)
 
-    def _create(self) -> list[str]:
-        """Create the user in the system."""
+    def _create(self, config) -> list[str]:
+        """Create the user in the system.
+
+        Handles distribution differences:
+        - Arch: wheel group for sudo
+        - Debian/Ubuntu: sudo group for sudo
+        """
+        from pykod.repositories.debian import Debian
+
+        # Determine the sudo group based on distribution
+        sudo_group = "sudo" if isinstance(config._base, Debian) else "wheel"
+
         user = self.username
         name = self.name or user
         shell = self.shell or "/bin/bash"
@@ -351,13 +372,16 @@ class User:
             if groups:
                 # TODO: Implement group creation
                 if self.allow_sudo:
-                    groups.append("wheel")
-                    cmds.append(
-                        "sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers",
-                    )
-                    cmds.append(
-                        "sed -i 's/# auth       required   pam_wheel.so/auth       required   pam_wheel.so/' /etc/pam.d/su",
-                    )
+                    groups.append(sudo_group)
+                    # Enable sudo group in sudoers (format differs by distribution)
+                    if sudo_group == "wheel":
+                        cmds.append(
+                            "sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers",
+                        )
+                        cmds.append(
+                            "sed -i 's/# auth       required   pam_wheel.so/auth       required   pam_wheel.so/' /etc/pam.d/su",
+                        )
+                    # Note: On Debian/Ubuntu, sudo group is enabled by default in sudoers
 
                 for group in set(groups):
                     try:
