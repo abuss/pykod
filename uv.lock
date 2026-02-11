@@ -1,0 +1,23 @@
+version = 1
+revision = 3
+requires-python = ">=3.12"
+
+[[package]]
+name = "chorut"
+version = "0.1.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/71/033dfcbefd469c4c7508361a4bc6ecb82ce0703f4d01036b858295e8134e/chorut-0.1.5.tar.gz", hash = "sha256:7566d82fae4d3868087120f63d68a663df9b7c99d0e4c79f18915174f0b1a29b", size = 13466, upload-time = "2026-02-05T08:44:58.646Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/1b/71267cfafbc84f641a1f8c215ae67b54f6ceced2e24088726dba447951ee/chorut-0.1.5-py3-none-any.whl", hash = "sha256:8771807416539b84a3cf60cfa5cb761caebc4130c0d2491a683fa1d480d57a88", size = 13584, upload-time = "2026-02-05T08:44:57.576Z" },
+]
+
+[[package]]
+name = "pykod"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "chorut" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "chorut", specifier = ">=0.1.5" }]

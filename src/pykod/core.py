@@ -313,10 +313,12 @@ def setup_bootloader(
                     )
 
                     try:
-                        exec_chroot(
-                            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a",
+                        result = exec_chroot(
+                            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
                             mount_point=mount_point,
+                            get_output=True,
                         )
+                        logger.debug(f"dpkg --configure -a output:\n{result}")
                         logger.info("✓ Package configuration completed")
 
                         # Re-check after configuration
@@ -334,6 +336,25 @@ def setup_bootloader(
                             logger.error(
                                 "Kernel package still not properly installed after dpkg --configure"
                             )
+                            # Get detailed diagnostic info
+                            logger.error("Getting detailed package status...")
+                            detailed_status = exec_chroot(
+                                "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
+                                mount_point=mount_point,
+                                get_output=True,
+                            )
+                            logger.error(
+                                f"Detailed kernel package status:\n{detailed_status}"
+                            )
+
+                            # Check dpkg log for errors
+                            dpkg_log = exec_chroot(
+                                "tail -100 /var/log/dpkg.log 2>/dev/null || echo 'No dpkg.log'",
+                                mount_point=mount_point,
+                                get_output=True,
+                            )
+                            logger.error(f"Recent dpkg log:\n{dpkg_log}")
+
                             raise RuntimeError(
                                 "Cannot setup bootloader: Kernel package configuration failed. "
                                 "Package exists but could not be configured properly."

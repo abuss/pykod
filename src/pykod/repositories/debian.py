@@ -465,13 +465,26 @@ class Debian(BaseSystemRepository):
         # Set PATH to include /sbin and /usr/sbin for ldconfig, start-stop-daemon, etc.
         logger.info("Completing package configuration...")
         try:
-            exec_chroot(
-                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a",
+            result = exec_chroot(
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
                 mount_point=mount_point,
+                get_output=True,
             )
+            logger.debug(f"dpkg --configure -a output:\n{result}")
             logger.info("✓ Package configuration completed")
         except Exception as e:
-            logger.warning(f"dpkg --configure -a failed: {e}")
+            logger.error(f"dpkg --configure -a failed: {e}")
+            # Try to get more diagnostic information
+            logger.error("Checking dpkg status...")
+            try:
+                dpkg_status = exec_chroot(
+                    "dpkg --configure -a 2>&1 || true",
+                    mount_point=mount_point,
+                    get_output=True,
+                )
+                logger.error(f"dpkg error output:\n{dpkg_status}")
+            except:
+                pass
             logger.warning("Continuing anyway - this may cause issues later")
 
         # Step 6: Verify GRUB was not installed
@@ -512,10 +525,12 @@ class Debian(BaseSystemRepository):
             logger.warning("This usually means package configuration failed")
             logger.warning("Attempting to reconfigure packages with full PATH...")
             try:
-                exec_chroot(
-                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a",
+                result = exec_chroot(
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
                     mount_point=mount_point,
+                    get_output=True,
                 )
+                logger.debug(f"Reconfiguration output:\n{result}")
                 # Re-check after reconfiguration
                 kernel_check_alt = exec_chroot(
                     "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
@@ -523,6 +538,20 @@ class Debian(BaseSystemRepository):
                     get_output=True,
                 ).strip()
                 logger.info(f"After reconfiguration: {kernel_check_alt}")
+
+                # If still half-configured, get detailed error info
+                if "half-configured" in kernel_check_alt:
+                    logger.error(
+                        "Kernel packages STILL half-configured after reconfiguration!"
+                    )
+                    logger.error("Checking for package configuration errors...")
+                    # Check dpkg log for errors
+                    dpkg_log = exec_chroot(
+                        "tail -100 /var/log/dpkg.log 2>/dev/null || echo 'No dpkg.log'",
+                        mount_point=mount_point,
+                        get_output=True,
+                    )
+                    logger.error(f"Recent dpkg log entries:\n{dpkg_log}")
             except Exception as e:
                 logger.error(f"Failed to reconfigure packages: {e}")
 

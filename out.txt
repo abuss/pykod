@@ -1,0 +1,217 @@
+----------------------------------------------------------------------------------------------------
+Running install command...
+Configuration attributes:
+
+ --------------------------------------------------------------------------------
+self._dry_run=True
+self._debug=True
+self._verbose=True
+Installing device configuration...
+[install] in mnt create partitions:
+{'disk0': Disk(device='/dev/nvmw0n1', partitions=[Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='swap', size='8G', type='linux-swap', mountpoint=None, format=True), Partition(name='root', size='100%', type='btrfs', mountpoint='/', format=True)], initialize=False)}
+==================================================
+Disks to process: [Disk(device='/dev/nvmw0n1', partitions=[Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='swap', size='8G', type='linux-swap', mountpoint=None, format=True), Partition(name='root', size='100%', type='btrfs', mountpoint='/', format=True)], initialize=False)]
+
+
+[install] Partitioning disk: /dev/nvmw0n1
+with partitions [Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='swap', size='8G', type='linux-swap', mountpoint=None, format=True), Partition(name='root', size='100%', type='btrfs', mountpoint='/', format=True)]
+partitions=[Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='swap', size='8G', type='linux-swap', mountpoint=None, format=True), Partition(name='root', size='100%', type='btrfs', mountpoint='/', format=True)]
+>> [95mmkfs.vfat -F32 /dev/nvmw0n11[0m
+[DELAY] mkdir -p /mnt/boot
+[DELAY] mount /dev/nvmw0n11 /mnt/boot
+====> /dev/nvmw0n11 /boot
+>> [95mmkswap /dev/nvmw0n12[0m
+>> [95mmkfs.btrfs -f /dev/nvmw0n13[0m
+====> /dev/nvmw0n13 /
+=======================
+>> [95mmkdir -p /mnt/[0m
+>> [95mmount /dev/nvmw0n13 /mnt/[0m
+>> [95mmkdir -p /mnt/boot[0m
+>> [95mmount /dev/nvmw0n11 /mnt/boot[0m
+=======================
+Disk /dev/nvmw0n1 created partitions:
+  Boot partition: /dev/nvmw0n11
+  Root partition: /dev/nvmw0n13
+  Other partitions: [FsEntry(source='/dev/nvmw0n11', destination='/boot', fs_type='esp', options='defaults', dump=0, pass_=0), FsEntry(source='/dev/nvmw0n13', destination='/', fs_type='btrfs', options='defaults', dump=0, pass_=0)]
+>> [95mbtrfs subvolume create mnt/store/home[0m
+>> [95mbtrfs subvolume create mnt/generations/0/rootfs[0m
+>> [95mumount -R mnt[0m
+>> [95mmount -o subvol=generations/0/rootfs /dev/nvmw0n13 mnt[0m
+>> [95mmount /dev/nvmw0n11 mnt/boot[0m
+>> [95mmount /dev/nvmw0n13 mnt/kod[0m
+>> [95mmount -o subvol=store/home /dev/nvmw0n13 mnt/home[0m
+>> [95mmount --bind mnt/kod/store/root mnt/root[0m
+>> [95mmount --bind mnt/kod/store/var/log mnt/var/log[0m
+>> [95mmount --bind mnt/kod/store/var/tmp mnt/var/tmp[0m
+>> [95mmount --bind mnt/kod/store/var/cache mnt/var/cache[0m
+>> [95mmount --bind mnt/kod/store/var/kod mnt/var/kod[0m
+[93m[DRY RUN] Would open file: mnt/.generation (mode: w)[0m
+0===================================
+Base packages to install: PKGS[
+   => Arch: ('base', 'base-devel', 'amd-ucode', 'btrfs-progs', 'linux-firmware', 'bash-completion', 'mlocate', 'sudo', 'schroot', 'whois', 'dracut', 'git')
+]
+Base packages to install: PKGS[
+   => Arch: ('linux', 'base', 'base-devel', 'amd-ucode', 'btrfs-progs', 'linux-firmware', 'bash-completion', 'mlocate', 'sudo', 'schroot', 'whois', 'dracut', 'git')
+]
+list_pkgs=('linux', 'base', 'base-devel', 'amd-ucode', 'btrfs-progs', 'linux-firmware', 'bash-completion', 'mlocate', 'sudo', 'schroot', 'whois', 'dracut', 'git')
+>> [95mpacstrap -K mnt linux base base-devel amd-ucode btrfs-progs linux-firmware bash-completion mlocate sudo schroot whois dracut git[0m
+(mnt)>> [95mpacman -Syy[0m
+[95mchroot mnt pacman -Syy[0m
+Generating fstab
+[93m[DRY RUN] Would open file: mnt/etc/fstab (mode: w)[0m
+>> [95mlsblk -o UUID /dev/nvmw0n13 | tail -n 1[0m
+/dev/nvmw0n13             /               btrfs      rw,relatime,ssd,space_cache=v2,subvol=generations/0/rootfs 0          0
+>> [95mlsblk -o UUID /dev/nvmw0n11 | tail -n 1[0m
+/dev/nvmw0n11             /boot           vfat       rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro 0          0
+>> [95mlsblk -o UUID /dev/nvmw0n13 | tail -n 1[0m
+/dev/nvmw0n13             /kod            btrfs      rw,relatime,ssd,space_cache=v2 0          0
+>> [95mlsblk -o UUID /dev/nvmw0n13 | tail -n 1[0m
+/dev/nvmw0n13             /home           btrfs      rw,relatime,ssd,space_cache=v2,subvol=store/home 0          0
+/kod/store/root           /root           none       rw,bind    0          0
+/kod/store/var/log        /var/log        none       rw,bind    0          0
+/kod/store/var/tmp        /var/tmp        none       rw,bind    0          0
+/kod/store/var/cache      /var/cache      none       rw,bind    0          0
+/kod/store/var/kod        /var/kod        none       rw,bind    0          0
+[93m[DRY RUN] Would open file: mnt/etc/os-release (mode: w)[0m
+NAME="KodOS Linux"
+VERSION="1.0"
+PRETTY_NAME="KodOS Linux"
+ID=kodos
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://github.com/kodos-prj/kodos/"
+DOCUMENTATION_URL="https://github.com/kodos-prj/kodos/"
+SUPPORT_URL="https://github.com/kodos-prj/kodos/"
+BUG_REPORT_URL="https://github.com/kodos-prj/kodos/issues"
+RELEASE_TYPE="experimental"
+[93m[DRY RUN] Would open file: mnt/etc/schroot/chroot.d/system.conf (mode: w)[0m
+[system]
+ type=directory
+ description=KodOS
+ directory=/
+ groups=users,root
+ root-groups=root,wheel
+ profile=kodos
+ personality=linux
+ [93m[DRY RUN] Would open file: mnt/etc/schroot/chroot.d/virtual_env.conf (mode: w)[0m
+[virtual_env]
+ type=directory
+ description=KodOS
+ directory=/
+ union-type=overlay
+ groups=users,root
+ root-groups=root,wheel
+ profile=kodos
+ personality=linux
+ aliases=user_env
+ [dry-run] mkdir -p mnt/etc/schroot/kodos
+[dry-run] touch mnt/etc/schroot/kodos/copyfiles
+[dry-run] touch mnt/etc/schroot/kodos/nssdatabases
+[93m[DRY RUN] Would open file: mnt/etc/schroot/kodos/fstab (mode: w)[0m
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>/proc	/proc	none	rw,bind	0	0
+/sys	/sys	none	rw,bind	0	0
+/dev	/dev	none	rw,bind	0	0
+/dev/pts	/dev/pts	none	rw,bind	0	0
+/home	/home	none	rw,bind	0	0
+/root	/root	none	rw,bind	0	0
+/tmp	/tmp	none	rw,bind	0	0
+/run	/run	none	rw,bind	0	0
+/var/cache	/var/cache	none	rw,bind	0	0
+/var/log	/var/log	none	rw,bind	0	0
+/var/tmp	/var/tmp	none	rw,bind	0	0
+/var/kod	/var/kod	none	rw,bind	0	0
+Installing boot configuration...
+[install] Boot configuration: Boot(kernel=Kernel(package=PKGS[
+   => Arch: ('linux',)
+], modules=['xhci_pci', 'ohci_pci', 'ehci_pci', 'virtio_pci', 'ahci', 'usbhid', 'sr_mod', 'virtio_blk']), loader=Loader(type='systemd-boot', timeout=10, include=['memtest86+']))
+
+
+[install] Setting up bootloader
+==== Setting up systemd-boot ====
+[get_kernel_info] mount_point=/mnt, package=PKGS[
+   => Arch: ('linux',)
+]
+(/mnt)>> [95mpacman -Ql linux | grep vmlinuz[0m
+[95mchroot /mnt pacman -Ql linux | grep vmlinuz[0m
+[get_kernel_info] kernel_file=/usr/lib/modules/6.18.1-kodos1-2/vmlinuz
+(/mnt)>> [95mcp /usr/lib/modules/6.18.1-kodos1-2/vmlinuz /boot/vmlinuz-6.18.1-kodos1-2[0m
+[95mchroot /mnt cp /usr/lib/modules/6.18.1-kodos1-2/vmlinuz /boot/vmlinuz-6.18.1-kodos1-2[0m
+(/mnt)>> [95mbootctl install[0m
+[95mchroot /mnt bootctl install[0m
+KVER: 6.18.1-kodos1-2
+(/mnt)>> [95mdracut --kver 6.18.1-kodos1-2 --hostonly /boot/initramfs-linux-6.18.1-kodos1-2.img[0m
+[95mchroot /mnt dracut --kver 6.18.1-kodos1-2 --hostonly /boot/initramfs-linux-6.18.1-kodos1-2.img[0m
+>> [95mlsblk -o UUID /dev/nvmw0n13 | tail -n 1[0m
+>> [95mdate +'%Y-%m-%d %H:%M:%S'[0m
+[dry-run] mkdir -p /mnt/boot/loader/entries/
+[93m[DRY RUN] Would open file: /mnt/boot/loader/entries/kodos-0.conf (mode: w)[0m
+
+title KodOS
+sort-key kodos
+version Generation 0 KodOS (build  - 6.18.1-kodos1-2)
+linux /vmlinuz-6.18.1-kodos1-2
+initrd /initramfs-linux-6.18.1-kodos1-2.img
+options root=/dev/nvmw0n13 rw  rootflags=subvol=generations/0/rootfs
+    [93m[DRY RUN] Would open file: /mnt/boot/loader/loader.conf (mode: w)[0m
+
+default kodos-0.conf
+timeout 10
+console-mode keep
+
+Creating KodOS user...
+(/mnt)>> [95museradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod[0m
+[95mchroot /mnt useradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod[0m
+[93m[DRY RUN] Would open file: mnt/etc/sudoers.d/kod (mode: w)[0m
+kod ALL=(ALL) NOPASSWD: ALLInstalling locale configuration...
+
+
+[install] Default locale:
+(/mnt)>> [95mln -sf /usr/share/zoneinfo/America/Edmonton /etc/localtime[0m
+[95mchroot /mnt ln -sf /usr/share/zoneinfo/America/Edmonton /etc/localtime[0m
+(/mnt)>> [95mhwclock --systohc[0m
+[95mchroot /mnt hwclock --systohc[0m
+[93m[DRY RUN] Would open file: mnt/etc/locale.gen (mode: w)[0m
+en_CA.UTF-8 UTF-8
+en_US.UTF-8 UTF-8
+en_GB.UTF-8 UTF-8
+(/mnt)>> [95mlocale-gen[0m
+[95mchroot /mnt locale-gen[0m
+[93m[DRY RUN] Would open file: mnt/etc/locale.conf (mode: w)[0m
+LANG=en_CA.UTF-8
+LC_ADDRESS=en_CA.UTF-8
+LC_IDENTIFICATION=en_CA.UTF-8
+LC_MEASUREMENT=en_CA.UTF-8
+LC_MONETARY=en_CA.UTF-8
+LC_NAME=en_CA.UTF-8
+LC_NUMERIC=en_CA.UTF-8
+LC_PAPER=en_CA.UTF-8
+LC_TELEPHONE=en_CA.UTF-8
+LC_TIME=en_CA.UTF-8
+
+Installing network configuration...
+
+
+[install] Hostname: lenovo
+Extra setings
+  ipv6: True
+[93m[DRY RUN] Would open file: mnt/etc/hostname (mode: w)[0m
+lenovo
+[93m[DRY RUN] Would open file: mnt/etc/systemd/network/10-eth0.network (mode: w)[0m
+[Match]
+Name=*
+[Network]
+DHCP=ipv4
+DHCP=ipv6
+[93m[DRY RUN] Would open file: mnt/etc/hosts (mode: w)[0m
+127.0.0.1 localhost
+::1 localhost
+
+Validation command for repo {'repos': ['base', 'contrib'], 'mirror_url': 'https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/'}: ['pacman -Ss iw', 'pacman -Ss stow', 'pacman -Ss mc', 'pacman -Ss less', 'pacman -Ss htop', 'pacman -Ss libgtop', 'pacman -Ss power-profiles-daemon', 'pacman -Ss system-config-printer', 'pacman -Ss ghostty', 'pacman -Ss podman', 'pacman -Ss qemu-desktop', 'pacman -Ss spice-gtk', 'pacman -Ss remmina', 'pacman -Ss papers', 'pacman -Ss firefox', 'pacman -Ss freecad', 'pacman -Ss openscad', 'pacman -Ss prusa-slicer', 'pacman -Ss flatpak', 'pacman -Ss dua-cli', 'pacman -Ss duf', 'pacman -Ss dust', 'pacman -Ss fd', 'pacman -Ss glow', 'pacman -Ss gping', 'pacman -Ss hyperfine', 'pacman -Ss lazygit', 'pacman -Ss lurk', 'pacman -Ss fastfetch', 'pacman -Ss ripgrep', 'pacman -Ss tldr', 'pacman -Ss wget', 'pacman -Ss fzf', 'pacman -Ss bat', 'pacman -Ss broot', 'pacman -Ss lsd', 'pacman -Ss btop', 'pacman -Ss zoxide', 'pacman -Ss wezterm', 'pacman -Ss github-cli', 'pacman -Ss tmux', 'pacman -Ss yazi', 'pacman -Ss zellij', 'pacman -Ss gcc', 'pacman -Ss cmake', 'pacman -Ss make', 'pacman -Ss ninja', 'pacman -Ss clang', 'pacman -Ss lldb', 'pacman -Ss rustup', 'pacman -Ss lua', 'pacman -Ss lua-language-server', 'pacman -Ss npm', 'pacman -Ss go', 'pacman -Ss python', 'pacman -Ss uv', 'pacman -Ss ruff', 'pacman -Ss pyright', 'pacman -Ss python-lsp-server', 'pacman -Ss zig', 'pacman -Ss gitg', 'pacman -Ss meld', 'pacman -Ss zed', 'pacman -Ss typst', 'pacman -Ss jujutsu', 'pacman -Ss linux', 'pacman -Ss pipewire', 'pacman -Ss pipewire-alsa', 'pacman -Ss pipewire-pulse', 'pacman -Ss sane', 'pacman -Ss sane-airscan', 'pacman -Ss memtest86-test', 'pacman -Ss cosmic-greeter', 'pacman -Ss gnome', 'pacman -Ss gnome-tweaks', 'pacman -Ss showtime', 'pacman -Ss gnome-connections', 'pacman -Ss gnome-shell-extension-weather-oclock', 'pacman -Ss gnome-shell-extension-appindicator', 'pacman -Ss cosmic', 'pacman -Ss nerd-fonts', 'pacman -Ss ttf-fira-sans', 'pacman -Ss ttf-fira-code', 'pacman -Ss ttf-liberation', 'pacman -Ss noto-fonts-emoji', 'pacman -Ss ttf-ubuntu-font-family', 'pacman -Ss git', 'pacman -Ss starship', 'pacman -Ss ghostty', 'pacman -Ss zsh', 'pacman -Ss neovim', 'pacman -Ss helix', 'pacman -Ss syncthing', 'pacman -Ss fwupd', 'pacman -Ss tailscale', 'pacman -Ss networkmanager', 'pacman -Ss openssh', 'pacman -Ss avahi', 'pacman -Ss cups', 'pacman -Ss gutenprint', 'pacman -Ss bluez']
+
+Validation command for repo {'helper': 'paru', 'helper_url': 'https://aur.archlinux.org/paru-bin.git', 'helper_installed': False, 'skip_debug': True}: ['paru -Ss visual-studio-code-bin', 'paru -Ss opera', 'paru -Ss quickemu', 'paru -Ss uxplay', 'paru -Ss megasync-bin', 'paru -Ss brave-bin', 'paru -Ss opencode-bin', 'paru -Ss gnome-shell-extension-dash-to-dock', 'paru -Ss gnome-shell-extension-blur-my-shell', 'paru -Ss gnome-shell-extension-arc-menu-git', 'paru -Ss gnome-shell-extension-gsconnect', 'paru -Ss ttf-work-sans', 'paru -Ss brother-dcp-l2550dw']
+
+Validation command for repo {'hub_url': 'flathub', 'flatpak_installed': False}: None
+
+
+Invalid packages: ['memtest86-test', 'visual-studio-code-bin', 'opera', 'quickemu', 'uxplay', 'megasync-bin', 'brave-bin', 'opencode-bin', 'gnome-shell-extension-dash-to-dock', 'gnome-shell-extension-blur-my-shell', 'gnome-shell-extension-arc-menu-git', 'gnome-shell-extension-gsconnect', 'ttf-work-sans', 'brother-dcp-l2550dw']
+
+Invalid packages found: ['memtest86-test', 'visual-studio-code-bin', 'opera', 'quickemu', 'uxplay', 'megasync-bin', 'brave-bin', 'opencode-bin', 'gnome-shell-extension-dash-to-dock', 'gnome-shell-extension-blur-my-shell', 'gnome-shell-extension-arc-menu-git', 'gnome-shell-extension-gsconnect', 'ttf-work-sans', 'brother-dcp-l2550dw']

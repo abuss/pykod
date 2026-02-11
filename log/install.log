@@ -1,0 +1,81 @@
+2026-02-11 08:49:00 - pykod.config - install - INFO - ✓ File logging enabled
+2026-02-11 08:49:00 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 08:49:00 - pykod.config - _pause_if_interactive - INFO - Step completed: Device installation (partitioning, formatting, mounting)
+2026-02-11 08:49:00 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 08:49:01 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'Device installation (partitioning, formatting, mounting)'
+2026-02-11 08:49:01 - pykod.config - install - INFO - [2/10] Installing base system packages...
+2026-02-11 08:49:01 - pykod.config - get_base_packages - DEBUG - Selected kernel package for ubuntu: ['linux-image-generic']
+2026-02-11 08:49:01 - pykod.config - install - DEBUG - Kernel packages: PKGS[
+   => Debian: ('linux-image-generic',)
+]
+2026-02-11 08:49:01 - pykod.config - install - DEBUG - Base packages: PKGS[
+   => Debian: ('amd64-microcode', 'btrfs-progs', 'bash-completion', 'sudo', 'passwd', 'whois', 'initramfs-tools', 'git', 'systemd', 'systemd-boot')
+]
+2026-02-11 08:49:01 - pykod.config - install - INFO - Installing 11 base packages
+2026-02-11 08:49:01 - pykod.config - install_base - INFO - === Base Package Installation ===
+2026-02-11 08:49:01 - pykod.config - install_base - INFO - Total packages to install: 11
+2026-02-11 08:49:01 - pykod.config - install_base - INFO - Package list: linux-image-generic, amd64-microcode, btrfs-progs, bash-completion, sudo, passwd, whois, initramfs-tools, git, systemd, systemd-boot
+2026-02-11 08:49:01 - pykod.config - install_base - INFO - ✓ Kernel packages found in list: linux-image-generic
+2026-02-11 08:49:01 - pykod.config - install_base - INFO - Running debootstrap for ubuntu noble...
+2026-02-11 09:00:07 - pykod.config - prevent_service_start - INFO - Creating policy-rc.d to prevent service starts during installation...
+2026-02-11 09:00:07 - pykod.config - prevent_service_start - INFO - ✓ Service starts blocked via policy-rc.d
+2026-02-11 09:00:07 - pykod.config - block_grub_installation - INFO - Creating APT preferences to block GRUB installation...
+2026-02-11 09:00:07 - pykod.config - block_grub_installation - DEBUG - GRUB blocking preferences created at /mnt/etc/apt/preferences.d/99-no-grub
+2026-02-11 09:00:07 - pykod.config - block_grub_installation - INFO - ✓ GRUB installation blocked via APT preferences
+2026-02-11 09:00:07 - pykod.config - disable_grub_kernel_hooks - INFO - Disabling GRUB-related kernel hooks...
+2026-02-11 09:00:07 - pykod.config - disable_grub_kernel_hooks - DEBUG - Hook not present, skipping: /etc/kernel/postinst.d/zz-update-grub
+2026-02-11 09:00:07 - pykod.config - disable_grub_kernel_hooks - DEBUG - Hook not present, skipping: /etc/kernel/postrm.d/zz-update-grub
+2026-02-11 09:00:07 - pykod.config - disable_grub_kernel_hooks - INFO - No GRUB kernel hooks found to divert (this is normal for minimal installs)
+2026-02-11 09:00:07 - pykod.config - install_base - INFO - Installing base packages (with GRUB blocked)...
+2026-02-11 09:45:55 - pykod.config - install_base - INFO - Completing package configuration...
+2026-02-11 09:45:57 - pykod.config - install_base - INFO - ✓ Package configuration completed
+2026-02-11 09:45:57 - pykod.config - verify_grub_not_installed_debian - INFO - Verifying GRUB was not installed...
+2026-02-11 09:45:57 - pykod.config - verify_grub_not_installed_debian - INFO - ✓ Verified: No GRUB packages installed
+2026-02-11 09:45:57 - pykod.config - install_base - INFO - Verifying kernel package installation...
+2026-02-11 09:45:57 - pykod.config - install_base - DEBUG - Total dpkg output length: 39722 characters
+2026-02-11 09:45:57 - pykod.config - install_base - DEBUG - Kernel check result: ''
+2026-02-11 09:45:57 - pykod.config - install_base - DEBUG - Kernel check result length: 0
+2026-02-11 09:45:57 - pykod.config - install_base - DEBUG - Alternative kernel check: 'linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
+linux-image-generic 6.8.0-31.31 install ok unpacked
+linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed'
+2026-02-11 09:45:57 - pykod.config - install_base - WARNING - Kernel packages are in 'half-configured' state!
+2026-02-11 09:45:57 - pykod.config - install_base - WARNING - This usually means package configuration failed
+2026-02-11 09:45:57 - pykod.config - install_base - WARNING - Attempting to reconfigure packages with full PATH...
+2026-02-11 09:45:59 - pykod.config - install_base - INFO - After reconfiguration: linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
+linux-image-generic 6.8.0-31.31 install ok unpacked
+linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed
+2026-02-11 09:45:59 - pykod.config - install_base - INFO - ✓ Kernel package(s) installed:
+linux-image-6.8.0-31-generic 6.8.0-31.31 install ok half-configured
+linux-image-generic 6.8.0-31.31 install ok unpacked
+linux-image-unsigned-6.8.0-31-generic  unknown ok not-installed
+2026-02-11 09:45:59 - pykod.config - allow_service_start - INFO - Removing policy-rc.d to allow normal service management...
+2026-02-11 09:45:59 - pykod.config - allow_service_start - INFO - ✓ Service management restored
+2026-02-11 09:45:59 - pykod.config - install_base - INFO - Base system installation completed
+2026-02-11 09:46:21 - pykod.config - install - INFO - ================================================================================
+2026-02-11 09:46:21 - pykod.config - install - INFO - Kernel packages installed:
+2026-02-11 09:46:21 - pykod.config - install - INFO - ================================================================================
+2026-02-11 09:46:21 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 09:46:21 - pykod.config - _pause_if_interactive - INFO - Step completed: Base system packages installation (debootstrap, kernel, essential tools)
+2026-02-11 09:46:21 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 09:51:01 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'Base system packages installation (debootstrap, kernel, essential tools)'
+2026-02-11 09:51:01 - pykod.config - install - INFO - [3/10] Configuring system (fstab, hostname, etc.)...
+2026-02-11 09:51:01 - pykod.config - generate_fstab - DEBUG - Generating fstab for 9 partitions
+2026-02-11 09:51:01 - pykod.config - generate_fstab - DEBUG - fstab generated successfully
+2026-02-11 09:51:01 - pykod.config - configure_system - DEBUG - Configuring system at /mnt
+2026-02-11 09:51:01 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 09:51:01 - pykod.config - _pause_if_interactive - INFO - Step completed: System configuration (fstab, hostname, timezone)
+2026-02-11 09:51:01 - pykod.config - _pause_if_interactive - INFO - ================================================================================
+2026-02-11 09:51:02 - pykod.config - _pause_if_interactive - INFO - Resuming installation after 'System configuration (fstab, hostname, timezone)'
+2026-02-11 09:51:02 - pykod.config - install - INFO - [4/10] Installing boot configuration...
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - INFO - Setting up bootloader
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - INFO - Setting up systemd-boot
+2026-02-11 09:51:02 - pykod.config - verify_grub_not_installed - INFO - Verifying GRUB is not installed...
+2026-02-11 09:51:02 - pykod.config - verify_grub_not_installed - INFO - ✓ Verification passed: No GRUB packages detected
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - INFO - Pre-flight check: Verifying kernel package is installed...
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - WARNING - No fully installed (ii) kernel packages found
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - INFO - Checking for kernel packages in any state...
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - WARNING - Found kernel package in non-installed state: linux-image-6.8.0-31-generic install ok half-configured
+2026-02-11 09:51:02 - pykod.config - setup_bootloader - WARNING - Attempting to complete package configuration with full PATH...
+2026-02-11 09:51:04 - pykod.config - setup_bootloader - INFO - ✓ Package configuration completed
+2026-02-11 09:51:04 - pykod.config - setup_bootloader - ERROR - Kernel package still not properly installed after dpkg --configure
+2026-02-11 09:51:04 - pykod.config - setup_bootloader - ERROR - Failed to configure kernel package: Cannot setup bootloader: Kernel package configuration failed. Package exists but could not be configured properly.
