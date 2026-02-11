@@ -285,18 +285,63 @@ def setup_bootloader(
 
         if isinstance(base, Debian):
             logger.info("Pre-flight check: Verifying kernel package is installed...")
+
+            # Check for fully installed packages (^ii status)
             kernel_check = exec_chroot(
                 "dpkg -l | grep '^ii.*linux-image' | head -1",
                 mount_point=mount_point,
                 get_output=True,
             ).strip()
 
+            # If no fully installed packages, check if any kernel packages exist at all
             if not kernel_check:
-                raise RuntimeError(
-                    "Cannot setup bootloader: No kernel package installed. "
-                    "This indicates base package installation failed. "
-                    "Check Step 2 (Base packages) logs for errors."
-                )
+                logger.warning("No fully installed (ii) kernel packages found")
+                logger.info("Checking for kernel packages in any state...")
+
+                kernel_any_state = exec_chroot(
+                    "dpkg-query -W -f='${Package} ${Status}\n' 'linux-image-*' 2>/dev/null | grep -v 'not-installed' | head -1 || true",
+                    mount_point=mount_point,
+                    get_output=True,
+                ).strip()
+
+                if kernel_any_state:
+                    logger.warning(
+                        f"Found kernel package in non-installed state: {kernel_any_state}"
+                    )
+                    logger.warning("Attempting to complete package configuration...")
+
+                    try:
+                        exec_chroot("dpkg --configure -a", mount_point=mount_point)
+                        logger.info("✓ Package configuration completed")
+
+                        # Re-check after configuration
+                        kernel_check = exec_chroot(
+                            "dpkg -l | grep '^ii.*linux-image' | head -1",
+                            mount_point=mount_point,
+                            get_output=True,
+                        ).strip()
+
+                        if kernel_check:
+                            logger.info(
+                                f"✓ Kernel now properly installed: {kernel_check}"
+                            )
+                        else:
+                            logger.error(
+                                "Kernel package still not properly installed after dpkg --configure"
+                            )
+                            raise RuntimeError(
+                                "Cannot setup bootloader: Kernel package configuration failed. "
+                                "Package exists but could not be configured properly."
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to configure kernel package: {e}")
+                        raise
+                else:
+                    raise RuntimeError(
+                        "Cannot setup bootloader: No kernel package installed. "
+                        "This indicates base package installation failed. "
+                        "Check Step 2 (Base packages) logs for errors."
+                    )
 
             logger.debug(f"Kernel package verified: {kernel_check}")
 

@@ -459,6 +459,20 @@ class Debian(BaseSystemRepository):
             logger.error("Check apt sources and network connectivity")
             raise RuntimeError(f"Base package installation failed: {e}") from e
 
+        # Step 5.5: Complete package configuration
+        # Sometimes packages are left in "half-configured" or "unpacked" state
+        # This completes any pending configurations
+        logger.info("Completing package configuration...")
+        try:
+            exec_chroot(
+                "dpkg --configure -a",
+                mount_point=mount_point,
+            )
+            logger.info("✓ Package configuration completed")
+        except Exception as e:
+            logger.warning(f"dpkg --configure -a failed: {e}")
+            logger.warning("Continuing anyway - this may cause issues later")
+
         # Step 6: Verify GRUB was not installed
         verify_grub_not_installed_debian(mount_point)
 
@@ -490,6 +504,23 @@ class Debian(BaseSystemRepository):
             get_output=True,
         ).strip()
         logger.debug(f"Alternative kernel check: '{kernel_check_alt}'")
+
+        # Check for improperly configured packages
+        if kernel_check_alt and "half-configured" in kernel_check_alt:
+            logger.warning("Kernel packages are in 'half-configured' state!")
+            logger.warning("This usually means package configuration failed")
+            logger.warning("Attempting to reconfigure packages...")
+            try:
+                exec_chroot("dpkg --configure -a", mount_point=mount_point)
+                # Re-check after reconfiguration
+                kernel_check_alt = exec_chroot(
+                    "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
+                    mount_point=mount_point,
+                    get_output=True,
+                ).strip()
+                logger.info(f"After reconfiguration: {kernel_check_alt}")
+            except Exception as e:
+                logger.error(f"Failed to reconfigure packages: {e}")
 
         if not kernel_check and not kernel_check_alt:
             logger.error("No kernel package found after base installation!")
