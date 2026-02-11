@@ -467,7 +467,7 @@ class Debian(BaseSystemRepository):
         try:
             # First attempt: configure all packages
             result = exec_chroot(
-                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin DEBIAN_FRONTEND=noninteractive dpkg --configure -a 2>&1",
                 mount_point=mount_point,
                 get_output=True,
             )
@@ -480,7 +480,7 @@ class Debian(BaseSystemRepository):
                 logger.info("✓ Package configuration completed")
 
         except Exception as e:
-            logger.error(f"dpkg --configure -a failed: {e}")
+            logger.error(f"dpkg --configure -a failed with exception: {e}")
             # Try to get more diagnostic information
             logger.error("Checking dpkg status...")
             try:
@@ -530,13 +530,33 @@ class Debian(BaseSystemRepository):
         if kernel_check_alt and "half-configured" in kernel_check_alt:
             logger.warning("Kernel packages are in 'half-configured' state!")
             logger.warning("This usually means package configuration failed")
+
+            # First, check for dependency issues
+            logger.info("Checking for broken dependencies...")
+            dep_check = exec_chroot(
+                "apt-get check 2>&1 || true",
+                mount_point=mount_point,
+                get_output=True,
+            )
+            logger.debug(f"Dependency check output:\n{dep_check}")
+
+            # Check if any packages are missing
+            logger.info("Checking for missing dependencies...")
+            missing = exec_chroot(
+                "dpkg --audit 2>&1 || true",
+                mount_point=mount_point,
+                get_output=True,
+            )
+            if missing.strip():
+                logger.warning(f"dpkg audit found issues:\n{missing}")
+
             logger.warning("Attempting to reconfigure packages with full PATH...")
 
             # Try multiple strategies to fix the configuration
             try:
                 # Strategy 1: Run dpkg --configure -a with verbose output
                 result = exec_chroot(
-                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin DEBIAN_FRONTEND=noninteractive dpkg --configure -a 2>&1",
                     mount_point=mount_point,
                     get_output=True,
                 )
@@ -566,12 +586,23 @@ class Debian(BaseSystemRepository):
                             f"Attempting to configure {actual_kernel} specifically..."
                         )
                         specific_result = exec_chroot(
-                            f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure {actual_kernel} 2>&1",
+                            f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin DEBIAN_FRONTEND=noninteractive dpkg --configure {actual_kernel} 2>&1",
                             mount_point=mount_point,
                             get_output=True,
                         )
                         logger.debug(
                             f"Specific kernel configuration output:\n{specific_result}"
+                        )
+
+                        # If specific configuration worked, try the meta-package
+                        logger.info("Attempting to configure kernel meta-package...")
+                        meta_result = exec_chroot(
+                            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin DEBIAN_FRONTEND=noninteractive dpkg --configure linux-image-generic 2>&1",
+                            mount_point=mount_point,
+                            get_output=True,
+                        )
+                        logger.debug(
+                            f"Meta-package configuration output:\n{meta_result}"
                         )
 
                 # Re-check after all attempts
