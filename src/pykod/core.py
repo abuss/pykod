@@ -398,31 +398,20 @@ def create_kod_user(mount_point: str, base_repo=None) -> None:
     Create the 'kod' user and give it NOPASSWD access in the sudoers file.
 
     This function creates a user named 'kod' with a home directory in
-    /var/kod/.home and adds it to the appropriate sudo group. It also creates
-    a sudoers file for the user which allows it to run any command with NOPASSWD.
+    /var/kod/.home and adds it to the distribution-appropriate sudo group.
 
-    Group differences:
-    - Arch: wheel group
-    - Debian/Ubuntu: sudo group
+    Delegates to the distribution-specific repository implementation.
 
     Args:
         mount_point (str): The mount point where the installation is being
             performed.
-        base_repo: Base repository instance (to detect distribution)
+        base_repo: Base repository instance (required)
     """
-    from pykod.repositories.debian import Debian
+    if base_repo is None:
+        raise ValueError("base_repo is required for create_kod_user")
 
-    # Determine the sudo group based on distribution
-    sudo_group = "sudo" if isinstance(base_repo, Debian) else "wheel"
-
-    logger.debug(f"Creating KodOS system user (group: {sudo_group})")
-    exec_chroot(
-        f"useradd -m -r -G {sudo_group} -s /bin/bash -d /var/kod/.home kod",
-        mount_point=mount_point,
-    )
-    with open_with_dry_run(f"{mount_point}/etc/sudoers.d/kod", "w") as f:
-        f.write("kod ALL=(ALL) NOPASSWD: ALL\n")
-    logger.debug("✓ KodOS user created successfully")
+    # Delegate to distribution-specific implementation
+    base_repo.create_system_user(mount_point, "kod", "/var/kod/.home")
 
 
 def save_configuration(

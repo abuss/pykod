@@ -351,14 +351,10 @@ class User:
     def _create(self, config) -> list[str]:
         """Create the user in the system.
 
-        Handles distribution differences:
-        - Arch: wheel group for sudo
-        - Debian/Ubuntu: sudo group for sudo
+        Uses distribution-specific sudo group from repository.
         """
-        from pykod.repositories.debian import Debian
-
-        # Determine the sudo group based on distribution
-        sudo_group = "sudo" if isinstance(config._base, Debian) else "wheel"
+        # Get sudo group from repository
+        sudo_group = config._base.get_sudo_group()
 
         user = self.username
         name = self.name or user

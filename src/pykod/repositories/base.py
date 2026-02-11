@@ -224,3 +224,41 @@ class BaseSystemRepository(Repository):
             str: Command to execute for database update
         """
         pass
+
+    @abstractmethod
+    def get_sudo_group(self) -> str:
+        """Get the name of the sudo/admin group for this distribution.
+
+        Returns:
+            str: Group name ("wheel" for Arch, "sudo" for Debian/Ubuntu)
+        """
+        pass
+
+    @abstractmethod
+    def configure_locale(self, mount_point: str, locale_config) -> None:
+        """Configure system locale settings.
+
+        Handles distribution-specific locale configuration:
+        - Arch: /etc/locale.conf
+        - Debian/Ubuntu: /etc/default/locale
+
+        Args:
+            mount_point: Installation mount point
+            locale_config: Locale configuration object with default, additional_locales, etc.
+        """
+        pass
+
+    @abstractmethod
+    def create_system_user(
+        self, mount_point: str, username: str, home_dir: str
+    ) -> None:
+        """Create a system user with sudo privileges.
+
+        Creates user with appropriate group membership for the distribution.
+
+        Args:
+            mount_point: Installation mount point
+            username: Username to create
+            home_dir: Home directory path
+        """
+        pass
