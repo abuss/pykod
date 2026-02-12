@@ -1,5 +1,9 @@
 """AUR (Arch User Repository) configuration."""
 
+from math import e
+
+from _typeshed import ExcInfo
+
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command
 
@@ -112,13 +116,12 @@ class AUR(Repository):
         """Check if the given package is valid."""
 
         cmds = []
-        is_installed = execute_command(f"{self.helper} -h", get_output=True)
-        print(is_installed)
-        if not is_installed:
+        try:
+            execute_command(f"{self.helper} -h")
+            for pkg in pkgs:
+                cmd_check = f"{self.helper} -Ss {pkg}"
+                cmds.append(cmd_check)
+            return cmds
+        except Exception as e:
             print(f"{self.helper} is not installed")
             return None
-
-        for pkg in pkgs:
-            cmd_check = f"{self.helper} -Ss {pkg}"
-            cmds.append(cmd_check)
-        return cmds
