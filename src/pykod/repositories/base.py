@@ -1,13 +1,18 @@
 """Base repository configuration classes."""
 
 from abc import ABC, abstractmethod
+from cmath import isinf
 
 
 class PackageList:
     def __init__(self) -> None:
-        self._pkgs = {}  # (Repository, [])
+        self._pkgs: dict[Repository, list] = {}  # (Repository, [])
 
     def new(self, repo, items) -> "PackageList":
+        if isinstance(items, str):
+            items = list(
+                items,
+            )
         self._pkgs = {repo: items}  # (Repository, [])
         return self
 
@@ -80,20 +85,22 @@ class Repository(ABC):
         self._pkgs = {}
 
     def __getitem__(self, items) -> PackageList:
-        if isinstance(items, (list, tuple)):
-            return PackageList().new(self, items)
-        return PackageList().new(self, (items,))
+        if isinstance(items, str):
+            return PackageList().new(
+                self,
+                [items],
+            )
+        if isinstance(items, tuple):
+            return PackageList().new(self, list(items))
+        return PackageList().new(self, items)
 
     def __repr__(self) -> str:
         return f"{self.__dict__}"
 
-    def packages(self):
-        return self._pkgs
-
     # Abstract methods for package management (ALL repositories)
 
     @abstractmethod
-    def install_packages(self, package_name: set | list) -> str:
+    def install_packages(self, package_name: list) -> str:
         """Return command to install packages.
 
         Args:
@@ -105,7 +112,7 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def remove_packages(self, packages_name: set | list) -> str:
+    def remove_packages(self, packages_name: list) -> str:
         """Return command to remove packages.
 
         Args:
@@ -117,7 +124,7 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def update_installed_packages(self, packages: tuple) -> str:
+    def update_installed_packages(self, packages: list) -> str:
         """Return command to upgrade installed packages.
 
         Args:
@@ -129,7 +136,7 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def is_valid_packages(self, pkgs: list) -> list:
+    def is_valid_packages(self, pkgs: list) -> list | None:
         """Check if packages exist in repository.
 
         Args:
@@ -265,6 +272,7 @@ class BaseSystemRepository(Repository):
             home_dir: Home directory path
         """
         import logging
+
         from pykod.common import execute_chroot as exec_chroot
         from pykod.common import open_with_dry_run
 

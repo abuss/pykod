@@ -4,8 +4,7 @@ import subprocess
 from pathlib import Path
 from typing import Callable, Optional
 
-from chorut import ChrootManager
-
+# from chorut import ChrootManager
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import (
     execute_command,
@@ -22,6 +21,7 @@ from pykod.core import (
     save_configuration,
 )
 from pykod.devices import load_fstab
+from pykod.repositories import BaseSystemRepository
 from pykod.repositories.base import PackageList, Repository
 from pykod.service import Service, Services
 from pykod.user import User
@@ -33,7 +33,7 @@ logger = logging.getLogger("pykod.config")
 class Configuration:
     def __init__(
         self,
-        base: Repository,
+        base: BaseSystemRepository,
         dry_run: bool = False,
         debug: bool = False,
         verbose: bool = False,
@@ -101,9 +101,9 @@ class Configuration:
                 continue
             match action:
                 case "install":
-                    cmd = repo.install_packages(set(items))
+                    cmd = repo.install_packages(items)
                 case "remove":
-                    cmd = repo.remove_packages(set(items))
+                    cmd = repo.remove_packages(items)
                 case _:
                     raise ValueError(f"Unknown action: {action}")
             if mount_point is None:
@@ -686,6 +686,7 @@ class Configuration:
 
     def _check_packages(self, packages: PackageList) -> list:
         invalid_packages = []
+        print(f"Validating packages...", packages)
         for repo, items in packages.items():
             cmds = repo.is_valid_packages(items)
             logger.debug(f"Validation command for repo {repo}: {cmds}")
@@ -741,33 +742,19 @@ def _find_package_list(
     if hasattr(obj, "__dict__"):
         # print(f"{type(obj)} Object has __dict__")
         # print(vars(obj))
-        if "_data" in vars(obj):
-            # print(f"Found _data attribute in {path}: {vars(obj)['_data']}")
-            for attr_name, attr_value in vars(obj)["_data"].items():
-                if not attr_name.startswith("_"):
-                    # print(f"Checking attribute {attr_name} of {path}")
-                    new_path = f"{path}.{attr_name}" if path else attr_name
-                    res = _find_package_list(
-                        attr_value, include_pkgs, exclude_pkgs, visited, new_path
-                    )
-                    if res is not None:
-                        if attr_name == "exclude_packages":
-                            exclude_pkgs += res
-                        else:
-                            include_pkgs += res
-        else:
-            for attr_name, attr_value in vars(obj).items():
-                if not attr_name.startswith("_"):
-                    # print(f"Checking attribute {attr_name} of {path}")
-                    new_path = f"{path}.{attr_name}" if path else attr_name
-                    res = _find_package_list(
-                        attr_value, include_pkgs, exclude_pkgs, visited, new_path
-                    )
-                    if res is not None:
-                        if attr_name == "exclude_packages":
-                            exclude_pkgs += res
-                        else:
-                            include_pkgs += res
+
+        for attr_name, attr_value in vars(obj).items():
+            if not attr_name.startswith("_"):
+                # print(f"Checking attribute {attr_name} of {path}")
+                new_path = f"{path}.{attr_name}" if path else attr_name
+                res = _find_package_list(
+                    attr_value, include_pkgs, exclude_pkgs, visited, new_path
+                )
+                if res is not None:
+                    if attr_name == "exclude_packages":
+                        exclude_pkgs += res
+                    else:
+                        include_pkgs += res
 
     # Search in lists/tuples
     if isinstance(obj, (list, tuple)):

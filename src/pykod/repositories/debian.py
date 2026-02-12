@@ -938,7 +938,7 @@ class Debian(BaseSystemRepository):
 
         logger.info(f"✓ Initramfs verified: {initramfs_path}")
 
-    def install_packages(self, package_name) -> str:
+    def install_packages(self, package_name: list) -> str:
         """Generate apt-get install command.
 
         Args:
@@ -947,11 +947,13 @@ class Debian(BaseSystemRepository):
         Returns:
             str: Command to execute
         """
-        pkgs = " ".join(package_name)
+        if len(package_name) == 0:
+            return ""
+        pkgs = " ".join(set(package_name))
         cmd = f"apt-get install -y {pkgs}"
         return cmd
 
-    def remove_packages(self, packages_name: set | list) -> str:
+    def remove_packages(self, packages_name: list) -> str:
         """Generate apt-get remove command.
 
         Args:
@@ -960,11 +962,13 @@ class Debian(BaseSystemRepository):
         Returns:
             str: Command to execute
         """
-        pkgs = " ".join(packages_name)
+        if len(packages_name) == 0:
+            return ""
+        pkgs = " ".join(set(packages_name))
         cmd = f"apt-get remove -y {pkgs}"
         return cmd
 
-    def update_installed_packages(self, packages: tuple) -> str:
+    def update_installed_packages(self, packages: list) -> str:
         """Generate command to upgrade specific packages.
 
         Args:
@@ -1006,6 +1010,7 @@ class Debian(BaseSystemRepository):
             locale_config: Locale configuration object
         """
         import logging
+
         from pykod.common import open_with_dry_run, setup_common_locale_configuration
 
         logger = logging.getLogger("pykod.config")
@@ -1041,7 +1046,7 @@ class Debian(BaseSystemRepository):
         cmd = "dpkg-query -W -f='${Package} ${Version}\\n'"
         return cmd
 
-    def is_valid_packages(self, pkgs):
+    def is_valid_packages(self, pkgs: list) -> list | None:
         """Check if the given packages exist in apt repositories.
 
         Returns list of validation commands. If packages don't exist,

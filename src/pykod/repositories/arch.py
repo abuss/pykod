@@ -122,20 +122,24 @@ class Arch(BaseSystemRepository):
             mount_point=mount_point,
         )
 
-    def install_packages(self, package_name) -> str:
-        pkgs = " ".join(package_name)
+    def install_packages(self, package_name: list) -> str:
+        if len(package_name) == 0:
+            return ""
+        pkgs = " ".join(set(package_name))
         cmd = f"pacman -S --needed --noconfirm {pkgs}"
         return cmd
 
-    def remove_packages(self, packages_name: set | list) -> str:
-        pkgs = " ".join(packages_name)
+    def remove_packages(self, packages_name: list) -> str:
+        if len(packages_name) == 0:
+            return ""
+        pkgs = " ".join(set(packages_name))
         cmd = f"pacman -Rnsc --noconfirm {pkgs}"
         return cmd
 
-    def update_installed_packages(self, packages: tuple) -> str:
+    def update_installed_packages(self, packages: list) -> str:
         if len(packages) == 0:
             return ""
-        pkgs = " ".join(packages)
+        pkgs = " ".join(set(packages))
         cmd = f"pacman -Syu --noconfirm {pkgs}"
         return cmd
 
@@ -161,6 +165,7 @@ class Arch(BaseSystemRepository):
             locale_config: Locale configuration object
         """
         import logging
+
         from pykod.common import open_with_dry_run, setup_common_locale_configuration
 
         logger = logging.getLogger("pykod.config")
@@ -187,7 +192,7 @@ class Arch(BaseSystemRepository):
         cmd = "pacman -Q --noconfirm"
         return cmd
 
-    def is_valid_packages(self, pkgs):
+    def is_valid_packages(self, pkgs: list) -> list | None:
         """Check if the given package is valid."""
         cmds = []
         for pkg in pkgs:
