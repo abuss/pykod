@@ -1,9 +1,5 @@
 """AUR (Arch User Repository) configuration."""
 
-from math import e
-
-from _typeshed import ExcInfo
-
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command
 
