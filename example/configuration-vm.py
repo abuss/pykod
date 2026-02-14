@@ -26,6 +26,7 @@ import development
 conf.devices = Devices(
     disk0=Disk(
         device="/dev/sda",
+        initialize=True,
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot/efi"),
             Partition(name="swap", size="2G", type="linux-swap"),
