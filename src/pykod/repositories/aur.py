@@ -108,9 +108,12 @@ class AUR(Repository):
         """Check if the given package is valid."""
 
         cmds = []
-        is_installed = execute_command(f"{self.helper} -h", get_output=True)
-        print(is_installed)
-        if not is_installed:
+        # is_installed = False
+        try:
+            output = execute_command(f"{self.helper} -h", get_output=True)
+            print(output)
+            # is_installed = True
+        except Exception:
             print(f"{self.helper} is not installed")
             return cmds
 
