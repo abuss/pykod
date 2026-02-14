@@ -461,7 +461,7 @@ class Configuration:
             # return
         finally:
             kod_paths = [
-                "/boot",
+                "/boot/efi",
                 "/kod",
                 "/home",
                 "/root",
@@ -561,8 +561,26 @@ def _find_user(obj, username: str) -> User | None:
 
 
 def _find_package_list(
-    obj, include_pkgs, exclude_pkgs, visited=None, path=""
+    obj: Any,
+    include_pkgs: PackageList,
+    exclude_pkgs: PackageList,
+    visited: set | None = None,
+    path: str = "",
 ) -> PackageList | None:
+    """
+    Recursively search for PackageList instances within the given object and its attributes,
+    adding them to include_pkgs or exclude_pkgs based on the attribute name.
+
+    Args:
+        obj: The object to search for PackageList instances.
+        include_pkgs: PackageList to accumulate included packages.
+        exclude_pkgs: PackageList to accumulate excluded packages.
+        visited: Set of object IDs to avoid infinite recursion.
+        path: String representing the current path in the object graph for debugging.
+
+    Returns:
+        The found PackageList if one is encountered, otherwise None.
+    """
     # print(f"Visiting {path}: {type(obj)}")
     if visited is None:
         visited = set()
@@ -628,6 +646,71 @@ def _find_package_list(
                 exclude_pkgs += res
             else:
                 include_pkgs += res
+    # # print(f"Visiting {path}: {type(obj)}")
+    # if visited is None:
+    #     visited = set()
+
+    # # Avoid infinite recursion
+    # if id(obj) in visited:
+    #     return None
+    # visited.add(id(obj))
+
+    # # Check if object is instance of PackageList
+    # if isinstance(obj, PackageList):
+    #     # print(f"Found PackageList at {path}: {obj}")
+    #     return obj
+
+    # # Recursively search attributes
+    # if hasattr(obj, "__dict__"):
+    #     # print(f"{type(obj)} Object has __dict__")
+    #     # print(vars(obj))
+    #     if "_data" in vars(obj):
+    #         # print(f"Found _data attribute in {path}: {vars(obj)['_data']}")
+    #         for attr_name, attr_value in vars(obj)["_data"].items():
+    #             if not attr_name.startswith("_"):
+    #                 # print(f"Checking attribute {attr_name} of {path}")
+    #                 new_path = f"{path}.{attr_name}" if path else attr_name
+    #                 res = _find_package_list(
+    #                     attr_value, include_pkgs, exclude_pkgs, visited, new_path
+    #                 )
+    #                 if res is not None:
+    #                     if attr_name == "exclude_packages":
+    #                         exclude_pkgs += res
+    #                     else:
+    #                         include_pkgs += res
+    #     else:
+    #         for attr_name, attr_value in vars(obj).items():
+    #             if not attr_name.startswith("_"):
+    #                 # print(f"Checking attribute {attr_name} of {path}")
+    #                 new_path = f"{path}.{attr_name}" if path else attr_name
+    #                 res = _find_package_list(
+    #                     attr_value, include_pkgs, exclude_pkgs, visited, new_path
+    #                 )
+    #                 if res is not None:
+    #                     if attr_name == "exclude_packages":
+    #                         exclude_pkgs += res
+    #                     else:
+    #                         include_pkgs += res
+
+    # # Search in lists/tuples
+    # if isinstance(obj, (list, tuple)):
+    #     for i, item in enumerate(obj):
+    #         new_path = f"{path}[{i}]" if path else f"[{i}]"
+    #         _find_package_list(item, include_pkgs, exclude_pkgs, visited, new_path)
+
+    # # Search in dictionaries
+    # if isinstance(obj, dict):
+    #     for key, value in obj.items():
+    #         new_path = f"{path}[{key}]" if path else f"[{key}]"
+    #         res = _find_package_list(
+    #             value, include_pkgs, exclude_pkgs, visited, new_path
+    #         )
+    #         if res is None:
+    #             continue
+    #         if key == "exclude_packages":
+    #             exclude_pkgs += res
+    #         else:
+    #             include_pkgs += res
 
 
 def repo_packages_list(kernel, packages) -> dict:
