@@ -42,7 +42,7 @@ conf.devices = Devices(
         device="/dev/vda",
         initialize=True,
         partitions=[
-            Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
+            Partition(name="efi", size="512M", type="esp"),
             Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
         ],
     ),

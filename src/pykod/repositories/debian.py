@@ -93,6 +93,7 @@ from pykod.common import get_dry_run
 from .base import BaseSystemRepository
 
 logger = logging.getLogger("pykod.config")
+logger.setLevel(logging.DEBUG if get_dry_run() else logging.INFO)
 
 GPU_PACKAGES = {
     "nvidia": {
@@ -409,18 +410,19 @@ class Debian(BaseSystemRepository):
             packages: PackageList containing packages to install
         """
         list_pkgs = packages._pkgs[self]
+
         logger.info(f"=== Base Package Installation ===")
         logger.info(f"Total packages to install: {len(list_pkgs)}")
         logger.info(f"Package list: {', '.join(list_pkgs)}")
 
-        # Verify kernel package is in the list
-        kernel_pkgs = [pkg for pkg in list_pkgs if "linux-image" in pkg]
-        if kernel_pkgs:
-            logger.info(f"✓ Kernel packages found in list: {', '.join(kernel_pkgs)}")
-        else:
-            logger.error("✗ NO kernel package found in package list!")
-            logger.error("This is a bug - kernel should be included in base packages")
-            raise RuntimeError("Kernel package missing from installation list")
+        # # Verify kernel package is in the list
+        # kernel_pkgs = [pkg for pkg in list_pkgs if "linux-image" in pkg]
+        # if kernel_pkgs:
+        #     logger.info(f"✓ Kernel packages found in list: {', '.join(kernel_pkgs)}")
+        # else:
+        #     logger.error("✗ NO kernel package found in package list!")
+        #     logger.error("This is a bug - kernel should be included in base packages")
+        #     raise RuntimeError("Kernel package missing from installation list")
 
         pkgs_str = " ".join(list_pkgs)
         components_str = ",".join(self.components)

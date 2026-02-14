@@ -38,8 +38,8 @@ ubuntu = Debian(
 flatpak = Flatpak(hub_url="flathub")
 
 # Create configuration
-# conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=ubuntu, interactive=True, verbose=True)
+conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+# conf = Configuration(base=ubuntu, interactive=True, verbose=True)
 
 # Disk configuration - same as Arch/Debian (BTRFS + generations)
 conf.devices = Devices(
@@ -47,7 +47,7 @@ conf.devices = Devices(
         device="/dev/sda",
         initialize=True,
         partitions=[
-            Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
+            Partition(name="efi", size="512M", type="esp"),
             Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
         ],
     ),

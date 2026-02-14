@@ -1,6 +1,7 @@
 import json
 import logging
 import subprocess
+from multiprocessing import Lock
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -28,6 +29,7 @@ from pykod.user import User
 
 # Module-level logger for configuration operations
 logger = logging.getLogger("pykod.config")
+logger.setLevel(logging.DEBUG)  # Set default logging level to DEBUG for detailed output
 
 
 class Configuration:
@@ -628,7 +630,7 @@ class Configuration:
             raise
         finally:
             kod_paths = [
-                "/boot",
+                "/boot/efi",
                 "/kod",
                 "/home",
                 "/root",
@@ -874,7 +876,7 @@ def create_next_generation(
     execute_command(
         f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}"
     )
-    execute_command(f"mount {boot_part} {next_current}/boot")
+    execute_command(f"mount {boot_part} {next_current}/boot/efi")
     execute_command(f"mount {root_part} {next_current}/kod")
     execute_command(f"mount -o subvol=store/home {root_part} {next_current}/home")
 
