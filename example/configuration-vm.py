@@ -27,7 +27,7 @@ conf.devices = Devices(
     disk0=Disk(
         device="/dev/sda",
         partitions=[
-            Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
+            Partition(name="efi", size="512M", type="esp", mountpoint="/boot/efi"),
             Partition(name="swap", size="2G", type="linux-swap"),
             Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
             # Partition(name="home", size="100%", type="btrfs"),

@@ -184,7 +184,7 @@ class Debian(BaseSystemRepository):
             kver: Kernel version string
         """
         exec_chroot(
-            f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
+            f"dracut --kver {kver} --hostonly /boot/efi/initramfs-linux-{kver}.img",
             mount_point=mount_point,
         )
 

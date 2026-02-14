@@ -158,7 +158,7 @@ linux /vmlinuz-{kver}
 initrd /initramfs-linux-{kver}.img
 options root={root_device} rw {options}
     """
-    entries_path = f"{mount_point}/boot/loader/entries/"
+    entries_path = f"{mount_point}/boot/efi/loader/entries/"
     entries_path_obj = Path(entries_path)
     if not entries_path_obj.is_dir():
         if get_dry_run():
@@ -166,7 +166,7 @@ options root={root_device} rw {options}
         else:
             entries_path_obj.mkdir(parents=True, exist_ok=True)
     with open_with_dry_run(
-        f"{mount_point}/boot/loader/entries/{entry_name}.conf", "w"
+        f"{mount_point}/boot/efi/loader/entries/{entry_name}.conf", "w"
     ) as f:
         f.write(entry_conf)
 
@@ -176,7 +176,7 @@ default {entry_name}.conf
 timeout 10
 console-mode keep
 """
-    with open_with_dry_run(f"{mount_point}/boot/loader/loader.conf", "w") as f:
+    with open_with_dry_run(f"{mount_point}/boot/efi/loader/loader.conf", "w") as f:
         f.write(loader_conf_systemd)
 
 
@@ -210,7 +210,7 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
     if boot_type == "systemd-boot":
         print("==== Setting up systemd-boot ====")
         kver = base.setup_linux("/mnt", kernel_package)
-        exec_chroot("bootctl install")
+        exec_chroot("bootctl install --esp-path=/boot/efi")
         print("KVER:", kver)
         base.generate_initramfs("/mnt", kver)
         create_boot_entry(0, partition_list, mount_point="/mnt", kver=kver)
@@ -224,7 +224,7 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
 
         # exec_chroot(f"pacman -S --noconfirm {' '.join(pkgs_required)}")
         # exec_chroot(
-        #     "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB",
+        #     "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB",
         # )
         # exec_chroot("grub-mkconfig -o /boot/grub/grub.cfg")
         # # pkgs_installed += ["efibootmgr"]

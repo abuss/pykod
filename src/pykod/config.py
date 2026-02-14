@@ -728,7 +728,7 @@ def create_next_generation(
     execute_command(
         f"mount -o subvol=generations/{generation}/rootfs {root_part} {next_current}"
     )
-    execute_command(f"mount {boot_part} {next_current}/boot")
+    execute_command(f"mount {boot_part} {next_current}/boot/efi")
     execute_command(f"mount {root_part} {next_current}/kod")
     execute_command(f"mount -o subvol=store/home {root_part} {next_current}/home")
 
@@ -755,8 +755,10 @@ def update_kernel_hook(
             mount_point, package=kernel_package
         )
         print(f"{kver=}")
-        print(f"cp {kernel_file} /boot/vmlinuz-{kver}")
-        exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
+        print(f"cp {kernel_file} /boot/efi/vmlinuz-{kver}")
+        exec_chroot(
+            f"cp {kernel_file} /boot/efi/vmlinuz-{kver}", mount_point=mount_point
+        )
 
     return hook
 

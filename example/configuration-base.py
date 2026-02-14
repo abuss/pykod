@@ -32,7 +32,7 @@ conf.devices = Devices(
                 name="efi",
                 size="512M",
                 type="esp",
-                mountpoint="/boot",
+                mountpoint="/boot/efi",
                 # format=True,
             ),
             Partition(name="swap", size="2G", type="linux-swap"),

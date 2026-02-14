@@ -104,7 +104,7 @@ def remove_generation(config: Any, generation_id: int) -> None:
         return
 
     # Remove the boot entry for the generation
-    boot_entry_path = f"/boot/loader/entries/kod-{generation_id}.conf"
+    boot_entry_path = f"/boot/efi/loader/entries/kod-{generation_id}.conf"
     if Path(boot_entry_path).exists():
         execute_command(f"rm {boot_entry_path}")
         print(f"Removed boot entry: {boot_entry_path}")

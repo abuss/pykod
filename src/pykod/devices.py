@@ -362,14 +362,14 @@ class Devices(dict):
             )
         ]
 
-        for dir in subdirs + ["boot", "home", "kod"]:
+        for dir in subdirs + ["boot/efi", "home", "kod"]:
             Path(f"{mount_point}/{dir}").mkdir(parents=True, exist_ok=True)
             # exec(f"mkdir -p {mount_point}/{dir}")
 
-        exec(f"mount {self.boot_partition} {mount_point}/boot")
+        exec(f"mount {self.boot_partition} {mount_point}/boot/efi")
         boot_options = "rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro"
         partition_list.append(
-            FsEntry(self.boot_partition, "/boot", "vfat", boot_options)
+            FsEntry(self.boot_partition, "/boot/efi", "vfat", boot_options)
         )
 
         exec(f"mount {self.root_partition} {mount_point}/kod")

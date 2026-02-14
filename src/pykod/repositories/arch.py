@@ -107,7 +107,9 @@ class Arch(BaseSystemRepository):
         kernel_file, kver = self.get_kernel_info(
             mount_point=mount_point, package=kernel_package
         )
-        exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
+        exec_chroot(
+            f"cp {kernel_file} /boot/efi/vmlinuz-{kver}", mount_point=mount_point
+        )
         return kver
 
     def generate_initramfs(self, mount_point: str, kver: str) -> None:
@@ -118,7 +120,7 @@ class Arch(BaseSystemRepository):
             kver: Kernel version to generate initramfs for
         """
         exec_chroot(
-            f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
+            f"dracut --kver {kver} --hostonly /boot/efi/initramfs-linux-{kver}.img",
             mount_point=mount_point,
         )
 
