@@ -10,7 +10,9 @@ class Flatpak(Repository):
         )
         self.flatpak_installed = False
 
-    def install_packages(self, package_name) -> str:
+    def install_packages(self, package_name: list) -> str:
+        if package_name is None or len(package_name) == 0:
+            return ""
         cmds = []
 
         if not self.flatpak_installed:
@@ -19,28 +21,28 @@ class Flatpak(Repository):
             cmd_add_repo = f"flatpak remote-add --if-not-exists flathub {self.hub_url}"
             cmds.append(cmd_add_repo)
             self.flatpak_installed = True
-        pkgs = " ".join(package_name)
+        pkgs = " ".join(set(package_name))
         cmd = f"flatpak install -y flathub {pkgs}"
         cmds.append(cmd)
         cmds_str = " && ".join(cmds)
 
         return cmds_str
 
-    def remove_packages(self, package_name) -> str:
+    def remove_packages(self, package_name: list) -> str:
         if package_name is None or len(package_name) == 0:
             return ""
-        pkgs = " ".join(package_name)
+        pkgs = " ".join(set(package_name))
         cmd = f"flatpak uninstall -y flathub {pkgs}"
         return cmd
 
-    def update_installed_packages(self, packages: tuple) -> str:
+    def update_installed_packages(self, packages: list) -> str:
         if len(packages) == 0:
             return ""
-        pkgs = " ".join(packages)
+        pkgs = " ".join(set(packages))
         cmd = f"flatpak update -y {pkgs}"
         return cmd
 
-    def is_valid_packages(self, pkgs):
+    def is_valid_packages(self, pkgs: list) -> list | None:
         """Check if the given package is valid."""
         # TODO: Implement package validation for Flatpak
         return None

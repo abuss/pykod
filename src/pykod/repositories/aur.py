@@ -63,8 +63,10 @@ class AUR(Repository):
             self.build(mount_point=mount_point)
             self.helper_installed = True
 
-    def install_packages(self, package_name):
-        pkgs = " ".join(package_name)
+    def install_packages(self, package_name: list) -> str:
+        if len(package_name) == 0:
+            return ""
+        pkgs = " ".join(set(package_name))
         debug_flag = ""
         if self.skip_debug:
             if self.helper in ["paru", "yay"]:
@@ -74,8 +76,10 @@ class AUR(Repository):
         cmd = f"runuser -u kod -- {self.helper} -S --needed --noconfirm {debug_flag} {pkgs}".strip()
         return cmd
 
-    def remove_packages(self, package_name):
-        pkgs = " ".join(package_name)
+    def remove_packages(self, package_name: list) -> str:
+        if len(package_name) == 0:
+            return ""
+        pkgs = " ".join(set(package_name))
         cmd = f"runuser -u kod -- {self.helper} -R --noconfirm {pkgs}"
         return cmd
 
@@ -88,10 +92,10 @@ class AUR(Repository):
                 mount_point=mount_point,
             )
 
-    def update_installed_packages(self, packages: tuple) -> str:
+    def update_installed_packages(self, packages: list) -> str:
         if len(packages) == 0:
             return ""
-        pkgs = " ".join(packages)
+        pkgs = " ".join(set(packages))
         debug_flag = ""
         if self.skip_debug:
             if self.helper in ["paru", "yay"]:
@@ -104,17 +108,16 @@ class AUR(Repository):
         cmd = f"{self.helper} -Sy"
         return cmd
 
-    def is_valid_packages(self, pkgs):
+    def is_valid_packages(self, pkgs: list) -> list | None:
         """Check if the given package is valid."""
 
         cmds = []
-        is_installed = execute_command(f"{self.helper} -h", get_output=True)
-        print(is_installed)
-        if not is_installed:
-            print(f"{self.helper} is not installed")
+        try:
+            execute_command(f"{self.helper} -h")
+            for pkg in pkgs:
+                cmd_check = f"{self.helper} -Ss {pkg}"
+                cmds.append(cmd_check)
             return cmds
-
-        for pkg in pkgs:
-            cmd_check = f"{self.helper} -Ss {pkg}"
-            cmds.append(cmd_check)
-        return cmds
+        except Exception as e:
+            print(f"{self.helper} is not installed")
+            return None

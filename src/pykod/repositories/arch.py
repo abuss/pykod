@@ -4,7 +4,7 @@ from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command as exec
 from pykod.common import get_dry_run
 
-from .base import Repository
+from .base import BaseSystemRepository
 
 GPU_PACKAGES = {
     "nvidia": {
@@ -26,7 +26,7 @@ GPU_PACKAGES = {
 }
 
 
-class Arch(Repository):
+class Arch(BaseSystemRepository):
     def __init__(self, repos=["base", "contrib"], **kwargs):
         # super().__init__(repos=repos, **kwargs)
         self.repos = repos
@@ -110,20 +110,36 @@ class Arch(Repository):
         exec_chroot(f"cp {kernel_file} /boot/vmlinuz-{kver}", mount_point=mount_point)
         return kver
 
-    def install_packages(self, package_name) -> str:
-        pkgs = " ".join(package_name)
+    def generate_initramfs(self, mount_point: str, kver: str) -> None:
+        """Generate initramfs using dracut (Arch's initramfs generator).
+
+        Args:
+            mount_point: Installation mount point for chroot
+            kver: Kernel version to generate initramfs for
+        """
+        exec_chroot(
+            f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img",
+            mount_point=mount_point,
+        )
+
+    def install_packages(self, package_name: list) -> str:
+        if len(package_name) == 0:
+            return ""
+        pkgs = " ".join(set(package_name))
         cmd = f"pacman -S --needed --noconfirm {pkgs}"
         return cmd
 
-    def remove_packages(self, packages_name: set | list) -> str:
-        pkgs = " ".join(packages_name)
+    def remove_packages(self, packages_name: list) -> str:
+        if len(packages_name) == 0:
+            return ""
+        pkgs = " ".join(set(packages_name))
         cmd = f"pacman -Rnsc --noconfirm {pkgs}"
         return cmd
 
-    def update_installed_packages(self, packages: tuple) -> str:
+    def update_installed_packages(self, packages: list) -> str:
         if len(packages) == 0:
             return ""
-        pkgs = " ".join(packages)
+        pkgs = " ".join(set(packages))
         cmd = f"pacman -Syu --noconfirm {pkgs}"
         return cmd
 
@@ -131,12 +147,52 @@ class Arch(Repository):
         cmd = "pacman -Syy"
         return cmd
 
+    def get_sudo_group(self) -> str:
+        """Get the sudo group name for Arch Linux.
+
+        Returns:
+            str: "wheel"
+        """
+        return "wheel"
+
+    def configure_locale(self, mount_point: str, locale_config) -> None:
+        """Configure locale for Arch Linux.
+
+        Uses /etc/locale.conf for locale settings.
+
+        Args:
+            mount_point: Installation mount point
+            locale_config: Locale configuration object
+        """
+        import logging
+
+        from pykod.common import open_with_dry_run, setup_common_locale_configuration
+
+        logger = logging.getLogger("pykod.config")
+
+        # Common setup: timezone, locale.gen, locale-gen
+        setup_common_locale_configuration(mount_point, locale_config)
+
+        # Arch-specific: Set default locale in /etc/locale.conf
+        locale_name = locale_config.default.split()[0]
+        logger.info("Creating /etc/locale.conf (Arch)...")
+        locale_extra = locale_name + "\n"
+        for k, v in locale_config.extra_settings.items():
+            locale_extra += f"{k}={v}\n"
+
+        with open_with_dry_run(f"{mount_point}/etc/locale.conf", "w") as locale_file:
+            locale_file.write(f"LANG={locale_extra}\n")
+        logger.info(f"✓ Default locale set to {locale_name}")
+
+    # create_system_user() is inherited from BaseSystemRepository
+    # It uses get_sudo_group() which returns "wheel" for Arch
+
     def list_installed_packages(self):
         """Generate a file containing the list of installed packages and their versions."""
         cmd = "pacman -Q --noconfirm"
         return cmd
 
-    def is_valid_packages(self, pkgs):
+    def is_valid_packages(self, pkgs: list) -> list | None:
         """Check if the given package is valid."""
         cmds = []
         for pkg in pkgs:

@@ -108,6 +108,7 @@ class Disk:
 
             if name.lower() in ["boot", "efi"]:
                 boot_partition = blockdevice
+                boot_mountpoint = mountpoint if mountpoint else "/boot/efi"
             elif name.lower() == "root":
                 root_partition = blockdevice
 
@@ -266,7 +267,9 @@ class Boot:
 
     def install(self, config):
         print("[install] Boot configuration:", self)
-        setup_bootloader(self, config._partition_list, config._base)
+        setup_bootloader(
+            self, config._partition_list, config._base, config._mount_point
+        )
 
 
 class Devices(dict):
@@ -362,14 +365,14 @@ class Devices(dict):
             )
         ]
 
-        for dir in subdirs + ["boot", "home", "kod"]:
+        for dir in subdirs + ["boot/efi", "home", "kod"]:
             Path(f"{mount_point}/{dir}").mkdir(parents=True, exist_ok=True)
             # exec(f"mkdir -p {mount_point}/{dir}")
 
-        exec(f"mount {self.boot_partition} {mount_point}/boot")
+        exec(f"mount {self.boot_partition} {mount_point}/boot/efi")
         boot_options = "rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro"
         partition_list.append(
-            FsEntry(self.boot_partition, "/boot", "vfat", boot_options)
+            FsEntry(self.boot_partition, "/boot/efi", "vfat", boot_options)
         )
 
         exec(f"mount {self.root_partition} {mount_point}/kod")

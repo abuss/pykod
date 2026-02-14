@@ -1,5 +1,6 @@
 """Core functions for configuring the system."""
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,8 @@ from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command as exec
 from pykod.common import get_dry_run, open_with_dry_run
 from pykod.repositories.base import Repository
+
+logger = logging.getLogger("pykod.config")
 
 os_release = """NAME="KodOS Linux"
 VERSION="1.0"
@@ -21,6 +24,57 @@ RELEASE_TYPE="experimental"
 """
 
 
+def verify_grub_not_installed(mount_point: str, base: Repository) -> None:
+    """Verify that GRUB is not installed before systemd-boot installation.
+
+    For Debian/Ubuntu systems, this is a sanity check to ensure our GRUB
+    blocking during base installation was successful.
+
+    Args:
+        mount_point: Installation mount point
+        base: Base repository instance
+
+    Raises:
+        ValueError: If GRUB packages are detected (installation should not proceed)
+    """
+    from pykod.repositories.debian import Debian
+
+    # Only check on Debian/Ubuntu systems
+    if not isinstance(base, Debian):
+        logger.debug("Not a Debian/Ubuntu system, skipping GRUB verification")
+        return
+
+    logger.info("Verifying GRUB is not installed...")
+
+    try:
+        # Check for any installed GRUB packages
+        check_cmd = "dpkg -l | grep '^ii.*grub' || true"
+        result = exec_chroot(check_cmd, mount_point=mount_point, get_output=True)
+
+        if result.strip():
+            # GRUB packages found - this is a critical error
+            grub_packages = result.strip().split("\n")
+            logger.error("GRUB packages detected before systemd-boot installation!")
+            logger.error(f"Found packages: {grub_packages}")
+            raise ValueError(
+                "GRUB packages are installed, cannot proceed with systemd-boot. "
+                "This indicates GRUB blocking during base installation failed. "
+                f"Detected packages: {result.strip()}"
+            )
+        else:
+            logger.info("✓ Verification passed: No GRUB packages detected")
+
+    except ValueError:
+        # Re-raise ValueError from GRUB detection
+        raise
+    except Exception as e:
+        # Warn but continue for other errors (verification failure shouldn't block install)
+        logger.warning(
+            f"Failed to verify GRUB status: {e}. "
+            "Proceeding with systemd-boot installation anyway."
+        )
+
+
 # Filesystem and system configuration functions
 def generate_fstab(config, partition_list: list, mount_point: str) -> None:
     """
@@ -30,7 +84,7 @@ def generate_fstab(config, partition_list: list, mount_point: str) -> None:
         partition_list (List): A list of Partition objects to be written to the fstab file.
         mount_point (str): The mount point where the fstab file will be written.
     """
-    print("Generating fstab")
+    logger.debug(f"Generating fstab for {len(partition_list)} partitions")
 
     with open_with_dry_run(f"{mount_point}/etc/fstab", "w") as f:
         for part in partition_list:
@@ -40,74 +94,77 @@ def generate_fstab(config, partition_list: list, mount_point: str) -> None:
                     part.source = f"UUID={uuid.strip()}"
             f.write(str(part) + "\n")
 
+    logger.debug("fstab generated successfully")
+
 
 def configure_system(mount_point: str) -> None:
     """Configure a system based on the given configuration."""
+    logger.debug(f"Configuring system at {mount_point}")
+
     # Replace default os-release
     with open_with_dry_run(f"{mount_point}/etc/os-release", "w") as f:
         f.write(os_release)
 
-    # Configure schroot
-    system_schroot = """[system]
- type=directory
- description=KodOS
- directory=/
- groups=users,root
- root-groups=root,wheel
- profile=kodos
- personality=linux
- """
-    with open_with_dry_run(f"{mount_point}/etc/schroot/chroot.d/system.conf", "w") as f:
-        f.write(system_schroot)
 
-    venv_schroot = """[virtual_env]
- type=directory
- description=KodOS
- directory=/
- union-type=overlay
- groups=users,root
- root-groups=root,wheel
- profile=kodos
- personality=linux
- aliases=user_env
- """
-    with open_with_dry_run(
-        f"{mount_point}/etc/schroot/chroot.d/virtual_env.conf", "w"
-    ) as f:
-        f.write(venv_schroot)
+#    # Configure schroot
+#    system_schroot = """[system]
+# type=directory
+# description=KodOS
+# directory=/
+# groups=users,root
+# root-groups=root,wheel
+# profile=kodos
+# personality=linux
+# """
+#    with open_with_dry_run(f"{mount_point}/etc/schroot/chroot.d/system.conf", "w") as f:
+#        f.write(system_schroot)
 
-    # Setting profile
-    kodos_dir = Path(mount_point) / "etc" / "schroot" / "kodos"
-    if get_dry_run():
-        print(f"[dry-run] mkdir -p {kodos_dir}")
-        print(f"[dry-run] touch {kodos_dir / 'copyfiles'}")
-        print(f"[dry-run] touch {kodos_dir / 'nssdatabases'}")
-    else:
-        kodos_dir.mkdir(parents=True, exist_ok=True)
-        (kodos_dir / "copyfiles").touch()
-        (kodos_dir / "nssdatabases").touch()
+#    venv_schroot = """[virtual_env]
+# type=directory
+# description=KodOS
+# directory=/
+# union-type=overlay
+# groups=users,root
+# root-groups=root,wheel
+# profile=kodos
+# personality=linux
+# aliases=user_env
+# """
+#    with open_with_dry_run(
+#        f"{mount_point}/etc/schroot/chroot.d/virtual_env.conf", "w"
+#    ) as f:
+#        f.write(venv_schroot)
 
-    venv_fstab = (
-        "# <file system> <mount point>   <type>  <options>       <dump>  <pass>"
-    )
-    for mpoint in [
-        "/proc",
-        "/sys",
-        "/dev",
-        "/dev/pts",
-        "/home",
-        "/root",
-        "/tmp",
-        "/run",
-        "/var/cache",
-        "/var/log",
-        "/var/tmp",
-        "/var/kod",
-    ]:
-        venv_fstab += f"{mpoint}\t{mpoint}\tnone\trw,bind\t0\t0\n"
+#    # Setting profile
+#    kodos_dir = Path(mount_point) / "etc" / "schroot" / "kodos"
+#    if get_dry_run():
+#        logger.debug(f"[dry-run] Creating schroot profile at {kodos_dir}")
+#    else:
+#        kodos_dir.mkdir(parents=True, exist_ok=True)
+#        (kodos_dir / "copyfiles").touch()
+#        (kodos_dir / "nssdatabases").touch()
 
-    with open_with_dry_run(f"{mount_point}/etc/schroot/kodos/fstab", "w") as f:
-        f.write(venv_fstab)
+#    venv_fstab = (
+#        "# <file system> <mount point>   <type>  <options>       <dump>  <pass>"
+#    )
+#    for mpoint in [
+#        "/proc",
+#        "/sys",
+#        "/dev",
+#        "/dev/pts",
+#        "/home",
+#        "/root",
+#        "/tmp",
+#        "/run",
+#        "/var/cache",
+#        "/var/log",
+#        "/var/tmp",
+#        "/var/kod",
+#    ]:
+#        venv_fstab += f"{mpoint}\t{mpoint}\tnone\trw,bind\t0\t0\n"
+
+#    with open_with_dry_run(f"{mount_point}/etc/schroot/kodos/fstab", "w") as f:
+#        f.write(venv_fstab)
 
 
 # Boot-related functions
@@ -162,9 +219,12 @@ options root={root_device} rw {options}
     entries_path_obj = Path(entries_path)
     if not entries_path_obj.is_dir():
         if get_dry_run():
-            print(f"[dry-run] mkdir -p {entries_path}")
+            logger.debug(
+                f"[dry-run] Would create boot entries directory: {entries_path}"
+            )
         else:
             entries_path_obj.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Created boot entries directory: {entries_path}")
     with open_with_dry_run(
         f"{mount_point}/boot/loader/entries/{entry_name}.conf", "w"
     ) as f:
@@ -180,17 +240,24 @@ console-mode keep
         f.write(loader_conf_systemd)
 
 
-def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
+def setup_bootloader(
+    conf: Any, partition_list: list, base: Repository, mount_point: str = "/mnt"
+) -> None:
     # bootloader
     """
     Set up the bootloader based on the configuration.
 
+    Note: For Debian/Ubuntu systems, GRUB prevention is handled during
+    base package installation (see repositories/debian.py).
+
     Args:
         conf (dict): The configuration dictionary.
         partition_list (list): A list of Partition objects to use for determining the root device.
+        base: Base repository instance for package management.
+        mount_point: Installation mount point. Defaults to "/mnt".
     """
 
-    print("\n\n[install] Setting up bootloader")
+    logger.info("Setting up bootloader")
     # boot_conf = conf.boot
     loader_conf = conf.loader
 
@@ -208,12 +275,107 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
 
     # Using systemd-boot as bootloader
     if boot_type == "systemd-boot":
-        print("==== Setting up systemd-boot ====")
-        kver = base.setup_linux("/mnt", kernel_package)
-        exec_chroot("bootctl install")
-        print("KVER:", kver)
-        exec_chroot(f"dracut --kver {kver} --hostonly /boot/initramfs-linux-{kver}.img")
-        create_boot_entry(0, partition_list, mount_point="/mnt", kver=kver)
+        logger.info("Setting up systemd-boot")
+
+        # Verify GRUB is not installed (Debian/Ubuntu safety check)
+        verify_grub_not_installed(mount_point, base)
+
+        # Verify kernel package is installed (Debian/Ubuntu pre-flight check)
+        from pykod.repositories.debian import Debian
+
+        if isinstance(base, Debian):
+            logger.info("Pre-flight check: Verifying kernel package is installed...")
+
+            # Check for fully installed packages (^ii status)
+            kernel_check = exec_chroot(
+                "dpkg -l | grep '^ii.*linux-image' | head -1",
+                mount_point=mount_point,
+                get_output=True,
+            ).strip()
+
+            # If no fully installed packages, check if any kernel packages exist at all
+            if not kernel_check:
+                logger.warning("No fully installed (ii) kernel packages found")
+                logger.info("Checking for kernel packages in any state...")
+
+                kernel_any_state = exec_chroot(
+                    "dpkg-query -W -f='${Package} ${Status}\n' 'linux-image-*' 2>/dev/null | grep -v 'not-installed' | head -1 || true",
+                    mount_point=mount_point,
+                    get_output=True,
+                ).strip()
+
+                if kernel_any_state:
+                    logger.warning(
+                        f"Found kernel package in non-installed state: {kernel_any_state}"
+                    )
+                    logger.warning(
+                        "Attempting to complete package configuration with full PATH..."
+                    )
+
+                    try:
+                        result = exec_chroot(
+                            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin dpkg --configure -a 2>&1",
+                            mount_point=mount_point,
+                            get_output=True,
+                        )
+                        logger.debug(f"dpkg --configure -a output:\n{result}")
+                        logger.info("✓ Package configuration completed")
+
+                        # Re-check after configuration
+                        kernel_check = exec_chroot(
+                            "dpkg -l | grep '^ii.*linux-image' | head -1",
+                            mount_point=mount_point,
+                            get_output=True,
+                        ).strip()
+
+                        if kernel_check:
+                            logger.info(
+                                f"✓ Kernel now properly installed: {kernel_check}"
+                            )
+                        else:
+                            logger.error(
+                                "Kernel package still not properly installed after dpkg --configure"
+                            )
+                            # Get detailed diagnostic info
+                            logger.error("Getting detailed package status...")
+                            detailed_status = exec_chroot(
+                                "dpkg-query -W -f='${Package} ${Version} ${Status}\n' 'linux-image-*' 2>/dev/null || true",
+                                mount_point=mount_point,
+                                get_output=True,
+                            )
+                            logger.error(
+                                f"Detailed kernel package status:\n{detailed_status}"
+                            )
+
+                            # Check dpkg log for errors
+                            dpkg_log = exec_chroot(
+                                "tail -100 /var/log/dpkg.log 2>/dev/null || echo 'No dpkg.log'",
+                                mount_point=mount_point,
+                                get_output=True,
+                            )
+                            logger.error(f"Recent dpkg log:\n{dpkg_log}")
+
+                            raise RuntimeError(
+                                "Cannot setup bootloader: Kernel package configuration failed. "
+                                "Package exists but could not be configured properly."
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to configure kernel package: {e}")
+                        raise
+                else:
+                    raise RuntimeError(
+                        "Cannot setup bootloader: No kernel package installed. "
+                        "This indicates base package installation failed. "
+                        "Check Step 2 (Base packages) logs for errors."
+                    )
+
+            logger.debug(f"Kernel package verified: {kernel_check}")
+
+        kver = base.setup_linux(mount_point, kernel_package)
+        exec_chroot("bootctl install", mount_point=mount_point)
+        logger.debug(f"Kernel version: {kver}")
+        base.generate_initramfs(mount_point, kver)
+        create_boot_entry(0, partition_list, mount_point=mount_point, kver=kver)
 
     # Using Grub as bootloader
     if boot_type == "grub":
@@ -231,21 +393,25 @@ def setup_bootloader(conf: Any, partition_list: list, base: Repository) -> None:
 
 
 # User-related functions
-def create_kod_user(mount_point: str) -> None:
+def create_kod_user(mount_point: str, base_repo=None) -> None:
     """
     Create the 'kod' user and give it NOPASSWD access in the sudoers file.
 
     This function creates a user named 'kod' with a home directory in
-    /var/kod/.home and adds it to the wheel group. It also creates a sudoers
-    file for the user which allows it to run any command with NOPASSWD.
+    /var/kod/.home and adds it to the distribution-appropriate sudo group.
+
+    Delegates to the distribution-specific repository implementation.
 
     Args:
         mount_point (str): The mount point where the installation is being
             performed.
+        base_repo: Base repository instance (required)
     """
-    exec_chroot("useradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod")
-    with open_with_dry_run(f"{mount_point}/etc/sudoers.d/kod", "w") as f:
-        f.write("kod ALL=(ALL) NOPASSWD: ALL")
+    if base_repo is None:
+        raise ValueError("base_repo is required for create_kod_user")
+
+    # Delegate to distribution-specific implementation
+    base_repo.create_system_user(mount_point, "kod", "/var/kod/.home")
 
 
 def save_configuration(
@@ -316,7 +482,7 @@ def save_configuration(
     with open(str(config_json_path), "w") as f:
         json.dump(config_dict, f, indent=2, default=str)
 
-    print(f"Configuration and repositories stored to: {config_json_path}")
+    logger.debug(f"Configuration and repositories stored to: {config_json_path}")
 
 
 def Source(path: str) -> str:
@@ -351,8 +517,9 @@ class File(dict):
 
     def install(self, mount_point) -> None:
         """Install files to the specified mount point."""
-        print("\n[INSTALL] Files:")
-        print(self.build_command(mount_point))
+        logger.debug("Installing files")
+        commands = self.build_command(mount_point)
+        logger.debug(f"File installation commands: {commands}")
 
 
 def Component(name: str):

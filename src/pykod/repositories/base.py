@@ -1,11 +1,18 @@
 """Base repository configuration classes."""
 
+from abc import ABC, abstractmethod
+from cmath import isinf
+
 
 class PackageList:
     def __init__(self) -> None:
-        self._pkgs = {}  # (Repository, [])
+        self._pkgs: dict[Repository, list] = {}  # (Repository, [])
 
     def new(self, repo, items) -> "PackageList":
+        if isinstance(items, str):
+            items = list(
+                items,
+            )
         self._pkgs = {repo: items}  # (Repository, [])
         return self
 
@@ -67,28 +74,220 @@ class PackageList:
         return all_items
 
 
-class Repository:
+class Repository(ABC):
+    """Abstract base class for all repository types.
+
+    This provides common functionality for package management.
+    Subclasses must implement the package management methods.
+    """
+
     def __init__(self):
         self._pkgs = {}
 
     def __getitem__(self, items) -> PackageList:
-        if isinstance(items, (list, tuple)):
-            return PackageList().new(self, items)
-        return PackageList().new(self, (items,))
+        if isinstance(items, str):
+            return PackageList().new(
+                self,
+                [items],
+            )
+        if isinstance(items, tuple):
+            return PackageList().new(self, list(items))
+        return PackageList().new(self, items)
 
     def __repr__(self) -> str:
         return f"{self.__dict__}"
 
-    # def get_base_packages(self, conf) -> dict:
-    #     return {}
+    # Abstract methods for package management (ALL repositories)
 
-    # def install_base(self, mount_point, packages): ...
+    @abstractmethod
+    def install_packages(self, package_name: list) -> str:
+        """Return command to install packages.
 
-    def packages(self):
-        return self._pkgs
+        Args:
+            package_name: Set or list of package names
 
+        Returns:
+            str: Command to execute for package installation
+        """
+        pass
+
+    @abstractmethod
+    def remove_packages(self, packages_name: list) -> str:
+        """Return command to remove packages.
+
+        Args:
+            packages_name: Set or list of package names
+
+        Returns:
+            str: Command to execute for package removal
+        """
+        pass
+
+    @abstractmethod
+    def update_installed_packages(self, packages: list) -> str:
+        """Return command to upgrade installed packages.
+
+        Args:
+            packages: Tuple of package names to upgrade
+
+        Returns:
+            str: Command to execute for package upgrade
+        """
+        pass
+
+    @abstractmethod
+    def is_valid_packages(self, pkgs: list) -> list | None:
+        """Check if packages exist in repository.
+
+        Args:
+            pkgs: List of package names to validate
+
+        Returns:
+            list: List of validation commands to execute
+        """
+        pass
+
+
+class BaseSystemRepository(Repository):
+    """Abstract base class for distribution base system repositories.
+
+    Repositories that can perform base system installation (Arch, Debian, etc.)
+    must inherit from this class and implement all abstract methods.
+
+    Auxiliary repositories (AUR, Flatpak) should inherit from Repository directly.
+    """
+
+    # Abstract methods for base system installation (ONLY base system repos)
+
+    @abstractmethod
+    def install_base(self, mount_point: str, packages: PackageList) -> None:
+        """Install base system using distribution bootstrap tool.
+
+        Examples:
+            - Arch: pacstrap
+            - Debian: debootstrap
+
+        Args:
+            mount_point: Target installation directory
+            packages: PackageList containing base packages to install
+        """
+        pass
+
+    @abstractmethod
+    def get_base_packages(self, conf) -> dict:
+        """Get base packages required for this distribution.
+
+        Args:
+            conf: Configuration object with system settings
+
+        Returns:
+            dict with keys: "kernel" (PackageList), "base" (PackageList)
+        """
+        pass
+
+    @abstractmethod
+    def get_kernel_info(self, mount_point: str, package) -> tuple[str, str]:
+        """Retrieve kernel file path and version from package.
+
+        Args:
+            mount_point: Installation mount point
+            package: Kernel package object
+
+        Returns:
+            tuple: (kernel_file_path, kernel_version)
+            Example Arch: ("/usr/lib/modules/6.1.0/vmlinuz", "6.1.0")
+            Example Debian: ("/boot/vmlinuz-6.1.0-18-amd64", "6.1.0-18-amd64")
+        """
+        pass
+
+    @abstractmethod
+    def setup_linux(self, mount_point: str, kernel_package) -> str:
+        """Setup kernel in boot directory.
+
+        Args:
+            mount_point: Installation mount point
+            kernel_package: Kernel package object
+
+        Returns:
+            str: Kernel version string
+        """
+        pass
+
+    @abstractmethod
+    def generate_initramfs(self, mount_point: str, kver: str) -> None:
+        """Generate initial ramdisk for kernel.
+
+        Args:
+            mount_point: Installation mount point (for chroot execution)
+            kver: Kernel version string
+        """
+        pass
+
+    @abstractmethod
     def update_database(self) -> str:
-        return ""
+        """Return command to update package database.
 
-    def update_installed_packages(self, packages: tuple) -> str:
-        return ""
+        Returns:
+            str: Command to execute for database update
+        """
+        pass
+
+    @abstractmethod
+    def get_sudo_group(self) -> str:
+        """Get the name of the sudo/admin group for this distribution.
+
+        Returns:
+            str: Group name ("wheel" for Arch, "sudo" for Debian/Ubuntu)
+        """
+        pass
+
+    @abstractmethod
+    def configure_locale(self, mount_point: str, locale_config) -> None:
+        """Configure system locale settings.
+
+        Handles distribution-specific locale configuration:
+        - Arch: /etc/locale.conf
+        - Debian/Ubuntu: /etc/default/locale
+
+        Args:
+            mount_point: Installation mount point
+            locale_config: Locale configuration object with default, additional_locales, etc.
+        """
+        pass
+
+    def create_system_user(
+        self, mount_point: str, username: str, home_dir: str
+    ) -> None:
+        """Create a system user with sudo privileges.
+
+        Creates user with appropriate group membership for the distribution.
+        This default implementation uses get_sudo_group() to determine the
+        correct group, making it work for both Arch (wheel) and Debian (sudo).
+
+        Subclasses can override this method if they need custom behavior.
+
+        Args:
+            mount_point: Installation mount point
+            username: Username to create
+            home_dir: Home directory path
+        """
+        import logging
+
+        from pykod.common import execute_chroot as exec_chroot
+        from pykod.common import open_with_dry_run
+
+        logger = logging.getLogger("pykod.config")
+
+        sudo_group = self.get_sudo_group()
+        logger.debug(f"Creating {username} system user (group: {sudo_group})")
+
+        # Use full PATH to ensure commands are found in chroot
+        exec_chroot(
+            f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /usr/sbin/useradd -m -r -G {sudo_group} -s /bin/bash -d {home_dir} {username}",
+            mount_point=mount_point,
+        )
+
+        with open_with_dry_run(f"{mount_point}/etc/sudoers.d/{username}", "w") as f:
+            f.write(f"{username} ALL=(ALL) NOPASSWD: ALL\n")
+
+        logger.debug(f"✓ {username} user created successfully")

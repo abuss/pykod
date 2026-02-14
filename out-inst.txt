@@ -1,0 +1,504 @@
+----------------------------------------------------------------------------------------------------
+Running install command...
+Configuration attributes:
+
+ --------------------------------------------------------------------------------
+self._dry_run=True
+self._debug=True
+self._verbose=True
+Installing device configuration...
+[install] in mnt create partitions:
+{'disk0': Disk(device='/dev/vda', partitions=[Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='root', size='20G', type='btrfs', mountpoint='/', format=True), Partition(name='swap', size='2G', type='linux-swap', mountpoint=None, format=True), Partition(name='home', size='100%', type='btrfs', mountpoint=None, format=True)]), 'disk1': Disk(device='/dev/vdb', partitions=[Partition(name='scratch', size='remaining', type='btrfs', mountpoint='/scratch', format=True)])}
+==================================================
+Disks to process: [Disk(device='/dev/vda', partitions=[Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='root', size='20G', type='btrfs', mountpoint='/', format=True), Partition(name='swap', size='2G', type='linux-swap', mountpoint=None, format=True), Partition(name='home', size='100%', type='btrfs', mountpoint=None, format=True)]), Disk(device='/dev/vdb', partitions=[Partition(name='scratch', size='remaining', type='btrfs', mountpoint='/scratch', format=True)])]
+
+
+[install] Partitioning disk: /dev/vda
+with partitions [Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='root', size='20G', type='btrfs', mountpoint='/', format=True), Partition(name='swap', size='2G', type='linux-swap', mountpoint=None, format=True), Partition(name='home', size='100%', type='btrfs', mountpoint=None, format=True)]
+>> [95mwipefs -a /dev/vda[0m
+>> [95msync[0m
+partitions=[Partition(name='efi', size='512M', type='esp', mountpoint='/boot', format=True), Partition(name='root', size='20G', type='btrfs', mountpoint='/', format=True), Partition(name='swap', size='2G', type='linux-swap', mountpoint=None, format=True), Partition(name='home', size='100%', type='btrfs', mountpoint=None, format=True)]
+>> [95msgdisk -n 0:0:+512M -t 0:ef00 -c 0:efi /dev/vda[0m
+>> [95mmkfs.vfat -F32 /dev/vda1[0m
+[DELAY] mkdir -p /mnt/boot
+[DELAY] mount /dev/vda1 /mnt/boot
+====> /dev/vda1 /boot
+>> [95msgdisk -n 0:0:+20G -t 0:8300 -c 0:root /dev/vda[0m
+>> [95mmkfs.btrfs -f /dev/vda2[0m
+====> /dev/vda2 /
+>> [95msgdisk -n 0:0:+2G -t 0:8200 -c 0:swap /dev/vda[0m
+>> [95mmkswap /dev/vda3[0m
+>> [95msgdisk -n 0:0:0 -t 0:8300 -c 0:home /dev/vda[0m
+>> [95mmkfs.btrfs -f /dev/vda4[0m
+=======================
+>> [95mmkdir -p /mnt/[0m
+>> [95mmount /dev/vda2 /mnt/[0m
+>> [95mmkdir -p /mnt/boot[0m
+>> [95mmount /dev/vda1 /mnt/boot[0m
+=======================
+Disk /dev/vda created partitions:
+  Boot partition: /dev/vda1
+  Root partition: /dev/vda2
+  Other partitions: [FsEntry(source='/dev/vda1', destination='/boot', fs_type='esp', options='defaults', dump=0, pass_=0), FsEntry(source='/dev/vda2', destination='/', fs_type='btrfs', options='defaults', dump=0, pass_=0)]
+
+
+[install] Partitioning disk: /dev/vdb
+with partitions [Partition(name='scratch', size='remaining', type='btrfs', mountpoint='/scratch', format=True)]
+>> [95mwipefs -a /dev/vdb[0m
+>> [95msync[0m
+partitions=[Partition(name='scratch', size='remaining', type='btrfs', mountpoint='/scratch', format=True)]
+>> [95msgdisk -n 0:0:+remaining -t 0:8300 -c 0:scratch /dev/vdb[0m
+>> [95mmkfs.btrfs -f /dev/vdb1[0m
+[DELAY] mkdir -p /mnt/scratch
+[DELAY] mount /dev/vdb1 /mnt/scratch
+====> /dev/vdb1 /scratch
+=======================
+>> [95mmkdir -p /mnt/scratch[0m
+>> [95mmount /dev/vdb1 /mnt/scratch[0m
+=======================
+Disk /dev/vdb created partitions:
+  Boot partition: None
+  Root partition: None
+  Other partitions: [FsEntry(source='/dev/vdb1', destination='/scratch', fs_type='btrfs', options='defaults', dump=0, pass_=0)]
+>> [95mmkdir -p mnt/store[0m
+>> [95mmkdir -p mnt/generations[0m
+>> [95mmkdir -p mnt/current[0m
+>> [95mmkdir -p mnt/store/root[0m
+>> [95mmkdir -p mnt/store/var/log[0m
+>> [95mmkdir -p mnt/store/var/tmp[0m
+>> [95mmkdir -p mnt/store/var/cache[0m
+>> [95mmkdir -p mnt/store/var/kod[0m
+>> [95msudo btrfs subvolume create mnt/store/home[0m
+>> [95mmkdir -p mnt/generations/0[0m
+>> [95mbtrfs subvolume create mnt/generations/0/rootfs[0m
+>> [95mumount -R mnt[0m
+>> [95mmount -o subvol=generations/0/rootfs /dev/vda2 mnt[0m
+>> [95mmkdir -p mnt/root[0m
+>> [95mmkdir -p mnt/var/log[0m
+>> [95mmkdir -p mnt/var/tmp[0m
+>> [95mmkdir -p mnt/var/cache[0m
+>> [95mmkdir -p mnt/var/kod[0m
+>> [95mmkdir -p mnt/boot[0m
+>> [95mmkdir -p mnt/home[0m
+>> [95mmkdir -p mnt/kod[0m
+>> [95mmount /dev/vda1 mnt/boot[0m
+>> [95mmount /dev/vda2 mnt/kod[0m
+>> [95mmount -o subvol=store/home /dev/vda2 mnt/home[0m
+>> [95mmount --bind mnt/kod/store/root mnt/root[0m
+>> [95mmount --bind mnt/kod/store/var/log mnt/var/log[0m
+>> [95mmount --bind mnt/kod/store/var/tmp mnt/var/tmp[0m
+>> [95mmount --bind mnt/kod/store/var/cache mnt/var/cache[0m
+>> [95mmount --bind mnt/kod/store/var/kod mnt/var/kod[0m
+[93m[DRY RUN] Would open file: mnt/.generation (mode: w)[0m
+0===================================
+Adding additional partition: /dev/vdb1 -> /scratch
+Base packages to install: PKGS[
+   => Arch: ('base', 'base-devel', 'amd-ucode', 'btrfs-progs', 'linux-firmware', 'bash-completion', 'mlocate', 'sudo', 'schroot', 'whois', 'dracut', 'git')
+]
+Base packages to install: PKGS[
+   => Arch: ('linux', 'base', 'base-devel', 'amd-ucode', 'btrfs-progs', 'linux-firmware', 'bash-completion', 'mlocate', 'sudo', 'schroot', 'whois', 'dracut', 'git')
+]
+list_pkgs=('linux', 'base', 'base-devel', 'amd-ucode', 'btrfs-progs', 'linux-firmware', 'bash-completion', 'mlocate', 'sudo', 'schroot', 'whois', 'dracut', 'git')
+>> [95mpacstrap -K mnt linux base base-devel amd-ucode btrfs-progs linux-firmware bash-completion mlocate sudo schroot whois dracut git[0m
+(mnt)>> [95mpacman -Syy[0m
+[95mchroot mnt pacman -Syy[0m
+Generating fstab
+[93m[DRY RUN] Would open file: mnt/etc/fstab (mode: w)[0m
+>> [95mlsblk -o UUID /dev/vda2 | tail -n 1[0m
+/dev/vda2                 /               btrfs      rw,relatime,ssd,space_cache=v2,subvol=generations/0/rootfs 0          0
+>> [95mlsblk -o UUID /dev/vda1 | tail -n 1[0m
+/dev/vda1                 /boot           vfat       rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro 0          0
+>> [95mlsblk -o UUID /dev/vda2 | tail -n 1[0m
+/dev/vda2                 /kod            btrfs      rw,relatime,ssd,space_cache=v2 0          0
+>> [95mlsblk -o UUID /dev/vda2 | tail -n 1[0m
+/dev/vda2                 /home           btrfs      rw,relatime,ssd,space_cache=v2,subvol=store/home 0          0
+/kod/store/root           /root           none       rw,bind    0          0
+/kod/store/var/log        /var/log        none       rw,bind    0          0
+/kod/store/var/tmp        /var/tmp        none       rw,bind    0          0
+/kod/store/var/cache      /var/cache      none       rw,bind    0          0
+/kod/store/var/kod        /var/kod        none       rw,bind    0          0
+>> [95mlsblk -o UUID /dev/vdb1 | tail -n 1[0m
+/dev/vdb1                 /scratch        btrfs      defaults   0          0
+[93m[DRY RUN] Would open file: mnt/etc/os-release (mode: w)[0m
+NAME="KodOS Linux"
+VERSION="1.0"
+PRETTY_NAME="KodOS Linux"
+ID=kodos
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://github.com/kodos-prj/kodos/"
+DOCUMENTATION_URL="https://github.com/kodos-prj/kodos/"
+SUPPORT_URL="https://github.com/kodos-prj/kodos/"
+BUG_REPORT_URL="https://github.com/kodos-prj/kodos/issues"
+RELEASE_TYPE="expeirimental"
+[93m[DRY RUN] Would open file: mnt/etc/schroot/chroot.d/system.conf (mode: w)[0m
+[system]
+type=directory
+description=KodOS
+directory=/
+groups=users,root
+root-groups=root,wheel
+profile=kodos
+personality=linux
+[93m[DRY RUN] Would open file: mnt/etc/schroot/chroot.d/virtual_env.conf (mode: w)[0m
+[virtual_env]
+type=directory
+description=KodOS
+directory=/
+union-type=overlay
+groups=users,root
+root-groups=root,wheel
+profile=kodos
+personality=linux
+aliases=user_env
+[dry-run] mkdir -p mnt/etc/schroot/kodos
+[dry-run] touch mnt/etc/schroot/kodos/copyfiles
+[dry-run] touch mnt/etc/schroot/kodos/nssdatabases
+[93m[DRY RUN] Would open file: mnt/etc/schroot/kodos/fstab (mode: w)[0m
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>/proc	/proc	none	rw,bind	0	0
+/sys	/sys	none	rw,bind	0	0
+/dev	/dev	none	rw,bind	0	0
+/dev/pts	/dev/pts	none	rw,bind	0	0
+/home	/home	none	rw,bind	0	0
+/root	/root	none	rw,bind	0	0
+/tmp	/tmp	none	rw,bind	0	0
+/run	/run	none	rw,bind	0	0
+/var/cache	/var/cache	none	rw,bind	0	0
+/var/log	/var/log	none	rw,bind	0	0
+/var/tmp	/var/tmp	none	rw,bind	0	0
+/var/kod	/var/kod	none	rw,bind	0	0
+Installing boot configuration...
+[install] Boot configuration: Boot(kernel=Kernel(package=PKGS[
+   => Arch: ('linux',)
+], modules=['xhci_pci', 'ohci_pci', 'ehci_pci', 'virtio_pci', 'ahci', 'usbhid', 'sr_mod', 'virtio_blk']), loader=Loader(type='systemd-boot', timeout=10, include=['memtest86+']))
+
+
+[install] Setting up bootloader
+==== Setting up systemd-boot ====
+[get_kernel_file] mount_point=/mnt, package=PKGS[
+   => Arch: ('linux',)
+]
+(/mnt)>> [95mpacman -Ql linux | grep vmlinuz[0m
+[95mchroot /mnt pacman -Ql linux | grep vmlinuz[0m
+[get_kernel_file] kernel_file=/usr/lib/modules/6.18.1-kodos1-2/vmlinuz
+(/mnt)>> [95mcp /usr/lib/modules/6.18.1-kodos1-2/vmlinuz /boot/vmlinuz-6.18.1-kodos1-2[0m
+[95mchroot /mnt cp /usr/lib/modules/6.18.1-kodos1-2/vmlinuz /boot/vmlinuz-6.18.1-kodos1-2[0m
+(/mnt)>> [95mbootctl install[0m
+[95mchroot /mnt bootctl install[0m
+KVER: 6.18.1-kodos1-2
+(/mnt)>> [95mdracut --kver 6.18.1-kodos1-2 --hostonly /boot/initramfs-linux-6.18.1-kodos1-2.img[0m
+[95mchroot /mnt dracut --kver 6.18.1-kodos1-2 --hostonly /boot/initramfs-linux-6.18.1-kodos1-2.img[0m
+>> [95mlsblk -o UUID /dev/vda2 | tail -n 1[0m
+>> [95mdate +'%Y-%m-%d %H:%M:%S'[0m
+[dry-run] mkdir -p /mnt/boot/loader/entries/
+[93m[DRY RUN] Would open file: /mnt/boot/loader/entries/kodos-0.conf (mode: w)[0m
+
+title KodOS
+sort-key kodos
+version Generation 0 KodOS (build  - 6.18.1-kodos1-2)
+linux /vmlinuz-6.18.1-kodos1-2
+initrd /initramfs-linux-6.18.1-kodos1-2.img
+options root=/dev/vda2 rw  rootflags=subvol=generations/0/rootfs
+    [93m[DRY RUN] Would open file: /mnt/boot/loader/loader.conf (mode: w)[0m
+
+default kodos-0.conf
+timeout 10
+console-mode keep
+
+Creating KodOS user...
+(/mnt)>> [95museradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod[0m
+[95mchroot /mnt useradd -m -r -G wheel -s /bin/bash -d /var/kod/.home kod[0m
+[93m[DRY RUN] Would open file: mnt/etc/sudoers.d/kod (mode: w)[0m
+kod ALL=(ALL) NOPASSWD: ALLInstalling locale configuration...
+
+
+[install] Default locale:
+(/mnt)>> [95mln -sf /usr/share/zoneinfo/America/Edmonton /etc/localtime[0m
+[95mchroot /mnt ln -sf /usr/share/zoneinfo/America/Edmonton /etc/localtime[0m
+(/mnt)>> [95mhwclock --systohc[0m
+[95mchroot /mnt hwclock --systohc[0m
+[93m[DRY RUN] Would open file: mnt/etc/locale.gen (mode: w)[0m
+en_CA.UTF-8 UTF-8
+en_US.UTF-8 UTF-8
+en_GB.UTF-8 UTF-8
+(/mnt)>> [95mlocale-gen[0m
+[95mchroot /mnt locale-gen[0m
+[93m[DRY RUN] Would open file: mnt/etc/locale.conf (mode: w)[0m
+LANG=en_CA.UTF-8
+LC_ADDRESS=en_CA.UTF-8
+LC_IDENTIFICATION=en_CA.UTF-8
+LC_MEASUREMENT=en_CA.UTF-8
+LC_MONETARY=en_CA.UTF-8
+LC_NAME=en_CA.UTF-8
+LC_NUMERIC=en_CA.UTF-8
+LC_PAPER=en_CA.UTF-8
+LC_TELEPHONE=en_CA.UTF-8
+LC_TIME=en_CA.UTF-8
+
+Installing network configuration...
+
+
+[install] Hostname: eszkoz
+Extra setings
+  ipv6: True
+[93m[DRY RUN] Would open file: mnt/etc/hostname (mode: w)[0m
+eszkoz
+[93m[DRY RUN] Would open file: mnt/etc/systemd/network/10-eth0.network (mode: w)[0m
+[Match]
+Name=*
+[Network]
+DHCP=ipv4
+DHCP=ipv6
+[93m[DRY RUN] Would open file: mnt/etc/hosts (mode: w)[0m
+127.0.0.1 localhost
+::1 localhost
+Included packages: PKGS[
+   => Arch: ('iw', 'stow', 'mc', 'less', 'htop', 'libgtop', 'power-profiles-daemon', 'system-config-printer', 'ghostty', 'podman', 'qemu-desktop', 'spice-gtk', 'remmina', 'papers', 'firefox', 'freecad', 'openscad', 'prusa-slicer', 'flatpak', 'dua-cli', 'duf', 'dust', 'fd', 'glow', 'gping', 'hyperfine', 'lazygit', 'lurk', 'fastfetch', 'ripgrep', 'tldr', 'wget', 'fzf', 'broot', 'lsd', 'btop', 'zoxide', 'wezterm', 'github-cli', 'tmux', 'yazi', 'zellij', 'gcc', 'cmake', 'make', 'ninja', 'clang', 'lldb', 'rustup', 'lua', 'lua-language-server', 'npm', 'go', 'python', 'uv', 'ruff', 'pyright', 'python-lsp-server', 'zig', 'gitg', 'meld', 'zed', 'typst', 'jujutsu', 'linux', 'cosmic-greeter', 'gnome', 'gnome-tweaks', 'showtime', 'gnome-connections', 'gnome-shell-extension-weather-oclock', 'gnome-shell-extension-appindicator', 'cosmic', 'nerd-fonts', 'ttf-fira-sans', 'ttf-fira-code', 'ttf-liberation', 'noto-fonts-emoji', 'ttf-ubuntu-font-family', 'git', 'starship', 'ghostty', 'zsh', 'neovim', 'emacs-wayland', 'aspell', 'aspell-en', 'syncthing', 'sane', 'sane-airscan', 'pipewire', 'pipewire-alsa', 'pipewire-pulse', 'fwupd', 'tailscale', 'networkmanager', 'openssh-server', 'avahi-daemon', 'cups', 'gutenprint', 'bluez')
+   => AUR: ('visual-studio-code-bin', 'opera', 'quickemu', 'uxplay', 'megasync-bin', 'brave-bin', 'opencode-bin', 'gnome-shell-extension-dash-to-dock', 'gnome-shell-extension-blur-my-shell', 'gnome-shell-extension-arc-menu-git', 'gnome-shell-extension-gsconnect', 'ttf-work-sans', 'brother-dcp-l2550dw')
+   => Flatpak: ('com.mattjakeman.ExtensionManager', 'com.visualstudio.code')
+]
+Excluded packages: PKGS[
+   => Arch: ('gnome-tour', 'yelp', 'cosmic-initial-setup')
+]
+-+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+-
+(mnt)>> [95mpacman -S --needed --noconfirm git base-devel[0m
+[95mchroot mnt pacman -S --needed --noconfirm git base-devel[0m
+(mnt)>> [95mrunuser -u kod -- /bin/bash -c 'cd && git clone https://aur.archlinux.org/paru.git paru && cd paru && makepkg -si --noconfirm'[0m
+[95mchroot mnt runuser -u kod -- /bin/bash -c 'cd && git clone https://aur.archlinux.org/paru.git paru && cd paru && makepkg -si --noconfirm'[0m
+(mnt)>> [95mpacman -S --needed --noconfirm system-config-printer jujutsu ruff neovim gnome-connections pipewire-alsa typst ttf-liberation ttf-ubuntu-font-family openssh-server ripgrep wget tldr hyperfine ttf-fira-code lua-language-server pipewire gping syncthing noto-fonts-emoji cups git zellij remmina gcc papers aspell freecad dua-cli python-lsp-server cosmic sane-airscan gutenprint go lsd pyright avahi-daemon fastfetch stow prusa-slicer nerd-fonts cmake cosmic-greeter rustup zig fwupd flatpak fzf htop less zoxide python gitg npm zed showtime starship networkmanager gnome-tweaks broot iw fd gnome-shell-extension-appindicator tailscale dust clang gnome aspell-en make pipewire-pulse btop meld yazi podman spice-gtk firefox lazygit ninja tmux gnome-shell-extension-weather-oclock qemu-desktop glow github-cli wezterm ghostty lua duf bluez libgtop linux openscad uv mc emacs-wayland power-profiles-daemon lldb lurk sane ttf-fira-sans zsh[0m
+[95mchroot mnt pacman -S --needed --noconfirm system-config-printer jujutsu ruff neovim gnome-connections pipewire-alsa typst ttf-liberation ttf-ubuntu-font-family openssh-server ripgrep wget tldr hyperfine ttf-fira-code lua-language-server pipewire gping syncthing noto-fonts-emoji cups git zellij remmina gcc papers aspell freecad dua-cli python-lsp-server cosmic sane-airscan gutenprint go lsd pyright avahi-daemon fastfetch stow prusa-slicer nerd-fonts cmake cosmic-greeter rustup zig fwupd flatpak fzf htop less zoxide python gitg npm zed showtime starship networkmanager gnome-tweaks broot iw fd gnome-shell-extension-appindicator tailscale dust clang gnome aspell-en make pipewire-pulse btop meld yazi podman spice-gtk firefox lazygit ninja tmux gnome-shell-extension-weather-oclock qemu-desktop glow github-cli wezterm ghostty lua duf bluez libgtop linux openscad uv mc emacs-wayland power-profiles-daemon lldb lurk sane ttf-fira-sans zsh[0m
+(mnt)>> [95mrunuser -u kod -- paru -S --needed --noconfirm visual-studio-code-bin gnome-shell-extension-blur-my-shell gnome-shell-extension-gsconnect gnome-shell-extension-dash-to-dock uxplay opera brave-bin opencode-bin quickemu megasync-bin gnome-shell-extension-arc-menu-git ttf-work-sans brother-dcp-l2550dw[0m
+[95mchroot mnt runuser -u kod -- paru -S --needed --noconfirm visual-studio-code-bin gnome-shell-extension-blur-my-shell gnome-shell-extension-gsconnect gnome-shell-extension-dash-to-dock uxplay opera brave-bin opencode-bin quickemu megasync-bin gnome-shell-extension-arc-menu-git ttf-work-sans brother-dcp-l2550dw[0m
+(mnt)>> [95mflatpak remote-add --if-not-exists flathub flathub && flatpak install -y flathub com.visualstudio.code com.mattjakeman.ExtensionManager[0m
+[95mchroot mnt flatpak remote-add --if-not-exists flathub flathub && flatpak install -y flathub com.visualstudio.code com.mattjakeman.ExtensionManager[0m
+(mnt)>> [95mpacman -Rnsc --noconfirm yelp cosmic-initial-setup gnome-tour[0m
+[95mchroot mnt pacman -Rnsc --noconfirm yelp cosmic-initial-setup gnome-tour[0m
+*******> Collected services: {'sane': Service(package=PKGS[
+   => Arch: ('sane',)
+], enable=True, service_name='sane', extra_packages=PKGS[
+   => Arch: ('sane-airscan',)
+], settings={}, service_type='system', config=[]), 'pipewire': Service(package=PKGS[
+   => Arch: ('pipewire',)
+], enable=True, service_name='pipewire', extra_packages=PKGS[
+   => Arch: ('pipewire-alsa', 'pipewire-pulse')
+], settings={}, service_type='system', config=[]), 'fwupd': Service(package=PKGS[
+   => Arch: ('fwupd',)
+], enable=True, service_name='fwupd', extra_packages=None, settings={}, service_type='system', config=[]), 'tailscale': Service(package=PKGS[
+   => Arch: ('tailscale',)
+], enable=False, service_name=None, extra_packages=None, settings={}, service_type='system', config=[]), 'networkmanager': Service(package=PKGS[
+   => Arch: ('networkmanager',)
+], enable=True, service_name='NetworkManager', extra_packages=None, settings={}, service_type='system', config=[]), 'openssh': Service(package=PKGS[
+   => Arch: ('openssh-server',)
+], enable=True, service_name='sshd', extra_packages=None, settings={'PermitRootLogin': False}, service_type='system', config=[]), 'avahi': Service(package=PKGS[
+   => Arch: ('avahi-daemon',)
+], enable=False, service_name='avahi-daemon', extra_packages=None, settings={}, service_type='system', config=[]), 'cups': Service(package=PKGS[
+   => Arch: ('cups',)
+], enable=True, service_name='cups', extra_packages=PKGS[
+   => Arch: ('gutenprint',)
+   => AUR: ('brother-dcp-l2550dw',)
+], settings={}, service_type='system', config=[]), 'bluetooth': Service(package=PKGS[
+   => Arch: ('bluez',)
+], enable=True, service_name='bluetooth', extra_packages=None, settings={}, service_type='system', config=[]), 'cosmic-greeter': Service(package=PKGS[
+   => Arch: ('cosmic-greeter',)
+], enable=True, service_name='cosmic-greeter', extra_packages=None, settings={}, service_type='system', config=[])}
+
+[ENABLE] Services:
+-> Mount point: mnt
+
+ - sane: Service(package=PKGS[
+   => Arch: ('sane',)
+], enable=True, service_name='sane', extra_packages=PKGS[
+   => Arch: ('sane-airscan',)
+], settings={}, service_type='system', config=[])
+Enabling service: sane
+   -> systemctl enable sane
+(mnt)>> [95msystemctl enable sane[0m
+[95mchroot mnt systemctl enable sane[0m
+
+ - pipewire: Service(package=PKGS[
+   => Arch: ('pipewire',)
+], enable=True, service_name='pipewire', extra_packages=PKGS[
+   => Arch: ('pipewire-alsa', 'pipewire-pulse')
+], settings={}, service_type='system', config=[])
+Enabling service: pipewire
+   -> systemctl enable pipewire
+(mnt)>> [95msystemctl enable pipewire[0m
+[95mchroot mnt systemctl enable pipewire[0m
+
+ - fwupd: Service(package=PKGS[
+   => Arch: ('fwupd',)
+], enable=True, service_name='fwupd', extra_packages=None, settings={}, service_type='system', config=[])
+Enabling service: fwupd
+   -> systemctl enable fwupd
+(mnt)>> [95msystemctl enable fwupd[0m
+[95mchroot mnt systemctl enable fwupd[0m
+
+ - networkmanager: Service(package=PKGS[
+   => Arch: ('networkmanager',)
+], enable=True, service_name='NetworkManager', extra_packages=None, settings={}, service_type='system', config=[])
+Enabling service: NetworkManager
+   -> systemctl enable NetworkManager
+(mnt)>> [95msystemctl enable NetworkManager[0m
+[95mchroot mnt systemctl enable NetworkManager[0m
+
+ - openssh: Service(package=PKGS[
+   => Arch: ('openssh-server',)
+], enable=True, service_name='sshd', extra_packages=None, settings={'PermitRootLogin': False}, service_type='system', config=[])
+Enabling service: sshd
+   -> systemctl enable sshd
+(mnt)>> [95msystemctl enable sshd[0m
+[95mchroot mnt systemctl enable sshd[0m
+
+ - cups: Service(package=PKGS[
+   => Arch: ('cups',)
+], enable=True, service_name='cups', extra_packages=PKGS[
+   => Arch: ('gutenprint',)
+   => AUR: ('brother-dcp-l2550dw',)
+], settings={}, service_type='system', config=[])
+Enabling service: cups
+   -> systemctl enable cups
+(mnt)>> [95msystemctl enable cups[0m
+[95mchroot mnt systemctl enable cups[0m
+
+ - bluetooth: Service(package=PKGS[
+   => Arch: ('bluez',)
+], enable=True, service_name='bluetooth', extra_packages=None, settings={}, service_type='system', config=[])
+Enabling service: bluetooth
+   -> systemctl enable bluetooth
+(mnt)>> [95msystemctl enable bluetooth[0m
+[95mchroot mnt systemctl enable bluetooth[0m
+
+ - cosmic-greeter: Service(package=PKGS[
+   => Arch: ('cosmic-greeter',)
+], enable=True, service_name='cosmic-greeter', extra_packages=None, settings={}, service_type='system', config=[])
+Enabling service: cosmic-greeter
+   -> systemctl enable cosmic-greeter
+(mnt)>> [95msystemctl enable cosmic-greeter[0m
+[95mchroot mnt systemctl enable cosmic-greeter[0m
+Enabling services: ['sane', 'pipewire', 'fwupd', 'NetworkManager', 'sshd', 'cups', 'bluetooth', 'cosmic-greeter']
+--------------------------------------------------------------------------------
+{'root': User(username='root', password=None, hashed_password=None, groups=None, name=None, shell='/bin/bash', home=None, allow_sudo=False, ssh_keys=None, no_password=True, ssh_authorized=None, dotfile_manager=None, programs=None, deploy_configs=None, services=None, home_config=None), 'abuss': User(username='abuss', password=None, hashed_password='$6$MOkGLOzXlj0lIE2d$5sxAysiDyD/7ZfntgZaN3vJ48t.BMi2qwPxqjgVxGXKXrNlFxRvnO8uCvOlHaGW2pVDrjt0JLNR9GWH.2YT5j.', groups=['audio', 'input', 'users', 'video'], name='Antal Buss', shell='/usr/bin/zsh', home=None, allow_sudo=True, ssh_keys=None, no_password=None, ssh_authorized=OpenSSH(keys=['ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDOA6V+TZJ+BmBAU4FB0nbhYQ9XOFZwCHdwXTuQkb77sPi6fVcbzso5AofUc+3DhfN56ATNOOslvjutSPE8kIp3Uv91/c7DE0RHoidNl3oLre8bau2FT+9AUTZnNEtWH/qXp5+fzvGk417mSL3M5jdoRwude+AzhPNXmbdAzn08TMGAkjGrMQejXItcG1OhXKUjqeLmB0A0l3Ac8DGQ6EcSRtgPCiej8Boabn21K2OBfq64KwW/MMh/FWTHndyBF/lhfEos7tGPvrDN+5G05oGjf0fnMOxsmAUdTDbtOTTeMTvDwjJdzsGUluEDbWBYPNlg5wacbimkv51/Bm4YwsGOkkUTy6eCCS3d5j8PrMbB2oNZfByga01FohhWSX9bv35KAP4nq7no9M6nXj8rQVsF0gPndPK/pgX46tpJG+pE1Ul6sSLR2jnrN6oBKzhdZJ54a2wwFSd207Zvahdx3m9JEVhccmDxWltxjKHz+zChAHsqWC9Zcqozt0mDRJNalW8fRXKcSWPGVy1rfbwltiQzij+ChCQQlUG78zW8lU7Bz6FuyDsEFpZSat7jtbdDBY0a4F0yb4lkNvu+5heg+dhlKCFj9YeRDrnvcz94OKvAZW1Gsjbs83n6wphBipxUWku7y86iYyAAYQGKs4jihhYWrFtfZhSf1m6EUKXoWX87KQ== antal.buss@gmail.com']), dotfile_manager=Stow(repo_url='https://github.com/abuss/dotconfig', target_dir='~/', source_dir=None), programs={'git': Program(enable=True, package=PKGS[
+   => Arch: ('git',)
+], config=['git config --global user.name "Antal Buss"', 'git config --global user.email "antal.buss@gmail.com"', 'git config --global core.editor "helix"'], deploy_config=False, extra_packages=None), 'starship': Program(enable=True, package=PKGS[
+   => Arch: ('starship',)
+], config=None, deploy_config=True, extra_packages=None), 'ghostty': Program(enable=True, package=PKGS[
+   => Arch: ('ghostty',)
+], config=None, deploy_config=True, extra_packages=None), 'zsh': Program(enable=True, package=PKGS[
+   => Arch: ('zsh',)
+], config=None, deploy_config=True, extra_packages=None), 'neovim': Program(enable=True, package=PKGS[
+   => Arch: ('neovim',)
+], config=None, deploy_config=True, extra_packages=None), 'emacs': Program(enable=True, package=PKGS[
+   => Arch: ('emacs-wayland',)
+], config=None, deploy_config=True, extra_packages=PKGS[
+   => Arch: ('aspell', 'aspell-en')
+])}, deploy_configs=['home', 'gtk'], services={'syncthing': Service(package=PKGS[
+   => Arch: ('syncthing',)
+], enable=True, service_name='syncthing', extra_packages=None, settings={}, service_type='system', config=['syncthing cli config options start-browser set false', 'syncthing cli config gui enabled set true', 'syncthing cli config gui address set 0.0.0.0:8384'])}, home_config=None)}
+(mnt)>> [95musermod -s /bin/bash root[0m
+[95mchroot mnt usermod -s /bin/bash root[0m
+
+[install] User: root None <class 'NoneType'>
+(mnt)>> [95museradd -m abuss -c 'Antal Buss'[0m
+[95mchroot mnt useradd -m abuss -c 'Antal Buss'[0m
+(mnt)>> [95msed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers[0m
+[95mchroot mnt sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers[0m
+(mnt)>> [95msed -i 's/# auth       required   pam_wheel.so/auth       required   pam_wheel.so/' /etc/pam.d/su[0m
+[95mchroot mnt sed -i 's/# auth       required   pam_wheel.so/auth       required   pam_wheel.so/' /etc/pam.d/su[0m
+(mnt)>> [95musermod -aG video abuss[0m
+[95mchroot mnt usermod -aG video abuss[0m
+(mnt)>> [95musermod -aG input abuss[0m
+[95mchroot mnt usermod -aG input abuss[0m
+(mnt)>> [95musermod -aG wheel abuss[0m
+[95mchroot mnt usermod -aG wheel abuss[0m
+(mnt)>> [95musermod -aG audio abuss[0m
+[95mchroot mnt usermod -aG audio abuss[0m
+(mnt)>> [95musermod -aG users abuss[0m
+[95mchroot mnt usermod -aG users abuss[0m
+(mnt)>> [95musermod -s /usr/bin/zsh abuss[0m
+[95mchroot mnt usermod -s /usr/bin/zsh abuss[0m
+(mnt)>> [95musermod -p '$6$MOkGLOzXlj0lIE2d$5sxAysiDyD/7ZfntgZaN3vJ48t.BMi2qwPxqjgVxGXKXrNlFxRvnO8uCvOlHaGW2pVDrjt0JLNR9GWH.2YT5j.' abuss[0m
+[95mchroot mnt usermod -p '$6$MOkGLOzXlj0lIE2d$5sxAysiDyD/7ZfntgZaN3vJ48t.BMi2qwPxqjgVxGXKXrNlFxRvnO8uCvOlHaGW2pVDrjt0JLNR9GWH.2YT5j.' abuss[0m
+
+[install] User: abuss Stow(repo_url='https://github.com/abuss/dotconfig', target_dir='~/', source_dir=None) <class 'pykod.user.Stow'>
+[install] dotfile manager for user abuss: Stow(repo_url='https://github.com/abuss/dotconfig', target_dir='~/', source_dir=None)
+
+[install] Stow:
+ source_dir: None
+ target_dir: ~/
+ repository: https://github.com/abuss/dotconfig
+[fetch] Fetching dotfiles from repository.
+Executing: git clone https://github.com/abuss/dotconfig ~/.dotfiles
+(mnt)>> [95mrunuser -u abuss -- git clone https://github.com/abuss/dotconfig /home/abuss/.dotfiles[0m
+[95mchroot mnt runuser -u abuss -- git clone https://github.com/abuss/dotconfig /home/abuss/.dotfiles[0m
+
+[install] User Programs for: abuss
+[deploy] Deploying configuration for program: starship
+Executing: stow -d ~/.dotfiles -t ~/ starship
+[deploy] Deploying configuration for program: ghostty
+Executing: stow -d ~/.dotfiles -t ~/ ghostty
+[deploy] Deploying configuration for program: zsh
+Executing: stow -d ~/.dotfiles -t ~/ zsh
+[deploy] Deploying configuration for program: neovim
+Executing: stow -d ~/.dotfiles -t ~/ neovim
+[deploy] Deploying configuration for program: emacs
+Executing: stow -d ~/.dotfiles -t ~/ emacs
+[deploy] Deploying configuration for program: home
+Executing: stow -d ~/.dotfiles -t ~/ home
+[deploy] Deploying configuration for program: gtk
+Executing: stow -d ~/.dotfiles -t ~/ gtk
+Executing program command: git config --global user.name "Antal Buss"
+Executing program command: git config --global user.email "antal.buss@gmail.com"
+Executing program command: git config --global core.editor "helix"
+Executing program command: stow -d ~/.dotfiles -t ~/ starship
+Executing program command: stow -d ~/.dotfiles -t ~/ ghostty
+Executing program command: stow -d ~/.dotfiles -t ~/ zsh
+Executing program command: stow -d ~/.dotfiles -t ~/ neovim
+Executing program command: stow -d ~/.dotfiles -t ~/ emacs
+Executing program command: stow -d ~/.dotfiles -t ~/ home
+Executing program command: stow -d ~/.dotfiles -t ~/ gtk
+(mnt)>> [95mrunuser -u abuss -- git config --global user.name "Antal Buss"[0m
+[95mchroot mnt runuser -u abuss -- git config --global user.name "Antal Buss"[0m
+(mnt)>> [95mrunuser -u abuss -- git config --global user.email "antal.buss@gmail.com"[0m
+[95mchroot mnt runuser -u abuss -- git config --global user.email "antal.buss@gmail.com"[0m
+(mnt)>> [95mrunuser -u abuss -- git config --global core.editor "helix"[0m
+[95mchroot mnt runuser -u abuss -- git config --global core.editor "helix"[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ starship[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ starship[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ ghostty[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ ghostty[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ zsh[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ zsh[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ neovim[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ neovim[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ emacs[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ emacs[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ home[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ home[0m
+(mnt)>> [95mrunuser -u abuss -- stow -d ~/.dotfiles -t ~/ gtk[0m
+[95mchroot mnt runuser -u abuss -- stow -d ~/.dotfiles -t ~/ gtk[0m
+
+[install] User Services for: abuss
+Executing program command: systemctl --user enable syncthing
+Executing program command: syncthing cli config options start-browser set false
+Executing program command: syncthing cli config gui enabled set true
+Executing program command: syncthing cli config gui address set 0.0.0.0:8384
+(mnt)>> [95mrunuser -u abuss -- systemctl --user enable syncthing[0m
+[95mchroot mnt runuser -u abuss -- systemctl --user enable syncthing[0m
+(mnt)>> [95mrunuser -u abuss -- syncthing cli config options start-browser set false[0m
+[95mchroot mnt runuser -u abuss -- syncthing cli config options start-browser set false[0m
+(mnt)>> [95mrunuser -u abuss -- syncthing cli config gui enabled set true[0m
+[95mchroot mnt runuser -u abuss -- syncthing cli config gui enabled set true[0m
+(mnt)>> [95mrunuser -u abuss -- syncthing cli config gui address set 0.0.0.0:8384[0m
+[95mchroot mnt runuser -u abuss -- syncthing cli config gui address set 0.0.0.0:8384[0m
+Creating generation path at mnt/kod/generations/0, self._dry_run=True
+Storing generation state...
+state_path=PosixPath('mnt/kod/generations/0')
+Storing enabled services to mnt/kod/generations/0/enabled_services
+Configuration and repositories stored to: mnt/kod/generations/0/configuration.json
+
+Installing KodOS files...
+>> [95mumount -R mnt[0m
+Done
+>> [95mmount /dev/vda2 mnt[0m
+>> [95mcp -r /root/pykod mnt/store/root/[0m
+>> [95mumount mnt[0m
+ Done installing KodOS

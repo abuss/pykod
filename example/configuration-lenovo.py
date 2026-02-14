@@ -38,7 +38,7 @@ conf.devices = Devices(
     disk0=Disk(
         device="/dev/nvmw0n1",
         partitions=[
-            Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
+            Partition(name="efi", size="512M", type="esp"),
             Partition(name="swap", size="8G", type="linux-swap"),
             Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
             # Partition(name="home", size="100%", type="btrfs"),

@@ -13,6 +13,33 @@ from typing import Any, Optional
 
 from chorut import ChrootManager
 
+
+class FlushingFileHandler(logging.FileHandler):
+    """FileHandler that flushes after every log message.
+
+    This ensures logs are written to disk immediately, which is critical
+    for debugging installation issues where the system might crash.
+    """
+
+    def emit(self, record):
+        """Emit a record and flush immediately."""
+        super().emit(record)
+        self.flush()
+
+
+class FlushingStreamHandler(logging.StreamHandler):
+    """StreamHandler that flushes after every log message.
+
+    Ensures console output appears immediately, which is important
+    for real-time monitoring during installations.
+    """
+
+    def emit(self, record):
+        """Emit a record and flush immediately."""
+        super().emit(record)
+        self.flush()
+
+
 # Module-level variables
 use_debug: bool = False
 use_verbose: bool = False
@@ -20,6 +47,124 @@ use_dry_run: bool = False
 problems: list[dict] = []
 
 logger = logging.getLogger(__name__)
+
+
+def setup_install_logging(
+    generation_path: Optional[Path] = None,
+    log_name: str = "install",
+    level: int = logging.DEBUG,
+) -> logging.Logger:
+    """Configure logging for installation/rebuild operations.
+
+    Sets up dual logging:
+    - Console: Simple INFO level messages for user feedback
+    - Generation file: Full DEBUG level messages at {generation_path}/{log_name}.log
+    - Centralized file: Full DEBUG level messages at /kod/logs/{log_name}-{timestamp}.log
+
+    Centralized logs are rotated (keeps last 50 files).
+
+    Args:
+        generation_path: Path to generation directory (e.g., /kod/generations/0)
+        log_name: Base name for log file (e.g., "install" or "rebuild")
+        level: Minimum logging level (default: DEBUG)
+
+    Returns:
+        Configured logger instance
+    """
+    from datetime import datetime
+
+    # Get or create the logger
+    config_logger = logging.getLogger("pykod.config")
+    config_logger.setLevel(level)
+
+    # Clear existing handlers to avoid duplicates
+    config_logger.handlers.clear()
+
+    # Format for console: simple and clean
+    console_formatter = logging.Formatter("[%(levelname)s] %(message)s")
+
+    # Format for files: detailed with timestamp, module, function
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    # Handler 1: Console (INFO and above, simple format)
+    console_handler = FlushingStreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(console_formatter)
+    config_logger.addHandler(console_handler)
+
+    # Handler 2 & 3: File handlers (only if not in dry-run mode)
+    if not get_dry_run():
+        try:
+            # Handler 2: Generation-specific log
+            if generation_path:
+                generation_path = Path(generation_path)
+                generation_path.mkdir(parents=True, exist_ok=True)
+                gen_log_file = generation_path / f"{log_name}.log"
+
+                gen_file_handler = FlushingFileHandler(gen_log_file, mode="a")
+                gen_file_handler.setLevel(logging.DEBUG)
+                gen_file_handler.setFormatter(file_formatter)
+                config_logger.addHandler(gen_file_handler)
+
+            # Handler 3: Centralized log with timestamp
+            centralized_log_dir = Path("/kod/logs")
+            centralized_log_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            central_log_file = centralized_log_dir / f"{log_name}-{timestamp}.log"
+
+            central_file_handler = FlushingFileHandler(central_log_file, mode="a")
+            central_file_handler.setLevel(logging.DEBUG)
+            central_file_handler.setFormatter(file_formatter)
+            config_logger.addHandler(central_file_handler)
+
+            # Rotate centralized logs (keep last 50)
+            _rotate_logs(centralized_log_dir, log_name, keep=50)
+
+        except Exception as e:
+            # Warn but continue - logging failure shouldn't stop installation
+            config_logger.warning(
+                f"Failed to setup file logging: {e}. Continuing with console logging only."
+            )
+    else:
+        config_logger.info("[DRY RUN] File logging disabled in dry-run mode")
+
+    return config_logger
+
+
+def _rotate_logs(log_dir: Path, log_name: str, keep: int = 50) -> None:
+    """Rotate log files, keeping only the most recent ones.
+
+    Args:
+        log_dir: Directory containing log files
+        log_name: Base name pattern to match (e.g., "install" or "rebuild")
+        keep: Number of most recent logs to keep (default: 50)
+    """
+    try:
+        import glob
+        import os
+
+        # Find all matching log files
+        pattern = str(log_dir / f"{log_name}-*.log")
+        log_files = glob.glob(pattern)
+
+        # Sort by modification time (newest first)
+        log_files.sort(key=os.path.getmtime, reverse=True)
+
+        # Remove old logs beyond the keep limit
+        for old_log in log_files[keep:]:
+            try:
+                os.remove(old_log)
+            except Exception:
+                # Silently ignore rotation failures
+                pass
+
+    except Exception:
+        # Don't let rotation failures affect the installation
+        pass
 
 
 @dataclass
@@ -239,7 +384,7 @@ def execute_chroot(
     if not use_dry_run:
         with ChrootManager(mount_point) as chroot:
             result = chroot.execute(cmd, capture_output=get_output)
-            return result.stdout if get_output is not None else ""
+            return result.stdout if get_output else ""
     else:
         print(f"{Color.PURPLE}chroot {mount_point} {cmd}{Color.END}")
         return ""
@@ -307,3 +452,68 @@ def open_with_dry_run(
 def report_problems():
     for prob in problems:
         print("Problem:", prob)
+
+
+# Locale configuration utilities
+def setup_common_locale_configuration(mount_point: str, locale_config) -> None:
+    """Setup common locale configuration (timezone, locale.gen, locale-gen).
+
+    This handles the parts that are identical across all distributions:
+    - Timezone configuration
+    - Hardware clock setup
+    - /etc/locale.gen generation
+    - Running locale-gen command
+
+    Distribution-specific parts (final locale config file) should be handled
+    by the calling distribution's configure_locale() method.
+
+    Args:
+        mount_point: Installation mount point
+        locale_config: Locale configuration object with:
+            - default: Default locale (e.g., "en_US.UTF-8 UTF-8")
+            - timezone: Timezone (e.g., "America/New_York")
+            - additional_locales: List of additional locales to generate
+
+    Raises:
+        RuntimeError: If locale-gen command fails
+    """
+    logger = logging.getLogger("pykod.config")
+
+    logger.info(f"Configuring locale: {locale_config.default}")
+    logger.info(f"Timezone: {locale_config.timezone}")
+
+    # Set timezone
+    logger.info(f"Setting timezone to {locale_config.timezone}...")
+    try:
+        execute_chroot(
+            f"ln -sf /usr/share/zoneinfo/{locale_config.timezone} /etc/localtime",
+            mount_point=mount_point,
+        )
+        logger.info("✓ Timezone symlink created")
+    except Exception as e:
+        logger.warning(f"Failed to set timezone: {e}")
+
+    # Set hardware clock (may fail in chroot, which is OK)
+    try:
+        execute_chroot("hwclock --systohc 2>/dev/null || true", mount_point=mount_point)
+        logger.debug("Hardware clock set (or skipped in chroot)")
+    except Exception as e:
+        logger.debug(f"hwclock failed (expected in chroot): {e}")
+
+    # Generate locale.gen file
+    locale_to_generate = locale_config.default + "\n"
+    locale_to_generate += "\n".join(list(locale_config.additional_locales))
+
+    logger.info("Creating /etc/locale.gen...")
+    with open_with_dry_run(f"{mount_point}/etc/locale.gen", "w") as locale_file:
+        locale_file.write(locale_to_generate + "\n")
+    logger.info(f"✓ Locale.gen created with: {locale_config.default}")
+
+    # Generate locales
+    logger.info("Generating locales...")
+    try:
+        execute_chroot("locale-gen", mount_point=mount_point)
+        logger.info("✓ Locales generated successfully")
+    except Exception as e:
+        logger.error(f"locale-gen failed: {e}")
+        raise RuntimeError(f"Failed to generate locales: {e}") from e

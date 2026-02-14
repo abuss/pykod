@@ -12,13 +12,13 @@ from pykod.user import (
     SyncthingConfig,
 )
 
-archpkgs = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
-aurpkgs = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
-# aurpkgs = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True)
-flatpakpkgs = Flatpak(hub_url="flathub")
+arch = Arch(mirror_url="https://mirror.cpsc.ucalgary.ca/mirror/archlinux.org/")
+aur = AUR(helper="yay", helper_url="https://aur.archlinux.org/yay-bin.git")
+# aur = AUR(helper="paru", helper_url="https://aur.archlinux.org/paru-bin.git", skip_debug=True)
+flatpak = Flatpak(hub_url="flathub")
 
-# conf = Configuration(base=archpkgs, dry_run=True, debug=True, verbose=True)
-conf = Configuration(base=archpkgs, verbose=True)
+# conf = Configuration(base=arch, dry_run=True, debug=True, verbose=True)
+conf = Configuration(base=arch, verbose=True)
 
 import cli
 import development
@@ -27,8 +27,8 @@ conf.devices = Devices(
     disk0=Disk(
         device="/dev/sda",
         partitions=[
-            Partition(name="efi", size="512M", type="esp", mountpoint="/boot"),
-            Partition(name="swap", size="2G", type="linux-swap"),
+            Partition(name="efi", size="512M", type="esp"),
+            # Partition(name="swap", size="2G", type="linux-swap"),
             Partition(name="root", size="100%", type="btrfs", mountpoint="/"),
             # Partition(name="home", size="100%", type="btrfs"),
         ],
@@ -45,7 +45,7 @@ conf.devices = Devices(
 
 conf.boot = Boot(
     kernel=Kernel(
-        package=archpkgs["linux"],
+        package=arch["linux"],
         modules=[
             "xhci_pci",
             "ohci_pci",
@@ -91,70 +91,70 @@ conf.network = Network(
 )
 
 conf.hardware = Hardware(
-    # cpu_microcode=archpkgs["intel-ucode"],
-    # graphics=archpkgs["xf86-video-intel"],
+    # cpu_microcode=arch["intel-ucode"],
+    # graphics=arch["xf86-video-intel"],
     # gpu="auto",  # Automatically detect GPU vendor
-    # gpu=archpkgs["xf86-video-amdgpu", "mesa", "vulkan-radeon"],
-    gpu=archpkgs[GPU_PACKAGES["amd"]["base"]],
-    audio=archpkgs["pipewire", "pipewire-alsa", "pipewire-pulse"],
-    sane=archpkgs["sane", "sane-airscan"],
+    # gpu=arch["xf86-video-amdgpu", "mesa", "vulkan-radeon"],
+    gpu=arch[GPU_PACKAGES["amd"]["base"]],
+    audio=arch["pipewire", "pipewire-alsa", "pipewire-pulse"],
+    sane=arch["sane", "sane-airscan"],
 )
 
 # Desktop environment configuration - using DesktopManager directly
 conf.desktop = DesktopManager(
-    # display_manager=Service(package=archpkgs["gdm"]),
-    display_manager=Service(package=archpkgs["cosmic-greeter"]),
+    # display_manager=Service(package=arch["gdm"]),
+    display_manager=Service(package=arch["cosmic-greeter"]),
     environments={
         # Traditional desktop environments
         "gnome": DesktopEnvironment(
             enable=False,
             # display_manager="gdm",
-            package=archpkgs["gnome"],
-            exclude_packages=archpkgs["gnome-tour", "yelp"],
-            extra_packages=archpkgs[
+            package=arch["gnome"],
+            exclude_packages=arch["gnome-tour", "yelp"],
+            extra_packages=arch[
                 "gnome-tweaks",
                 "showtime",
                 "gnome-connections",
                 "gnome-shell-extension-weather-oclock",
                 "gnome-shell-extension-appindicator",
             ]
-            + aurpkgs[
+            + aur[
                 "gnome-shell-extension-dash-to-dock",
                 "gnome-shell-extension-blur-my-shell",
                 "gnome-shell-extension-arc-menu-git",
                 "gnome-shell-extension-gsconnect",
             ]
-            + flatpakpkgs["com.mattjakeman.ExtensionManager"],
+            + flatpak["com.mattjakeman.ExtensionManager"],
         ),
         "plasma": DesktopEnvironment(
             enable=False,
-            package=archpkgs["plasma"],
+            package=arch["plasma"],
             # display_manager="sddm",
-            extra_packages=archpkgs["kde-applications"],
+            extra_packages=arch["kde-applications"],
         ),
         "cosmic": DesktopEnvironment(
             enable=True,
-            package=archpkgs["cosmic"],
+            package=arch["cosmic"],
             # display_manager="cosmic-greeter",
-            exclude_packages=archpkgs["cosmic-initial-setup"],
+            exclude_packages=arch["cosmic-initial-setup"],
         ),
         "budgie": DesktopEnvironment(
             enable=False,
-            package=archpkgs["budgie"],
+            package=arch["budgie"],
             # display_manager="lightdm",
-            extra_packages=archpkgs["lightdm-gtk-greeter", "network-manager-applet"],
+            extra_packages=arch["lightdm-gtk-greeter", "network-manager-applet"],
         ),
         "cinnamon": DesktopEnvironment(
             enable=False,
-            package=archpkgs["cinnamon"],
+            package=arch["cinnamon"],
             # display_manager="gdm"
         ),
         # Wayland compositors
         "hyprland": DesktopEnvironment(
             enable=False,
-            package=archpkgs["hyprland"],
+            package=arch["hyprland"],
             # display_manager="greetd",
-            extra_packages=archpkgs[
+            extra_packages=arch[
                 "hyprpaper",
                 "waybar",
                 "wofi",
@@ -170,7 +170,7 @@ conf.desktop = DesktopManager(
 # Fonts configuration
 conf.fonts = Fonts(
     font_dir=True,
-    packages=archpkgs[
+    packages=arch[
         # "nerd-fonts",
         "ttf-firacode-nerd",
         "ttf-nerd-fonts-symbols",
@@ -183,7 +183,7 @@ conf.fonts = Fonts(
         # "adobe-source-serif-fonts",
         # "ttf-ubuntu-font-family",
     ]
-    + aurpkgs["ttf-work-sans"],
+    + aur["ttf-work-sans"],
 )
 
 conf.root = User(username="root", no_password=True, shell="/bin/bash")
@@ -218,7 +218,7 @@ conf.abuss = User(
     programs={
         "git": Program(
             enable=True,
-            package=archpkgs["git"],
+            package=arch["git"],
             config=GitConfig(
                 {
                     "user.name": "Antal Buss",
@@ -227,21 +227,17 @@ conf.abuss = User(
                 }
             ),
         ),
-        "starship": Program(
-            enable=True, package=archpkgs["starship"], deploy_config=True
-        ),
-        "ghostty": Program(
-            enable=True, package=archpkgs["ghostty"], deploy_config=True
-        ),
+        "starship": Program(enable=True, package=arch["starship"], deploy_config=True),
+        "ghostty": Program(enable=True, package=arch["ghostty"], deploy_config=True),
         #         "fish": c.Program(enable=True),
-        "zsh": Program(enable=True, package=archpkgs["zsh"], deploy_config=True),
-        "neovim": Program(enable=True, package=archpkgs["neovim"], deploy_config=True),
-        "helix": Program(enable=True, package=archpkgs["helix"], deploy_config=True),
+        "zsh": Program(enable=True, package=arch["zsh"], deploy_config=True),
+        "neovim": Program(enable=True, package=arch["neovim"], deploy_config=True),
+        "helix": Program(enable=True, package=arch["helix"], deploy_config=True),
         "emacs": Program(
             enable=False,
-            package=archpkgs["emacs-wayland"],
+            package=arch["emacs-wayland"],
             deploy_config=True,
-            extra_packages=archpkgs["aspell", "aspell-en"],
+            extra_packages=arch["aspell", "aspell-en"],
         ),
         #         "dconf": c.Program(
         #             enable=True,
@@ -257,7 +253,7 @@ conf.abuss = User(
     services={
         "syncthing": Service(
             enable=False,
-            package=archpkgs["syncthing"],
+            package=arch["syncthing"],
             config=SyncthingConfig(
                 {
                     "options": {"start-browser": "false"},
@@ -277,7 +273,7 @@ conf.abuss = User(
 
 # packages = cli.packages + development.packages
 conf.packages = Packages(
-    archpkgs[
+    arch[
         "iw",
         "stow",
         "mc",
@@ -307,7 +303,7 @@ conf.packages = Packages(
         # "openscad",
         # "prusa-slicer",
     ]
-    + aurpkgs[
+    + aur[
         # "visual-studio-code-bin",
         # "opera",
         # "quickemu",
@@ -317,11 +313,11 @@ conf.packages = Packages(
         # "zen-browser-bin",
     ]
     # CLI tools
-    + cli.packages(archpkgs, aurpkgs)
+    + cli.packages(arch, aur)
     # Development tools
-    # + development.packages(archpkgs)
+    # + development.packages(arch)
     # Flatpak packages
-    + flatpakpkgs[
+    + flatpak[
         # "com.mattjakeman.ExtensionManager",
         # "freecad",
         # "openscad",
@@ -334,27 +330,27 @@ conf.packages = Packages(
 # System services configuration
 conf.services = Services(
     {
-        "fwupd": Service(enable=False, package=archpkgs["fwupd"]),
-        "tailscale": Service(enable=False, package=archpkgs["tailscale"]),
+        "fwupd": Service(enable=False, package=arch["fwupd"]),
+        "tailscale": Service(enable=False, package=arch["tailscale"]),
         "networkmanager": Service(
             enable=True,
-            package=archpkgs["networkmanager"],
+            package=arch["networkmanager"],
             service_name="NetworkManager",
         ),
         "openssh": Service(
             enable=True,
-            package=archpkgs["openssh"],
+            package=arch["openssh"],
             service_name="sshd",
             settings={"PermitRootLogin": False},
         ),
-        "avahi": Service(enable=False, package=archpkgs["avahi"]),
+        "avahi": Service(enable=False, package=arch["avahi"]),
         "cups": Service(
             enable=False,
-            package=archpkgs["cups"],
-            extra_packages=archpkgs["gutenprint"] + aurpkgs["brother-dcp-l2550dw"],
+            package=arch["cups"],
+            extra_packages=arch["gutenprint"] + aur["brother-dcp-l2550dw"],
         ),
         "bluetooth": Service(
-            enable=False, package=archpkgs["bluez"], service_name="bluetooth"
+            enable=False, package=arch["bluez"], service_name="bluetooth"
         ),
     }
 )
