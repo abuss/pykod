@@ -8,7 +8,7 @@ class PackageList:
         self._pkgs = {}  # (Repository, [])
 
     def new(self, repo, items) -> "PackageList":
-        self._pkgs = {repo: items}  # (Repository, [])
+        self._pkgs = {repo: list(items)}  # (Repository, [])
         return self
 
     def __add__(self, other_pkgs):
@@ -83,9 +83,13 @@ class Repository(ABC):
         self._pkgs = {}
 
     def __getitem__(self, items) -> PackageList:
-        if isinstance(items, (list, tuple)):
-            return PackageList().new(self, items)
-        return PackageList().new(self, (items,))
+        if isinstance(items, str):
+            items = [
+                items,
+            ]
+        # if isinstance(items, list):
+        # return PackageList().new(self, items)
+        return PackageList().new(self, items)
 
     def __repr__(self) -> str:
         return f"{self.__dict__}"
