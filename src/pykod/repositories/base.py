@@ -44,6 +44,9 @@ class PackageList:
         for repo, items in other_pkgs._pkgs.items():
             if repo in self._pkgs:
                 # Merge items from the same repository
+                print(
+                    f"Merging items from {repo.__class__.__name__}: {self._pkgs[repo]} {items}"
+                )
                 self._pkgs[repo] += items
             else:
                 # Add new repository entry
