@@ -1,5 +1,7 @@
 """Debian/Ubuntu repository configuration."""
 
+import re
+
 from pykod.common import execute_chroot as exec_chroot
 from pykod.common import execute_command as exec
 from pykod.common import get_dry_run
@@ -32,14 +34,14 @@ GPU_PACKAGES = {
 
 class Debian(BaseSystemRepository):
     commands = {
-        'add_user': 'adduser {username} --gecos "{fullname}" --shell {shell}',
-        'del_user': 'deluser --remove-home {username}',
-        'admin_user': 'adduser {username} sudo',
-        'admin_group': 'sudo',
-        'mod_user': 'usermod {options} {username}',
-        'add_group': 'addgroup {group}',
-        'del_group': 'delgroup {group}',
-        'passwd': 'passwd {username}',
+        "add_user": 'adduser {username} --gecos "{fullname}" --shell {shell}',
+        "del_user": "deluser --remove-home {username}",
+        "admin_user": "adduser {username} sudo",
+        "admin_group": "sudo",
+        "mod_user": "usermod {options} {username}",
+        "add_group": "addgroup {group}",
+        "del_group": "delgroup {group}",
+        "passwd": "passwd {username}",
     }
 
     def __init__(self, release="stable", variant="debian", **kwargs):
@@ -132,36 +134,125 @@ class Debian(BaseSystemRepository):
         }
         return packages
 
+    def _resolve_kernel_package(self, mount_point: str, metapackage: str) -> str | None:
+        """Resolve a kernel metapackage to its concrete package dependency.
+
+        This handles cases where users specify metapackages like 'linux-image-generic'
+        (Ubuntu) or 'linux-image-amd64' (Debian) which don't contain kernel files
+        directly but depend on versioned packages like 'linux-image-6.8.0-51-generic'.
+
+        Args:
+            mount_point: Installation mount point for chroot execution
+            metapackage: Package name that may be a metapackage
+
+        Returns:
+            Concrete kernel package name if resolution succeeds, None otherwise
+
+        Example:
+            >>> _resolve_kernel_package("/mnt", "linux-image-generic")
+            "linux-image-6.8.0-51-generic"
+        """
+        print(f"[_resolve_kernel_package] Resolving metapackage: {metapackage}")
+
+        # Query package dependencies
+        depends_output = exec_chroot(
+            f"dpkg-query --show --showformat='${{Depends}}' {metapackage} || true",
+            mount_point=mount_point,
+            get_output=True,
+        ).strip()
+
+        if not depends_output:
+            print(f"[_resolve_kernel_package] No dependencies found for {metapackage}")
+            return None
+
+        print(f"[_resolve_kernel_package] Dependencies: {depends_output}")
+
+        # Parse dependency string to find versioned kernel packages
+        # Pattern: linux-image-<major>.<minor>.<patch>-<build>-<flavor>
+        # Example: linux-image-6.8.0-51-generic or linux-image-6.1.0-18-amd64
+        pattern = r"linux-image-\d+\.\d+\.\d+-\S+"
+        matches = re.findall(pattern, depends_output)
+
+        if matches:
+            # Take first match (as per decision #3)
+            concrete_pkg = matches[0]
+            # Remove any trailing comma or parenthesis artifacts
+            concrete_pkg = concrete_pkg.rstrip(",)")
+            print(f"[_resolve_kernel_package] Found concrete package: {concrete_pkg}")
+            return concrete_pkg
+
+        print(
+            f"[_resolve_kernel_package] No versioned kernel package found in dependencies"
+        )
+        return None
+
     def get_kernel_info(self, mount_point: str, package):
         """Retrieve the kernel file path and version from the package.
+
+        Supports both concrete kernel packages (e.g., 'linux-image-6.8.0-51-generic')
+        and metapackages (e.g., 'linux-image-generic'). For metapackages, automatically
+        resolves to the concrete package dependency.
 
         Debian kernels are located in /boot/vmlinuz-<version> format.
 
         Args:
             mount_point: Installation mount point
-            package: Kernel package object
+            package: Kernel package object (PackageList)
 
         Returns:
             tuple: (kernel_file_path, kernel_version)
+
+        Raises:
+            RuntimeError: If kernel file cannot be found in package or dependencies
+
+        Example:
+            >>> get_kernel_info("/mnt", ubuntu["linux-image-generic"])
+            ("/boot/vmlinuz-6.8.0-51-generic", "6.8.0-51-generic")
         """
         print(f"[get_kernel_info] mount_point={mount_point}, package={package}")
         kernel_pkg = package.to_list()[0]
 
-        # Debian: kernel is in /boot/vmlinuz-<version>
+        # TIER 1: Try to find kernel file directly in the specified package
+        print(f"[get_kernel_info] Tier 1: Querying package '{kernel_pkg}' directly")
         kernel_file = exec_chroot(
-            f"dpkg-query -L {kernel_pkg} | grep '/boot/vmlinuz-'",
+            f"dpkg-query -L {kernel_pkg} | grep '/boot/vmlinuz-' || true",
             mount_point=mount_point,
             get_output=True,
-        )
+        ).strip()
 
-        if get_dry_run():
-            kernel_file = "/boot/vmlinuz-6.1.0-18-amd64"
+        # TIER 2: If Tier 1 fails, try resolving as metapackage
+        if not kernel_file:
+            print(
+                f"[get_kernel_info] Tier 1 failed - attempting metapackage resolution"
+            )
+            concrete_pkg = self._resolve_kernel_package(mount_point, kernel_pkg)
 
-        kernel_file = kernel_file.strip()
-        print(f"[get_kernel_info] kernel_file={kernel_file}")
+            if concrete_pkg:
+                print(f"[get_kernel_info] Resolved: {kernel_pkg} → {concrete_pkg}")
+                kernel_file = exec_chroot(
+                    f"dpkg-query -L {concrete_pkg} | grep '/boot/vmlinuz-' || true",
+                    mount_point=mount_point,
+                    get_output=True,
+                ).strip()
+            else:
+                print(
+                    f"[get_kernel_info] Tier 2 failed - could not resolve metapackage"
+                )
+
+        # If both tiers failed, raise exception
+        if not kernel_file:
+            raise RuntimeError(
+                f"Failed to find kernel file for package '{kernel_pkg}'. "
+                f"Attempted direct query and metapackage resolution. "
+                f"Ensure the package is installed and contains a valid kernel."
+            )
+
+        print(f"[get_kernel_info] Found kernel: {kernel_file}")
 
         # Extract version: /boot/vmlinuz-6.1.0-18-amd64 → 6.1.0-18-amd64
         kver = kernel_file.replace("/boot/vmlinuz-", "")
+        print(f"[get_kernel_info] Kernel version: {kver}")
+
         return kernel_file, kver
 
     def setup_linux(self, mount_point, kernel_package):
@@ -276,7 +367,8 @@ class Debian(BaseSystemRepository):
             cmds.append(cmd_check)
         return cmds
 
-    def hash_password(self, plain_password:str) -> str:
+    def hash_password(self, plain_password: str) -> str:
         """Hash a password using the system's default hashing method."""
         import crypt
+
         return crypt.crypt(plain_password, crypt.mksalt(crypt.METHOD_SHA512))

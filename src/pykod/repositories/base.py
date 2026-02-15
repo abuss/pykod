@@ -189,14 +189,28 @@ class BaseSystemRepository(Repository):
     def get_kernel_info(self, mount_point: str, package) -> tuple[str, str]:
         """Retrieve kernel file path and version from package.
 
+        Implementations should support both concrete kernel packages and
+        metapackages. For metapackages, automatically resolve to the actual
+        package containing the kernel file.
+
         Args:
             mount_point: Installation mount point
-            package: Kernel package object
+            package: Kernel package object (PackageList)
 
         Returns:
             tuple: (kernel_file_path, kernel_version)
-            Example Arch: ("/usr/lib/modules/6.1.0/vmlinuz", "6.1.0")
-            Example Debian: ("/boot/vmlinuz-6.1.0-18-amd64", "6.1.0-18-amd64")
+
+        Examples:
+            Arch: ("/usr/lib/modules/6.1.0/vmlinuz", "6.1.0")
+            Debian: ("/boot/vmlinuz-6.1.0-18-amd64", "6.1.0-18-amd64")
+            Ubuntu: ("/boot/vmlinuz-6.8.0-51-generic", "6.8.0-51-generic")
+
+        Raises:
+            RuntimeError: If kernel file cannot be found in package or dependencies
+
+        Note:
+            Metapackages (e.g., 'linux-image-generic', 'linux-image-amd64')
+            should be automatically resolved to their concrete dependencies.
         """
         pass
 
