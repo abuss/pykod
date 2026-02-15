@@ -16,7 +16,7 @@ from pykod.repositories.debian import GPU_PACKAGES
 
 # Initialize Ubuntu repository (uses Debian class with variant="ubuntu")
 ubuntu = Debian(
-    release="noble",  # Ubuntu 24.04 LTS
+    release="questing",  # "noble",  # Ubuntu 24.04 LTS
     variant="ubuntu",
     mirror_url="http://archive.ubuntu.com/ubuntu/",
 )
@@ -89,7 +89,7 @@ conf.desktop = DesktopManager(
     display_manager=Service(package=ubuntu["gdm3"]),
     environments={
         "gnome": DesktopEnvironment(
-            enable=True,
+            enable=False,
             package=ubuntu["ubuntu-desktop-minimal"],  # Minimal Ubuntu Desktop
             extra_packages=ubuntu[
                 "gnome-tweaks",

@@ -126,6 +126,7 @@ class Debian(BaseSystemRepository):
                 # "bash-completion",
                 # "plocate",
                 # "sudo",
+                "passwd",
                 "schroot",
                 # "whois",
                 "dracut-install",  # For initramfs generation (consistent with Arch)
