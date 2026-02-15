@@ -11,7 +11,6 @@
 # ------------------------------------------------------------
 
 from pykod import *
-from pykod.core import File, Source
 from pykod.repositories import Debian, Flatpak
 from pykod.repositories.debian import GPU_PACKAGES
 
@@ -29,12 +28,14 @@ ubuntu = Debian(
 flatpak = Flatpak(hub_url="flathub")
 
 # Create configuration
-conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+# conf = Configuration(base=ubuntu, dry_run=True, debug=True, verbose=True)
+conf = Configuration(base=ubuntu, verbose=True)
+
 
 # Disk configuration - same as Arch/Debian (BTRFS + generations)
 conf.devices = Devices(
     disk0=Disk(
-        device="/dev/vda",
+        device="/dev/sda",
         initialize=True,
         partitions=[
             Partition(name="efi", size="512M", type="esp", mountpoint="/boot/efi"),
