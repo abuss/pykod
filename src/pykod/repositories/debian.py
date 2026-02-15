@@ -118,18 +118,18 @@ class Debian(BaseSystemRepository):
         packages = {
             "kernel": kernel_package,
             "base": self[
-                "linux-image-generic",
-                "linux-firmware",
-                microcode,
+                # "linux-image-generic",
+                # "linux-firmware",
+                # microcode,
                 "btrfs-progs",
                 "bash-completion",
-                "plocate",
-                "sudo",
+                # "plocate",
+                # "sudo",
                 "schroot",
                 "whois",
                 "dracut",  # For initramfs generation (consistent with Arch)
                 "git",
-                "systemd-boot",  # For systemd-boot bootloader support
+                # "systemd-boot",  # For systemd-boot bootloader support
             ],
         }
         return packages
