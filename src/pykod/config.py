@@ -48,6 +48,7 @@ class Configuration:
         self._partition_list = []
         self._state: str = ""
         self.packages = PackageList()
+        self.validate = False
 
     # ---- internal helpers (no behavior change) ----
 
@@ -519,6 +520,8 @@ class Configuration:
         return current_generation
 
     def _check_packages(self, packages: PackageList) -> list:
+        if not self.validate:
+            return None
         invalid_packages = []
         for repo, items in packages.items():
             cmds = repo.is_valid_packages(items)

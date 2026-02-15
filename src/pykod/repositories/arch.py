@@ -27,6 +27,17 @@ GPU_PACKAGES = {
 
 
 class Arch(BaseSystemRepository):
+    commands = {
+        'add_user': 'useradd -m {username} -c "{fullname}" -s {shell}',
+        'del_user': 'userdel -r {username}',
+        'admin_user': 'usermod -aG wheel {username}',
+        'admin_group': 'wheel',
+        'mod_user': 'usermod {options} {username}',
+        'add_group': 'groupadd {group}',
+        'del_group': 'groupdel {group}',
+        'passwd': 'passwd {username}',
+    }
+
     def __init__(self, repos=["base", "contrib"], **kwargs):
         # super().__init__(repos=repos, **kwargs)
         self.repos = repos
@@ -166,3 +177,12 @@ class Arch(BaseSystemRepository):
     #         if not output.strip():
     #             invalid_pkgs.append(pkg)
     #     return invalid_pkgs
+    #
+    # def hash_password(self, plain_password:str) -> str:
+    #     """Hash a password using the system's default hashing method."""
+    #     cmd = f"echo '{plain_password}' | mkpasswd -m sha-512"
+    #     return cmd
+    def hash_password(self, plain_password:str) -> str:
+        """Hash a password using the system's default hashing method."""
+        import crypt
+        return crypt.crypt(plain_password, crypt.mksalt(crypt.METHOD_SHA512))

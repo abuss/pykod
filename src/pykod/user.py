@@ -160,9 +160,11 @@ class User:
     extra_shell_init: str | None = None
     environment_vars: dict | None = None
     file: File | None = None
+    _config = None
 
     def install(self, config):
         """Creating a user."""
+        self._config = config
         cmds = self._create()
         for cmd in cmds:
             execute_chroot(cmd, mount_point=config._mount_point)
@@ -344,14 +346,17 @@ class User:
         shell = self.shell or "/bin/bash"
         groups: list = self.groups or []
         cmds = []
+        base = self._config._base
         # Normal users (no root)
         if user != "root":
             # print(f"Creating user {user}")
-            cmds.append(f"useradd -m {user} -c '{name}'")
+            cmd = base.exec_command("add_user", username=user, fullname=name, shell=shell)
+            cmds.append(cmd)
+            # cmds.append(f"useradd -m {user} -c '{name}'")
             if groups:
                 # TODO: Implement group creation
                 if self.allow_sudo:
-                    groups.append("wheel")
+                    groups.append(base.commands["admin_group"]) #"wheel")
                     cmds.append(
                         "sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers",
                     )
@@ -361,22 +366,28 @@ class User:
 
                 for group in set(groups):
                     try:
-                        cmds.append(f"usermod -aG {group} {user}")
+                        cmd = base.exec_command("mod_user", options=f"-aG {group}", username=user)
+                        cmds.append(cmd)
+                        # cmds.append(f"usermod -aG {group} {user}")
                     except Exception:
                         print(f"Group {group} does not exist")
 
         # Shell
-        cmds.append(f"usermod -s {shell} {user}")
+        # cmds.append(f"usermod -s {shell} {user}")
 
         # Password
         no_password = self.no_password == True
         if not no_password:
             if isinstance(self.hashed_password, str):
                 # print("Assign the provided password")
-                cmds.append(f"usermod -p '{self.hashed_password}' {user}")
+                cmd = base.exec_command("mod_user", options=f"-p {self.hashed_password}", username=user)
+                cmds.append(cmd)
             elif isinstance(self.password, str):
                 # print("Assign the provided password after encryption")
-                cmds.append(f"usermod -p `mkpasswd -m sha-512 {self.password}` {user}")
+                hash_passwd = base.hash_passwd(self.password)
+                cmd = base.exec_command("mod_user", options=f"-p {hash_passwd}", username=user)
+                cmds.append(cmd)
+                # cmds.append(f"usermod -p `mkpasswd -m sha-512 {self.password}` {user}")
             else:
                 cmds.append(f"passwd {user}")
 

@@ -231,3 +231,20 @@ class BaseSystemRepository(Repository):
             str: Command to execute for database update
         """
         pass
+
+    def exec_command(self, command: str, *args, **kwargs) -> None:
+        """Execute a shell command.
+
+        Args:
+            command: Command string to execute
+        """
+        import subprocess
+
+        print(f"Executing command: {command}")
+        cmd = self.commands[command]
+        cmd_formatted = cmd.format(*args, **kwargs)
+        print(f"Executing command: {cmd_formatted}")
+        return cmd_formatted
+        # result = subprocess.run(command, shell=True, check=True)
+        # if result.returncode != 0:
+        #     raise RuntimeError(f"Command failed with return code {result.returncode}")

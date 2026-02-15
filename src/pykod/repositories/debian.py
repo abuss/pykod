@@ -31,6 +31,17 @@ GPU_PACKAGES = {
 
 
 class Debian(BaseSystemRepository):
+    commands = {
+        'add_user': 'adduser {username} --gecos "{fullname}" --shell {shell}',
+        'del_user': 'deluser --remove-home {username}',
+        'admin_user': 'adduser {username} sudo',
+        'admin_group': 'sudo',
+        'mod_user': 'usermod {options} {username}',
+        'add_group': 'addgroup {group}',
+        'del_group': 'delgroup {group}',
+        'passwd': 'passwd {username}',
+    }
+
     def __init__(self, release="stable", variant="debian", **kwargs):
         """Initialize Debian/Ubuntu repository.
 
@@ -264,3 +275,8 @@ class Debian(BaseSystemRepository):
             cmd_check = f"apt-cache show {pkg}"
             cmds.append(cmd_check)
         return cmds
+
+    def hash_password(self, plain_password:str) -> str:
+        """Hash a password using the system's default hashing method."""
+        import crypt
+        return crypt.crypt(plain_password, crypt.mksalt(crypt.METHOD_SHA512))
