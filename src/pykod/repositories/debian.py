@@ -75,8 +75,9 @@ class Debian(BaseSystemRepository):
         list_pkgs = packages._pkgs[self]
         print(f"{list_pkgs=}")
         pkgs_str = ",".join(list_pkgs)
+        components = "main,contrib,non-free,universe"
         exec(
-            f"debootstrap --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
+            f"debootstrap --components={components} --include={pkgs_str} {self.release} {mount_point} {self.mirror_url}"
         )
 
     def install(self, items) -> None:
@@ -122,14 +123,14 @@ class Debian(BaseSystemRepository):
                 # "linux-firmware",
                 # microcode,
                 "btrfs-progs",
-                "bash-completion",
+                # "bash-completion",
                 # "plocate",
                 # "sudo",
                 "schroot",
-                "whois",
-                "dracut",  # For initramfs generation (consistent with Arch)
+                # "whois",
+                "dracut-install",  # For initramfs generation (consistent with Arch)
                 "git",
-                # "systemd-boot",  # For systemd-boot bootloader support
+                "systemd-boot-efi",  # For systemd-boot bootloader support
             ],
         }
         return packages
