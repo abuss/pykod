@@ -1,7 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from chorut import ChrootManager
 
